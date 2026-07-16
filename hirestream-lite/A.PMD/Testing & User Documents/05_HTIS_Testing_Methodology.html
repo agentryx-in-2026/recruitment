@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>HireStream — HTIS Testing Methodology</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 16mm 14mm; }
+  html { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color:#0f172a; font-size:10pt; line-height:1.4; }
+  body { max-width: 182mm; margin: 0 auto; }
+  h1 { font-size: 17pt; margin: 0 0 2mm; color:#0c4a6e; }
+  h2 { font-size: 12pt; margin: 5mm 0 1.5mm; padding-bottom: 0.8mm; border-bottom: 1px solid #cbd5e1; color:#0c4a6e; break-after: avoid; }
+  h3 { font-size: 10.5pt; margin: 3mm 0 1mm; color:#0f172a; break-after: avoid; }
+  p, li { margin: 1mm 0; }
+  ul, ol { margin: 1mm 0 2mm 0; padding-left: 6mm; }
+  li { margin: 0.8mm 0; }
+  code { background: #f1f5f9; padding: 0 1mm; border-radius: 2px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; margin: 1.5mm 0 3mm; font-size: 8.8pt; break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  th, td { border: 1px solid #cbd5e1; padding: 1mm 2mm; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-weight: 600; font-size: 8pt; text-transform: uppercase; letter-spacing: .02em; color: #334155; }
+  .kv { display: inline-block; font-size: 8.5pt; color: #475569; margin-right: 6mm; }
+  .kv b { color: #0f172a; }
+  .callout { background: #fffbeb; border: 1px solid #fbbf24; border-radius: 3px; padding: 1.5mm 2.5mm; margin: 1.5mm 0; font-size: 9pt; }
+  .pagebreak { break-before: page; }
+  footer { margin-top: 6mm; padding-top: 2mm; border-top: 1px solid #cbd5e1; font-size: 8pt; color: #64748b; text-align: center; }
+  strong { color: #0c4a6e; }
+  @media print {
+    a { color: #0f172a; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>HireStream — HTIS Testing Methodology</h1>
+<p>
+  <span class="kv"><b>For:</b> HTIS Testing Team</span>
+  <span class="kv"><b>Project:</b> HPSEDC Overseas Placement Portal</span>
+  <span class="kv"><b>Build:</b> v0.9.7</span>
+  <span class="kv"><b>Prepared:</b> 2026-04-22</span>
+</p>
+
+<h2>1 · Scope and objective</h2>
+<p>HTIS is asked to validate the <b>main FRS scope</b> (Sections 1 – 10 of the signed FRS) against the live staging deployment. Beyond-FRS enhancements (the v1.5 Extras project in Verify) are <b>out of scope</b> for this pass and should only be flagged if they obstruct a core FRS flow.</p>
+<p>Two coupled portals are involved:</p>
+<table>
+  <thead><tr><th style="width:22%">Portal</th><th style="width:48%">Purpose</th><th>URL</th></tr></thead>
+  <tbody>
+    <tr><td><b>HireStream</b></td><td>The application under test — the HPSEDC Overseas Placement Portal itself.</td><td><code>https://hirestream-stg.agentryx.dev</code></td></tr>
+    <tr><td><b>Agentryx Verify</b></td><td>The compliance matrix portal where you record pass / partial / fail against each FRS item.</td><td><code>https://verify-stg.agentryx.dev</code></td></tr>
+  </tbody>
+</table>
+<p>Test every flow in HireStream first, then record the verdict in Verify. One FRS requirement → one signoff row. No separate spreadsheet.</p>
+
+<h2>2 · Testing environment</h2>
+<ul>
+  <li><b>Database</b> — fresh staging data, seeded with 6 candidates, 4 agents, 1 employer, 1 admin, 15 countries and ~20 jobs. Safe to Reset / Delete on seeded rows; the DB is reseedable.</li>
+  <li><b>Email gateway</b> — SMTP2GO (free tier, 1 000 mails / month). Real emails are delivered. Use an inbox you can check for OTP, password-reset, and notification mails.</li>
+  <li><b>SMS gateway</b> — Twilio trial. SMS is only delivered to numbers pre-verified on the Twilio account. Non-verified numbers are logged but not delivered — expected behaviour.</li>
+  <li><b>Browser support</b> — Chrome 120+, Safari 17+, Firefox 120+, Edge 120+. Test on desktop and on mobile viewport (Chrome DevTools → <i>Toggle device toolbar</i>).</li>
+  <li><b>Uploads</b> — 10 MB per file, JPG / PNG / PDF only, magic-byte verified server-side. A renamed <code>virus.exe</code> will be rejected.</li>
+</ul>
+
+<h2>3 · What you can test without logging in</h2>
+<p>The home page and a handful of public pages are reachable without an account. Start here to confirm the portal is reachable before signing in.</p>
+<table>
+  <thead><tr><th>Feature</th><th>Path</th></tr></thead>
+  <tbody>
+    <tr><td>Landing page + FRS summary</td><td><code>/</code></td></tr>
+    <tr><td>FAQ</td><td><code>/faq</code></td></tr>
+    <tr><td>Public grievance filing (PGRS)</td><td><code>/grievances</code></td></tr>
+    <tr><td>Public job listings</td><td><code>/jobs</code></td></tr>
+    <tr><td>Job detail (read-only preview)</td><td><code>/jobs/:id</code></td></tr>
+    <tr><td>Agency public page</td><td><code>/agencies/:id</code></td></tr>
+    <tr><td>Case / status check (by reference)</td><td><code>/status-check</code></td></tr>
+    <tr><td>Login / Register</td><td><code>/auth</code></td></tr>
+  </tbody>
+</table>
+<p>Everything beyond — applying for a job, uploading documents, scheduling an interview, approving an agency — requires an authenticated role.</p>
+
+<h2>4 · Seeded test accounts</h2>
+<p>All seeded users share password <code>test123</code> except the superadmin.</p>
+<table>
+  <thead><tr><th>Role</th><th>Username</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Superadmin</td><td><code>superadmin</code></td><td>Password <code>hpsedc@super2026</code>. Use rarely.</td></tr>
+    <tr><td>Admin</td><td><code>demo_admin</code></td><td>Admin dashboard, integrations, audit log.</td></tr>
+    <tr><td>Employer</td><td><code>demo_employer</code></td><td>Post requisitions, review applicants, approve placements.</td></tr>
+    <tr><td>Agent (verified)</td><td><code>europe_careers</code></td><td>Use this for most agent flows.</td></tr>
+    <tr><td>Additional agents</td><td><code>demo_agent</code>, <code>gulf_jobs_direct</code>, <code>japan_pathways</code></td><td>Multi-agency + derivative-job flows.</td></tr>
+    <tr><td>Candidate (100 % profile)</td><td><code>priya_verma</code></td><td>Has an accepted placement — welfare / post-placement tests.</td></tr>
+    <tr><td>Candidate (88 %, missing docs)</td><td><code>meera_iyer</code></td><td>"Profile gaps" tests.</td></tr>
+    <tr><td>Additional candidates</td><td><code>demo_candidate</code>, <code>rohan_mehta</code>, <code>vikram_negi</code>, <code>ananya_bhatt</code></td><td>Pipeline depth tests.</td></tr>
+  </tbody>
+</table>
+<p>Sign in at <code>https://hirestream-stg.agentryx.dev/auth</code>.</p>
+
+<h2>5 · Creating your own accounts</h2>
+<p>Some FRS items — registration flow, OTP delivery, first-time onboarding — require a fresh account. You can create them yourself; no admin request is needed for candidate or employer self-signup.</p>
+<ul>
+  <li><b>Candidate self-registration</b> — <code>/auth</code> → <i>Register</i> tab → Role = <i>Candidate</i>. OTP is delivered to the email you enter. Use <code>+</code>-addressing (<code>htis+test1@yourdomain.com</code>) so multiple test accounts route to one inbox.</li>
+  <li><b>Agent registration</b> — <code>/auth</code> → Register → Role = <i>Agent</i>. Agent accounts are created <b>unverified</b>; sign in as <code>demo_admin</code> → <i>Agencies → Verify</i> to mark the agent verified before it can pick up requisitions.</li>
+  <li><b>Employer registration</b> — <code>/auth</code> → Register → Role = <i>Employer</i>. Employer accounts are usable immediately.</li>
+  <li><b>Admin / superadmin accounts cannot be self-created.</b> If HTIS needs an additional admin account, raise it via the escalation path (§8); Agentryx will seed one.</li>
+</ul>
+
+<div class="pagebreak"></div>
+
+<h2>6 · Recommended test order — main FRS scope</h2>
+<p>Follow this sequence. Each block is self-contained and builds on data created in the previous block.</p>
+<ol>
+  <li><b>Auth &amp; profile</b> (FRS §1.1 – §1.10) — register a candidate → verify email OTP → complete profile → upload passport + CV → confirm the profile-completion bar reaches 100 %.</li>
+  <li><b>Agent verification</b> (FRS §2.1 – §2.3) — register an agent → log in as <code>demo_admin</code> → <i>Agencies → Verify</i> → confirm the agent now shows as verified.</li>
+  <li><b>Employer → requisition</b> (FRS §3.1 – §3.4) — log in as <code>demo_employer</code> → <i>Post requisition</i> → save as draft → publish → confirm it appears in the agent <i>"Available requisitions"</i> list, <b>not</b> in the candidate <i>Jobs</i> list.</li>
+  <li><b>Agent pickup + derivative job</b> (FRS §2.4 – §2.6) — log in as <code>europe_careers</code> → pick up the requisition → confirm a new derivative job appears under <i>"My Jobs"</i> and in the candidate public <code>/jobs</code> list.</li>
+  <li><b>Candidate apply → shortlist → interview → placement</b> (FRS §1.11 – §1.19, §2.7 – §2.10) — apply as candidate → agent reviews → shortlist → schedule interview → employer approves → agent creates placement → candidate accepts offer.</li>
+  <li><b>Welfare &amp; post-placement</b> (FRS §2.11 – §2.15) — welfare tab, grievance raise, status check by reference.</li>
+  <li><b>Notifications</b> (FRS §1.20 – §1.28, §9.x) — see companion document <code>Notifications_Test_Plan_for_HTIS.html</code> for the full 34-template test matrix.</li>
+  <li><b>Admin &amp; audit</b> (FRS §4.x, §10.x) — log in as <code>demo_admin</code> → <i>Dashboard metrics</i>, <i>System Controls</i>, <i>Audit Log</i>, <i>Integrations</i> toggle (requires password re-auth).</li>
+</ol>
+<div class="callout"><b>Skip Section 11+ (Beyond-FRS) for this pass.</b> Those items live on the <code>hirestream-v1.5-extras</code> project in Verify and are not part of the signed scope.</div>
+
+<h2>7 · Recording results in the Verify module</h2>
+<p>Agentryx Verify is the compliance-matrix portal — the single source of truth for what has been tested and by whom.</p>
+<h3>Login</h3>
+<ul>
+  <li><b>URL</b> — <code>https://verify-stg.agentryx.dev/login</code></li>
+  <li><b>Username</b> — <code>htis</code></li>
+  <li><b>Password</b> — <code>test123</code></li>
+</ul>
+<h3>Pick the right project</h3>
+<p>Two projects are listed on landing:</p>
+<ul>
+  <li><code>hirestream-v1.4</code> — <b>HPSEDC Overseas Placement Portal</b> (144 items, main FRS). <b>This is the only project HTIS needs to review for this pass.</b></li>
+  <li><code>hirestream-v1.5-extras</code> — Beyond-FRS enhancements. Ignore for now.</li>
+</ul>
+<h3>How a signoff works</h3>
+<p>Each FRS requirement is one row. Click the row to expand. You will see:</p>
+<ul>
+  <li><b>Description / expected result / test steps</b> — what to test.</li>
+  <li><b>Evidence</b> — what the Agentryx team has delivered and how to find it in the portal.</li>
+  <li><b>Your signoff cell (HTIS column)</b> — click <b>Pass / Partial / Fail / Waived</b>, add a comment, attach a screenshot if needed (clipboard paste or drag-drop, up to 10 MB).</li>
+</ul>
+<p>Partial and Fail <b>require</b> a comment. Pass does not, but a one-line confirmation ("verified as <code>priya_verma</code> — offer-acceptance email received") is appreciated.</p>
+<h3>Re-verify badges</h3>
+<p>If a row shows a <b>🔁 re-verify</b> chip in your signoff cell, a fix has shipped since you last rejected the item. Re-test against the new build (shown in the project header) and update the signoff.</p>
+<h3>Ideas &amp; Feedback</h3>
+<p>Enhancement requests and UX suggestions go into the <b>💡 Suggest an idea</b> inbox on the project view. These are triaged separately and do not block signoffs.</p>
+
+<h2>8 · Escalation path</h2>
+<ul>
+  <li><b>Blocker bug</b> (test cannot proceed) — mark the Verify row <b>Fail</b>, include reproduction steps, and email Agentryx delivery. Same-day turnaround.</li>
+  <li><b>Portal unreachable / 500 errors</b> — contact Agentryx delivery directly; do not log as a per-item failure.</li>
+  <li><b>Question about FRS interpretation</b> — comment on the Verify row and flag <b>Partial</b> with "awaiting interpretation". Delivery responds in-thread.</li>
+  <li><b>Ideas / enhancements out of FRS scope</b> — use the Verify <i>Ideas &amp; Feedback</i> inbox, not the signoff cell.</li>
+</ul>
+
+<footer>
+  HireStream v0.9.7 · HTIS Testing Methodology · Prepared 2026-04-22 · Companion: <code>Notifications_Test_Plan_for_HTIS.html</code>
+</footer>
+
+</body>
+</html>

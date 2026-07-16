@@ -1,0 +1,8 @@
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Deploy your app
+npm install
+npm run build  
+npm start

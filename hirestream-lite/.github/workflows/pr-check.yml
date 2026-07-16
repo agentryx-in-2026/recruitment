@@ -1,0 +1,181 @@
+name: PR Check — test:deep + confidence
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: pr-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-deep:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # for confidence-score PR comment (P3.3)
+      issues: write         # for bypass-confidence label removal (P3.4 one-shot)
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: hirestream_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'hirestream/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: hirestream/
+        run: npm ci
+
+      - name: Setup Database
+        working-directory: hirestream/
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/hirestream_test
+          TEST_DATABASE_URL: postgresql://postgres:password@localhost:5432/hirestream_test
+        run: npm run db:push:test
+
+      - name: Run Jest tests (with coverage for confidence score)
+        working-directory: hirestream/
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/hirestream_test
+          TEST_DATABASE_URL: postgresql://postgres:password@localhost:5432/hirestream_test
+        run: npm run test:coverage
+
+      - name: Start Dev Server
+        working-directory: hirestream/
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/hirestream_test
+          TEST_DATABASE_URL: postgresql://postgres:password@localhost:5432/hirestream_test
+        run: |
+          PORT=5001 NODE_ENV=development npx tsx server/index.ts &
+          echo "Waiting for dev server to be ready..."
+          curl --retry-connrefused --retry 10 --retry-delay 2 http://localhost:5001/api/v1/content/faq
+
+      - name: Run smoke + capture output for confidence score
+        working-directory: hirestream/
+        run: |
+          set -o pipefail
+          DEEP_URL=http://localhost:5001 npm run smoke 2>&1 | tee /tmp/smoke-output.txt
+
+      - name: Run schema-fuzz + capture output for confidence score
+        if: always()  # run even if smoke had calibration failures
+        working-directory: hirestream/
+        run: |
+          DEEP_URL=http://localhost:5001 npm run schema-fuzz 2>&1 | tee /tmp/fuzz-output.txt || true
+          # always exit 0 here — fuzz baseline-vs-current delta is computed by confidence.mjs
+
+      - name: Compute confidence score (P3.3 — reporter only)
+        if: always()  # signal even when smoke/fuzz are red
+        working-directory: hirestream/
+        env:
+          CONFIDENCE_SMOKE_OUTPUT: /tmp/smoke-output.txt
+          CONFIDENCE_FUZZ_OUTPUT: /tmp/fuzz-output.txt
+        continue-on-error: true
+        run: npm run confidence
+
+      - name: Post confidence score as PR comment (P3.3)
+        if: always() && github.event_name == 'pull_request'
+        working-directory: hirestream/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          if [ -f confidence-summary.md ]; then
+            # Sticky comment: find existing one by HIDDEN marker and edit it
+            MARKER="<!-- hirestream-confidence-score -->"
+            # Prepend the marker (idempotent across re-runs)
+            (echo "$MARKER"; cat confidence-summary.md) > /tmp/confidence-comment.md
+            # Find existing comment id (if any) by the marker
+            EXISTING_ID=$(gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+              --jq ".[] | select(.body | contains(\"$MARKER\")) | .id" | head -1)
+            if [ -n "$EXISTING_ID" ]; then
+              gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$EXISTING_ID" \
+                -f body="$(cat /tmp/confidence-comment.md)" >/dev/null
+              echo "Updated existing confidence comment (id=$EXISTING_ID)"
+            else
+              gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/confidence-comment.md
+              echo "Posted new confidence comment"
+            fi
+          else
+            echo "No confidence-summary.md produced; skipping comment."
+          fi
+
+      - name: Confidence pre-merge gate (P3.4)
+        # Enforces threshold on internal PRs. Fork PRs run a separate
+        # informational step below since they can't add bypass labels.
+        if: always() && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+        working-directory: hirestream/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONFIDENCE_GATE_THRESHOLD: ${{ vars.CONFIDENCE_GATE_THRESHOLD || '60' }}
+        run: |
+          if [ ! -f logs/confidence-latest.json ]; then
+            echo "::error::confidence-latest.json missing — confidence step may have crashed (not a PR issue)."
+            exit 1
+          fi
+          SCORE=$(node -e "const r=require('./logs/confidence-latest.json'); console.log(r.score)")
+          THRESHOLD=${CONFIDENCE_GATE_THRESHOLD}
+          PR_NUM=${{ github.event.pull_request.number }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+          # Sticky bypass: the bypass-confidence label is honored ONLY if
+          # added AFTER the head commit's timestamp. Stale labels from a
+          # prior push are ignored. The label is removed after honoring
+          # so subsequent pushes require explicit re-approval.
+          HEAD_PUSHED_AT=$(gh api "repos/${{ github.repository }}/commits/$HEAD_SHA" --jq '.commit.committer.date')
+          BYPASS_ADDED_AT=$(gh api "repos/${{ github.repository }}/issues/$PR_NUM/events" \
+            --jq "[.[] | select(.event==\"labeled\" and .label.name==\"bypass-confidence\")] | last | .created_at" 2>/dev/null || echo "null")
+
+          echo "Confidence gate: score=$SCORE threshold=$THRESHOLD head_pushed_at=$HEAD_PUSHED_AT bypass_added_at=$BYPASS_ADDED_AT"
+
+          if [ "$BYPASS_ADDED_AT" != "null" ] && [ -n "$BYPASS_ADDED_AT" ] && [ "$BYPASS_ADDED_AT" \> "$HEAD_PUSHED_AT" ]; then
+            echo "::warning::Confidence-gate bypassed by admin label — score=$SCORE/$THRESHOLD"
+            # One-shot: remove the label so a new push re-requires admin re-approval
+            gh api -X DELETE "repos/${{ github.repository }}/issues/$PR_NUM/labels/bypass-confidence" 2>/dev/null || true
+            exit 0
+          fi
+
+          if [ "$SCORE" -lt "$THRESHOLD" ]; then
+            echo "::error::Confidence score $SCORE/100 is below threshold $THRESHOLD."
+            echo "Admins can apply the 'bypass-confidence' label to override for THIS push only."
+            echo "(The label is automatically removed after honoring it, so subsequent pushes re-require approval.)"
+            exit 1
+          fi
+
+          echo "Score $SCORE/100 >= threshold $THRESHOLD — gate passed."
+
+      - name: Confidence gate — fork PR notice (informational only)
+        # Fork PRs run with a read-only GITHUB_TOKEN; they can't add/remove
+        # labels. The maintainer triages them manually. We surface the score
+        # as a warning annotation but don't fail the run.
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork
+        working-directory: hirestream/
+        run: |
+          if [ -f logs/confidence-latest.json ]; then
+            SCORE=$(node -e "const r=require('./logs/confidence-latest.json'); console.log(r.score)")
+            echo "::warning::Fork PR — confidence score $SCORE/100 (informational only; maintainer triages externally)."
+          fi

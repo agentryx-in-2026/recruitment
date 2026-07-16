@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output (generated — rebuild on deploy)
+dist/
+
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Runtime data
+uploads/
+/data/
+
+# Backups + archives
+backups/
+*.tar.gz
+*.zip
+
+# Logs
+*.log
+logs/
+
+# OS + editor cruft
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Test artefacts
+playwright-report/
+test-results/
+coverage/

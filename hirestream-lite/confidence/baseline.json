@@ -1,0 +1,10 @@
+{
+  "smokeExpectedFail": 80,
+  "fuzzExpectedFindings": 60,
+  "source": "manually calibrated 2026-06-04 against v0.7.0.x staging",
+  "notes": [
+    "smokeExpectedFail=80 reflects HireStream's handler-scoped data isolation pattern — deep-smoke flags these as 'authz LEAK' because role X can hit role Y's endpoint and gets 200 (response is scoped at handler level, not route level). They are NOT regressions; see tests/integration/data-isolation.test.ts (15 Jest tests) for the content-level check that actually validates isolation.",
+    "fuzzExpectedFindings=75 captures the P2.1 finding: /auth/register lacks validateRequest middleware, so schema-fuzz hits ~70+ 'server accepted malformed input' results. Deferred fix item; tracked separately. New findings beyond 75 indicate a real regression.",
+    "Recalibrate this file when: (a) data-isolation tests change scope, (b) /auth/register middleware lands, (c) new known-baseline findings are deliberately accepted."
+  ]
+}

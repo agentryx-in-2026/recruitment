@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>HireStream — Notifications &amp; Communications Test Plan</title>
+<style>
+  @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
+  html { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color:#0f172a; font-size:10.5pt; line-height:1.45; }
+  body { max-width: 180mm; margin: 0 auto; }
+  h1 { font-size: 18pt; margin: 0 0 2mm; color:#0c4a6e; }
+  h2 { font-size: 13pt; margin: 7mm 0 2mm; padding-bottom: 1mm; border-bottom: 1px solid #cbd5e1; color:#0c4a6e; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 5mm 0 1mm; color:#0f172a; break-after: avoid; }
+  p, li { margin: 1.5mm 0; }
+  pre { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 3px; padding: 2mm 3mm; font-size: 9pt; font-family: "SF Mono", Menlo, Consolas, monospace; overflow-x: hidden; white-space: pre-wrap; }
+  code { background: #f1f5f9; padding: 0 1mm; border-radius: 2px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9pt; break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  th, td { border: 1px solid #cbd5e1; padding: 1.2mm 2mm; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-weight: 600; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .02em; color: #334155; }
+  td.center, th.center { text-align: center; }
+  td.num  { text-align: right; font-variant-numeric: tabular-nums; }
+  .kv { display: inline-block; font-size: 8.5pt; color: #475569; margin-right: 6mm; }
+  .kv b { color: #0f172a; }
+  .pagebreak { break-before: page; }
+  .callout { background: #fffbeb; border: 1px solid #fbbf24; border-radius: 3px; padding: 2mm 3mm; margin: 2mm 0; font-size: 9.5pt; }
+  .legend { font-size: 8.5pt; color: #475569; margin: 1mm 0 3mm; }
+  .tickbox { font-family: monospace; }
+  footer { margin-top: 10mm; padding-top: 3mm; border-top: 1px solid #cbd5e1; font-size: 8.5pt; color: #64748b; text-align: center; }
+  @media print {
+    a { color: #0f172a; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>HireStream — Notifications &amp; Communications Test Plan</h1>
+<p>
+  <span class="kv"><b>Purpose:</b> Test checklist for HTIS reviewers to verify every in-app / email / SMS notification the portal currently sends.</span>
+  <span class="kv"><b>FRS:</b> §1.20 – §1.28, §9.1 – §9.7, §10.x, §13.10.</span>
+</p>
+<p>
+  <span class="kv"><b>Build:</b> v0.9.7</span>
+  <span class="kv"><b>Portal:</b> https://hirestream-stg.agentryx.dev</span>
+  <span class="kv"><b>Verify:</b> https://verify-stg.agentryx.dev</span>
+  <span class="kv"><b>Generated:</b> 2026-04-22</span>
+</p>
+
+<h2>1 · Architecture at a glance</h2>
+<pre>business event
+      │
+      ▼
+notify()       ← single entry point (server/services/notification.service.ts)
+      │
+      ├── in-app row in  notifications  table  (bell icon + drawer)
+      ├── email via SMTP2GO  (if user.notifyEmail ≠ false AND user.email set)
+      └── SMS  via Twilio    (if user.notifySms   ≠ false AND user.phone set)</pre>
+
+<ul>
+  <li><b>Single dispatcher.</b> Each business event calls <code>notify()</code> once; fan-out to channels is decided by user preference, not by event type.</li>
+  <li><b>34 templates</b> live in <code>notification-templates.seed.ts</code>. Admin can edit wording and add Hindi translations at runtime via <b>Admin → Notification Templates</b> without a deploy.</li>
+  <li><b>OTP</b> (<code>POST /auth/send-otp</code>) and <b>password reset</b> (<code>POST /auth/request-password-reset</code>) bypass <code>notify()</code> and call <code>sendEmail()</code> / <code>sendSms()</code> directly — they aren't stored as in-app rows.</li>
+</ul>
+
+<h3>Gateway status at time of test plan</h3>
+<table>
+  <thead><tr><th>Gateway</th><th>Provider</th><th class="center">Configured</th><th>Last tested</th></tr></thead>
+  <tbody>
+    <tr><td>SMTP</td><td>SMTP2GO (1 000 / month free)</td><td class="center">✅</td><td>Real send verified to external inbox</td></tr>
+    <tr><td>SMS</td><td>Twilio (trial)</td><td class="center">✅</td><td>Handshake passed</td></tr>
+  </tbody>
+</table>
+<p><b>Toggle gate:</b> Enabling or disabling either gateway requires the admin's password; every flip writes an <code>audit_log</code> row. Tested from <b>Admin → Integrations</b>.</p>
+
+<h2>2 · How to run this test plan</h2>
+<ol>
+  <li>Sign in with the credential row from the role section you want to test (§5–§8 below).</li>
+  <li>Perform the <b>Trigger action</b>.</li>
+  <li>Within 10 seconds, check each expected channel:
+    <ul>
+      <li><b>In-app</b> — bell icon badge increments; notification drawer shows it</li>
+      <li><b>Email</b> — arrives in the inbox of the logged-in user's <code>email</code> field</li>
+      <li><b>SMS</b> — arrives on the logged-in user's <code>phone</code> field (must be a Twilio-verified number during trial)</li>
+    </ul>
+  </li>
+  <li>Tick ✅ or ✗ in the right-most column.</li>
+  <li>On ✗, capture a screenshot and attach via the Verify sign-off screen for that FRS item.</li>
+</ol>
+
+<div class="callout"><b>User preferences —</b> Every user row has <code>notifyInApp / notifyEmail / notifySms</code> boolean columns (default all <code>true</code>). A user can suppress any channel from their profile. <b>Tests assume defaults — don't disable anything before running.</b></div>
+
+<h2>3 · Test accounts</h2>
+<table>
+  <thead><tr><th>Role</th><th>Username</th><th>Password</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Admin</td><td><code>demo_admin</code></td><td><code>test123</code></td><td></td></tr>
+    <tr><td>Superadmin</td><td><code>superadmin</code></td><td><code>hpsedc@super2026</code></td><td></td></tr>
+    <tr><td>Employer</td><td><code>demo_employer</code></td><td><code>test123</code></td><td></td></tr>
+    <tr><td>Agent (verified)</td><td><code>europe_careers</code></td><td><code>test123</code></td><td>Picked up demo requisitions</td></tr>
+    <tr><td>Agent (other)</td><td><code>gulf_jobs_direct</code></td><td><code>test123</code></td><td>For multi-agent scenarios</td></tr>
+    <tr><td>Candidate (100 %)</td><td><code>priya_verma</code></td><td><code>test123</code></td><td>Has placement + offer pending</td></tr>
+    <tr><td>Candidate (88 %)</td><td><code>meera_iyer</code></td><td><code>test123</code></td><td>Missing docs, ECR incomplete</td></tr>
+    <tr><td>Candidate (misc)</td><td><code>rohan_mehta</code> · <code>vikram_negi</code> · <code>ananya_bhatt</code> · <code>arjun_sharma</code></td><td><code>test123</code></td><td></td></tr>
+  </tbody>
+</table>
+
+<div class="callout"><b>Important for SMS —</b> Twilio is on a trial account. SMS will only deliver to phone numbers added to <b>Phone Numbers → Verified Caller IDs</b> in the Twilio Console. Add the tester's mobile there before running §5 SMS rows.</div>
+
+<h2>4 · Test channel legend</h2>
+<table>
+  <thead><tr><th class="center">Symbol</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td class="center">📱</td><td>In-app notification (bell drawer)</td></tr>
+    <tr><td class="center">✉</td><td>Email via SMTP2GO</td></tr>
+    <tr><td class="center">💬</td><td>SMS via Twilio</td></tr>
+    <tr><td class="center">🔑</td><td>Bypasses <code>notify()</code> — sent directly</td></tr>
+    <tr><td class="center">—</td><td>Channel not used for this event</td></tr>
+  </tbody>
+</table>
+
+<div class="pagebreak"></div>
+
+<h2>5 · Candidate role — 17 events</h2>
+<table>
+  <thead>
+    <tr>
+      <th>#</th><th>Event</th><th>Trigger action</th>
+      <th class="center">📱</th><th class="center">✉</th><th class="center">💬</th>
+      <th>FRS</th><th class="center">Pass</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>C-01</td><td>Registration welcome</td><td>Sign up a new candidate via /auth</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td>1.19</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-02</td><td>OTP for login (email + SMS)</td><td><code>/auth/send-otp</code> with phone filled</td><td class="center">🔑</td><td class="center">✓</td><td class="center">✓</td><td>1.20 / 1.21 / 13.10</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-03</td><td>Password reset link</td><td>Click "Forgot password" on login</td><td class="center">🔑</td><td class="center">✓</td><td class="center">—</td><td>1.20 / 8.x</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-04</td><td>Application submitted</td><td>Apply to any public job as <code>priya_verma</code></td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td>1.24</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-05</td><td>Application reviewed</td><td>Agent moves it to <code>reviewed</code> status</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>1.24</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-06</td><td>Application shortlisted</td><td>Agent moves it to <code>shortlisted</code></td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>1.24</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-07</td><td>Employer approved for interview</td><td>Employer clicks "Approve for interview" in Review Queue</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>1.24</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-08</td><td>Interview scheduled</td><td>Agent schedules interview on a shortlisted app</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td><b>1.23</b></td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-09</td><td>Interview completed (decision pending)</td><td>Agent records interview result</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>1.24</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-10</td><td>Selected (offer coming)</td><td>Employer marks candidate <code>selected</code></td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>1.24</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-11</td><td>Offer issued (appointment letter)</td><td>Agent creates placement → issues appointment letter</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td><b>1.26 / 1.28</b></td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-12</td><td>Offer accepted confirmation</td><td>Candidate clicks Accept on offer banner</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>1.26</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-13</td><td>Offer declined ack</td><td>Candidate clicks Decline with reason</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>1.27</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-14</td><td>Application rejected (employer-name scrubbed)</td><td>Agent or employer rejects candidate</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td><b>5.x (scrub)</b> / 1.24</td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-15</td><td>Drive announcement</td><td>Agent clicks "Notify candidates" on approved drive</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td><b>1.22</b></td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-16</td><td>Saved-search digest (daily cron)</td><td>Trigger <code>/admin/lifecycle/run</code> or wait for 07:30 UTC</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td><b>1.20</b></td><td class="center tickbox">☐</td></tr>
+    <tr><td>C-17</td><td>Grievance status update</td><td>Admin changes grievance to <code>resolved</code></td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>10.x</td><td class="center tickbox">☐</td></tr>
+  </tbody>
+</table>
+
+<div class="callout"><b>Scrubbing test (C-14) —</b> Open the notification body; the employer's company name <b>must not</b> appear. Copy expected: <i>"Your application was not selected this round."</i> — never <i>"Rejected by Tech Solutions Canada Inc."</i></div>
+
+<h2>6 · Agent role — 11 events</h2>
+<table>
+  <thead>
+    <tr>
+      <th>#</th><th>Event</th><th>Trigger action</th>
+      <th class="center">📱</th><th class="center">✉</th><th class="center">💬</th>
+      <th>FRS</th><th class="center">Pass</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>A-01</td><td>New applicant on my job</td><td>A candidate applies to a job the agent picked up</td><td class="center">✓</td><td class="center">✓</td><td class="center">✓</td><td>2.12</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-02</td><td>Employer approved my shortlist</td><td>Login as employer → Approve for Interview</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>2.12</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-03</td><td>Employer requested replacement</td><td>Employer clicks "Request replacement"</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>2.12</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-04</td><td>Employer requesting more candidates</td><td>Employer clicks "Request more candidates"</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>2.12</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-05</td><td>Drive approved</td><td>Admin approves a pending drive</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>2.13</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-06</td><td>Drive rejected</td><td>Admin rejects with reason</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>2.13</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-07</td><td>Candidate accepted offer</td><td>Candidate accepts placement</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>2.14</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-08</td><td>Candidate declined offer</td><td>Candidate declines placement</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>2.14</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-09</td><td>Auto-close nudge</td><td>Trigger <code>/admin/lifecycle/run</code> with a job 3 days before deadline</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>7.11 (PWS)</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-10</td><td>Agency registration rejected</td><td>Admin rejects via Agencies tab</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>2.1</td><td class="center tickbox">☐</td></tr>
+    <tr><td>A-11</td><td>@Mention on candidate note</td><td>Agent A adds <code>@AgentB</code> in a note</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>—</td><td class="center tickbox">☐</td></tr>
+  </tbody>
+</table>
+
+<h2>7 · Employer role — 7 events</h2>
+<table>
+  <thead>
+    <tr>
+      <th>#</th><th>Event</th><th>Trigger action</th>
+      <th class="center">📱</th><th class="center">✉</th><th class="center">💬</th>
+      <th>FRS</th><th class="center">Pass</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>E-01</td><td>Shortlisted candidate arrived in Review Queue</td><td>Agent shortlists a candidate on a derivative of employer's requisition</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>3.2</td><td class="center tickbox">☐</td></tr>
+    <tr><td>E-02</td><td>Interview scheduled by agent</td><td>Agent schedules interview</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>3.3</td><td class="center tickbox">☐</td></tr>
+    <tr><td>E-03</td><td>Interview completed — your decision pending</td><td>Agent marks interview result</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>3.4</td><td class="center tickbox">☐</td></tr>
+    <tr><td>E-04</td><td>Offer issued copy</td><td>Agent issues appointment letter</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>3.5</td><td class="center tickbox">☐</td></tr>
+    <tr><td>E-05</td><td>Offer accepted by candidate</td><td>Candidate clicks Accept</td><td class="center">✓</td><td class="center">✓</td><td class="center">—</td><td>3.6</td><td class="center tickbox">☐</td></tr>
+    <tr><td>E-06</td><td>Offer declined by candidate</td><td>Candidate clicks Decline</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>3.6</td><td class="center tickbox">☐</td></tr>
+    <tr><td>E-07</td><td>Agent picked up your requisition</td><td>Any verified agent clicks Pick Up on the requisition</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>3.1</td><td class="center tickbox">☐</td></tr>
+  </tbody>
+</table>
+
+<h2>8 · Admin / Officer role — 4 events</h2>
+<table>
+  <thead>
+    <tr>
+      <th>#</th><th>Event</th><th>Trigger action</th>
+      <th class="center">📱</th><th class="center">✉</th><th class="center">💬</th>
+      <th>FRS</th><th class="center">Pass</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>O-01</td><td>Integration toggled (audit)</td><td>Toggle SMS / Email gateway enabled flag</td><td class="center">—</td><td class="center">—</td><td class="center">—</td><td>6.x</td><td class="center tickbox">☐</td></tr>
+    <tr><td>O-02</td><td>Pending verifications count</td><td>Register a new agency → count increments on Overview</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>4.11</td><td class="center tickbox">☐</td></tr>
+    <tr><td>O-03</td><td>Open grievances count</td><td>Candidate submits grievance → count increments</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>4.16</td><td class="center tickbox">☐</td></tr>
+    <tr><td>O-04</td><td>Drive approval queue</td><td>Agent creates a drive → "Drive Approvals" widget fires</td><td class="center">✓</td><td class="center">—</td><td class="center">—</td><td>4.x</td><td class="center tickbox">☐</td></tr>
+  </tbody>
+</table>
+
+<p><b>Note:</b> Admin role is intentionally light on notifications — the dashboard widgets (Pending Verifications, Drive Approvals, Open Grievances) surface items visually rather than via inbox. Confirm the counts update live — no page refresh required.</p>
+
+<div class="pagebreak"></div>
+
+<h2>9 · OTP &amp; password-reset deep dive (FRS 1.20 / 1.21 / 13.10)</h2>
+
+<h3>9.1 · OTP for registration / login</h3>
+<p><b>Route:</b> <code>POST /api/v1/auth/send-otp</code> body <code>{ email, phone?, purpose: "register"|"login"|"password_reset" }</code></p>
+<table>
+  <thead><tr><th>Input scenario</th><th class="center">Email sent</th><th class="center">SMS sent</th><th>Response</th></tr></thead>
+  <tbody>
+    <tr><td><code>email</code> only</td><td class="center">✓ SMTP2GO</td><td class="center">—</td><td>200 OK</td></tr>
+    <tr><td><code>email</code> + <code>phone</code></td><td class="center">✓ SMTP2GO</td><td class="center">✓ Twilio</td><td>200 OK</td></tr>
+    <tr><td><code>phone</code> only</td><td class="center">—</td><td class="center">✓ Twilio</td><td>200 OK</td></tr>
+    <tr><td>Invalid email</td><td class="center">—</td><td class="center">—</td><td>400 "Invalid email"</td></tr>
+    <tr><td>Rate-limited (&gt; 3 per 10 min)</td><td class="center">—</td><td class="center">—</td><td>429</td></tr>
+  </tbody>
+</table>
+<p><b>OTP format:</b> 6-digit numeric, expires in 10 minutes. Single-use. Stored hashed in <code>otp_codes</code> — raw value never persisted.<br>
+Email subject: <i>"HireStream - Your verification code is &lt;OTP&gt;"</i>. SMS body: <i>"HireStream OTP: &lt;OTP&gt;. Valid 10 min."</i></p>
+
+<h3>9.2 · Password reset</h3>
+<p><b>Route:</b> <code>POST /api/v1/auth/request-password-reset</code> body <code>{ email }</code></p>
+<ul>
+  <li>Generates a signed reset token (<code>crypto.randomBytes(32)</code>, stored in <code>password_reset_tokens</code>)</li>
+  <li>Sends <b>email only</b> via SMTP2GO with a link: <code>https://hirestream-stg.agentryx.dev/reset-password?token=&lt;token&gt;</code></li>
+  <li>Token expires in 60 minutes. Single-use.</li>
+  <li><b>Does not send SMS</b> — FRS-intended behaviour (reset links via SMS are anti-pattern).</li>
+</ul>
+
+<p><b>Reset completion:</b> <code>POST /api/v1/auth/reset-password</code> body <code>{ token, password }</code></p>
+<ul>
+  <li>After successful reset: all OTHER sessions for the user are killed (CWE-613). An audit-log row is written.</li>
+  <li><b>No follow-up notification is sent today.</b> Consider adding one if HTIS flags it.</li>
+</ul>
+
+<h3>9.3 · Password change while logged in</h3>
+<p><b>Route:</b> <code>POST /api/v1/auth/change-password</code> body <code>{ currentPassword, newPassword }</code></p>
+<ul>
+  <li>Verifies current password, updates hash, regenerates session (CWE-384), kills other sessions.</li>
+  <li><b>No notification sent.</b> Audit-log only.</li>
+</ul>
+
+<h2>10 · Template catalogue (admin-editable)</h2>
+<p>All 34 templates are stored in <code>notification_templates</code> (DB) and seeded from <code>notification-templates.seed.ts</code>. <b>Admin → Notification Templates</b> lists them all. Edit any template's <code>title</code> / <code>body</code> and the change takes effect on the <b>next</b> notification — no restart. Hindi translations go in the same row.</p>
+
+<table>
+  <thead><tr><th>Template key</th><th>Role</th><th class="center">Channel default</th></tr></thead>
+  <tbody>
+    <tr><td><code>application.submitted</code></td><td>candidate, agent</td><td class="center">📱</td></tr>
+    <tr><td><code>application.reviewed</code></td><td>candidate</td><td class="center">📱</td></tr>
+    <tr><td><code>application.shortlisted</code></td><td>candidate, employer</td><td class="center">📱 ✉ (emp)</td></tr>
+    <tr><td><code>application.employer_approved</code></td><td>candidate, agent</td><td class="center">📱</td></tr>
+    <tr><td><code>application.rejected</code></td><td>candidate</td><td class="center">📱</td></tr>
+    <tr><td><code>application.employer_rejected</code></td><td>candidate, agent</td><td class="center">📱</td></tr>
+    <tr><td><code>interview.scheduled</code></td><td>candidate, employer</td><td class="center">📱 ✉ (cand)</td></tr>
+    <tr><td><code>interview.completed</code></td><td>candidate, agent, employer</td><td class="center">📱</td></tr>
+    <tr><td><code>application.selected</code></td><td>candidate, agent</td><td class="center">📱 ✉ (cand)</td></tr>
+    <tr><td><code>offer.issued</code></td><td>candidate, agent, employer</td><td class="center">📱 ✉ (cand)</td></tr>
+    <tr><td><code>offer.accepted</code></td><td>candidate, agent, employer</td><td class="center">📱 ✉ all</td></tr>
+    <tr><td><code>offer.declined</code></td><td>candidate, agent, employer</td><td class="center">📱</td></tr>
+    <tr><td><code>job.closed</code></td><td>candidate, agent, employer</td><td class="center">📱</td></tr>
+    <tr><td><code>job.auto_close_nudge</code></td><td>agent, employer</td><td class="center">📱</td></tr>
+    <tr><td><code>requisition.picked_up</code></td><td>employer</td><td class="center">📱</td></tr>
+    <tr><td><code>job.matches_your_profile</code></td><td>candidate</td><td class="center">📱 (digest email separate)</td></tr>
+    <tr><td><code>drive.announcement</code></td><td>candidate</td><td class="center">📱 ✉ 💬</td></tr>
+  </tbody>
+</table>
+
+<p><b>Employer-name scrubbing rule —</b> For any candidate-facing NEGATIVE event (<code>application.rejected</code>, <code>application.employer_rejected</code>, <code>job.closed</code>), the employer's company name must be substituted with <i>"the employer"</i> or <i>"this opportunity"</i>. Controlled by system setting <code>notifications.hide_employer_in_negatives</code> (default <code>true</code>, FRS §5).</p>
+
+<div class="pagebreak"></div>
+
+<h2>11 · Expected wording — spot-check list</h2>
+<p>Test the exact subject lines + body snippets on these 5 high-visibility events. Copy deviations are admin-editable, so confirm what's currently seeded matches what HTIS expects:</p>
+<table>
+  <thead><tr><th>Event</th><th>Subject line</th><th>Key body phrases</th></tr></thead>
+  <tbody>
+    <tr><td>C-01 Welcome</td><td><i>"HireStream — welcome, &lt;name&gt;"</i></td><td>"Complete your profile to get started"</td></tr>
+    <tr><td>C-02 OTP email</td><td><i>"HireStream - Your verification code is &lt;OTP&gt;"</i></td><td>"expires in 5 minutes" — wait, should be 10 min, confirm</td></tr>
+    <tr><td>C-08 Interview scheduled</td><td><i>"Interview scheduled for &lt;job&gt; on &lt;date&gt;"</i></td><td>Includes date, mode (in-person / video), location</td></tr>
+    <tr><td>C-11 Offer issued</td><td><i>"Your appointment letter is ready"</i></td><td>Link to download letter, acceptance deadline</td></tr>
+    <tr><td>C-14 Application rejected</td><td><i>"Application not advancing"</i></td><td><b>No employer name</b> — flag as fail if present</td></tr>
+  </tbody>
+</table>
+
+<div class="callout"><b>OTP expiry mismatch —</b> If the email says 5 minutes but the backend actually honours 10 minutes (or vice versa), that's a copy-vs-code drift worth logging. Confirm on first OTP.</div>
+
+<h2>12 · User-preference toggles (FRS §8)</h2>
+<p>Every user row carries:</p>
+<ul>
+  <li><code>notifyInApp</code> (default <code>true</code>) — can disable via self-profile → Notifications tab</li>
+  <li><code>notifyEmail</code> (default <code>true</code>) — same</li>
+  <li><code>notifySms</code> (default <code>true</code>) — same</li>
+</ul>
+<h3>Test</h3>
+<table>
+  <thead><tr><th>Step</th><th>Expected</th></tr></thead>
+  <tbody>
+    <tr><td>Log in as <code>priya_verma</code>, Profile → Notifications → uncheck "Email notifications"</td><td>Preference saved</td></tr>
+    <tr><td>Trigger C-05 (application reviewed)</td><td>📱 arrives, ✉ does <b>not</b> arrive</td></tr>
+    <tr><td>Re-enable email preference</td><td>Revert</td></tr>
+  </tbody>
+</table>
+
+<h2>13 · Known gaps / out-of-scope for this test</h2>
+<table>
+  <thead><tr><th>Item</th><th>Note</th></tr></thead>
+  <tbody>
+    <tr><td>Welfare check-in reminders (FRS §2.7) — 30 / 60 / 90 day</td><td>UI badge exists on placements; auto-fire notification <b>not wired yet</b>. Flag as gap, not fail.</td></tr>
+    <tr><td>SMS routing might be too chatty</td><td>Currently every candidate notification with user opted-in to SMS goes via SMS. FRS §1.21 intent is critical alerts only — we plan to filter to OTP / interview / offer / placement. If HTIS finds SMS noise, flag C-05/C-06/C-07 rows.</td></tr>
+    <tr><td>Password-reset follow-up notification</td><td>Not sent today. Confirm whether HTIS wants one.</td></tr>
+    <tr><td>DigiLocker delivery of appointment letter</td><td>PDF download works; DigiLocker API integration deferred (FRS 1.28 ⛔).</td></tr>
+    <tr><td>Aadhaar / HIM Access SSO triggered notifications</td><td>Framework shipped, credentials pending. Not testable on staging yet.</td></tr>
+  </tbody>
+</table>
+
+<h2>14 · Escalation / issue reporting</h2>
+<p>Any failing row in §5 – §8 — capture:</p>
+<ol>
+  <li>Screenshot of the expected channel showing nothing received</li>
+  <li>The notification's event ID from the "#" column (e.g. <b>C-11</b> / <b>A-03</b>)</li>
+  <li>Timestamp + user role used to trigger</li>
+</ol>
+<p>Submit via Verify sign-off on the matching FRS item (e.g. C-11 → FRS 1.28). The Sprint 1 🔁 re-verify chips in Verify are tracking the existing fixes — unrelated to this test plan, but attach any notification failure as a fresh Verify comment on the relevant FRS row.</p>
+<p><b>Fast lane —</b> Any 401 / 535 / 5xx surfaced in the test-connection badge on Admin → Integrations → SMS or Email — screenshot + paste the error message. Both gateways now surface provider-native error text, so the message is diagnostic.</p>
+
+<footer>
+  Seventeen candidate events + 11 agent + 7 employer + 4 admin = <b>39 testable rows</b>, plus the OTP / password deep-dive, preference toggles, and wording spot-check. Expected full-cycle test time: ~4 hours with 2 testers working across the roles in parallel.
+</footer>
+
+</body>
+</html>

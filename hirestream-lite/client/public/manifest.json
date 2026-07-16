@@ -1,0 +1,22 @@
+{
+  "name": "HireStream — HPSEDC Overseas Placement",
+  "short_name": "HireStream",
+  "description": "Government of Himachal Pradesh portal for verified overseas employment opportunities",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e40af",
+  "orientation": "portrait",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["government", "employment", "business"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

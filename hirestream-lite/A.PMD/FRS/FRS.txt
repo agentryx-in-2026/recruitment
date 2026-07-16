@@ -1,0 +1,252 @@
+Functional Requirement Specifications
+(FRS Document)
+for
+Overseas Placement Portal & Mobile
+Application (HPSEDC)
+
+1
+
+Table of Contents
+Document Title: Functional Requirements Specification for Overseas Placement Portal ........ 3
+1.
+
+Introduction............................................................................................................................ 3
+1.1
+
+Purpose ....................................................................................................................................... 3
+
+1.2
+
+Scope ........................................................................................................................................... 3
+
+1.3
+
+Definitions: ................................................................................................................................. 4
+
+2. Functional Requirements .......................................................................................................... 4
+2.1 Product Functions: ........................................................................................................................... 4
+2.2 User Roles and Modules ................................................................................................................... 4
+2.3 Candidate Registration and Profile Management Workflow ....................................................... 6
+2.4 Job Search and Application Workflow ........................................................................................... 7
+2.5 Recruiting Agency Registration & Job Posting Workflow ........................................................... 8
+2.6 HPSEDC Admin Verification & Approval Workflow .................................................................. 9
+2.7 Recruitment Process Workflow .................................................................................................... 10
+2.7 Overall Workflow .......................................................................................................................... 11
+2.8 Other Features ................................................................................................................................ 12
+2.9 Design and Implementation Constraints ...................................................................................... 12
+
+3. Specific Requirements.............................................................................................................. 12
+3.1 External Interface Requirements .................................................................................................. 12
+3.2 Modules ............................................................................................... Error! Bookmark not defined.
+
+2
+
+Functional Requirements Specification (FRS)
+Document Title: Functional Requirements Specification for Overseas Placement Portal
+This Functional Requirements Specification (FRS) document provides a comprehensive blueprint
+for an online portal dedicated to facilitating overseas placement opportunities for youth of
+Himachal Pradesh. The proposed system aims to streamline job matching, reduce migration risks,
+and promote safe, regulated international employment.
+The portal will serve job seekers, recruiting agencies, and administrators, enabling efficient
+registration, job postings, applications, and support services.
+
+1. Introduction
+1.1 Purpose
+This FRS delineates the functional and non-functional requirements for developing a secure,
+user-friendly online portal to support overseas employment placements for youth. By
+centralizing job opportunities, candidate profiles, and support resources, the portal mitigates
+exploitation risks associated with unregulated agents and fosters economic mobility. The portal
+emphasizes verified job listings, candidate registrations, and grievance mechanisms, while
+incorporating modern enhancements for improved accessibility and efficiency.
+
+1.2 Scope
+ User registration and profile management for job seekers and recruiting agencies
+ Relevant document to be uploaded by candidates
+ Job posting, searching, and applying for jobs
+ Scrutiny of candidates and scheduling of recruitment drives and interviews by
+recruiting agencies
+ Entry of placement details and issuing of appointment letters to the selected candidates
+by the recruiting agencies
+ Acceptance and confirmation of job offers by the candidates
+ Support features include dashboards, FAQ’s, grievances, notifications, and
+informational resources.
+ Administrative tools for content management, approvals, reporting, and admin
+oversight.
+3
+
+ Bilingual interface (English and one regional language, e.g., Hindi).
+1.3 Definitions:
+ Job Seeker: Candidate seeking overseas opportunities.
+ Recruiting Agencies: Entities requesting candidates for overseas placement.
+ Administrator: Authorized personnel managing the portal.
+
+2. Functional Requirements
+2.1 Product Functions:
+The portal will:
+ Facilitate secure user registration and profile creation.
+ Enable job postings by verified recruitment agencies and targeted searches by job
+seekers.
+ Support document uploads, application submission, and tracking of application status.
+ Provide informational and support services, including training notifications and grievance
+handling.
+ Offer administrative dashboards for monitoring and reporting.
+2.2 User Roles and Modules
+User
+Candidates
+
+User Responsibilities
+Features of User Module
+Register, upload
+ Registration & Login
+documents, apply for
+- Aadhaar-based or email/mobile verification
+jobs, view application
+- SSO login (HIM Access)
+status.
+- Personal details, education, work experience
+- Preference of the Job roles, Countries
+ Profile Management
+- Edit/update profile information
+- Upload documents (CV, passport, certificates)
+ Job Search & Application
+- View job openings by location, skill, salary
+- Apply with one-click, track application status
+ Notifications
+- Email/SMS alerts for job matches, recruitment
+drives, interview calls, status updates
+
+Recruiting
+Agency
+
+Register, post jobs,
+ Agency Registration
+view applicants,
+- Basic details, license info, past record
+schedule recruitment
+ Job Posting
+drives and interviews.
+- Create/edit job openings with specific criteria
+
+4
+
+ Candidate Management
+- View applicants, download profiles, shortlist
+candidates
+ Recruitment Drive Scheduling
+ Set date/time, notify candidates
+Interview Scheduling
+ Set date/time, notify candidates, upload results
+ Visa/Passport assistance to selected candidates
+Govt/Authority Approve registration
+(HPSEDC)
+of recruitment
+agencies, Overall
+portal management,
+generate reports.
+
+ Approving the registrations of recruiting agencies
+ Approving recruitment drives schedules
+ Dashboard
+- Summary of total applications, placed candidates,
+job vacancies, pending verifications
+ Reporting
+- Generate reports by district, agency, skill,
+placement status
+
+5
+
+2.3 Candidate Registration and Profile Management Workflow
+
+Key Steps:
+Initial registration with Aadhaar/email verification  OTP-based SSO (HIM Access) login
+authentication. Profile creation with personal details, qualifications, and experience. 
+Document upload (CV, passport, certificates)  Profile updates, including job role and country
+preference
+
+6
+
+2.4 Job Application Workflow
+
+Key Steps:
+Candidate will browse available job openings  Use advanced search filters (location, sector,
+salary, experience)  View detailed job descriptions  Submit job applications with tailored
+documents  Track application status  Receive notifications for job matches, recruitment
+drives, interviews and related updates
+
+7
+
+2.5 Recruiting Agency Registration & Job Posting Workflow
+
+Key Steps:
+Recruiting agency registration with company details  License verification and admin approval
+ Job posting with specific criteria and requirements  Manage job postings (edit, update, close)
+ View and manage applicants  Analytics on job posting performance
+
+8
+
+2.6 HPSEDC Admin Verification & Approval Workflow
+
+Key Steps:
+Authorities review recruiting agencies’ registrations Verify uploaded documents Approve or
+reject agency registrations Monitor system activities Generate reports and analytics Handle
+grievances and support requests
+
+9
+
+2.7 Recruitment Process Workflow
+
+Key Steps:
+Recruitment agencies organize recruitment Employer reviews applications  shortlists
+candidates  schedules interviews with candidates  conducts interviews and records results 
+makes final selection decisions  issues appointment letters to selected candidates
+
+10
+
+2.7 Overall Workflow
+
+Key Steps:
+User registration and verification Job posting and searching  Recruitment Drives by agencies
+ Application and matching process Interview and selection Placement and follow-up
+Reporting and monitoring
+
+11
+
+2.8 Other Features
+ Platform: Web application compatible with major browsers and responsive on smartphones
+and tablets, iOS and Android applications.
+ Aadhaar/UIDAI verification (API) - SSO login (HIM Access)
+ Integration with Digi-Locker for document upload.
+ Email/SMS gateway integration
+ MIS dashboard for administrators
+ Multilingual Support
+
+2.9 Design and Implementation Standards
+ Ensure data encryption (HTTPS/TLS) and compliance with GDPR/PDPA-equivalent laws
+and GIGW guidelines.
+ Limit custom development to essential features; leverage open-source libraries where
+possible.
+
+3. Specific Requirements
+3.1 User Interface/User Experience Requirements
+ Clean, responsive design with navigation menus (Home, Jobs, Register/Login, Apply,
+Support).
+ Software Interfaces: File upload for documents (PDF, JPG; max 5MB); Integration with
+email/SMS gateways.
+ Communication Interfaces: Secure APIs for data exchange.
+
+3.2 Non-Functional Requirements
+ Performance: Page load <3 seconds; handle 5,000 concurrent users; 99.9% uptime.
+ Security: Role-based access; encryption for PII; regular vulnerability scans; compliance
+with ISO 27001.
+ Usability: Intuitive UI/UX; mobile responsiveness; accessibility features (e.g., screen
+reader support).
+ Scalability: Cloud-based architecture for easy scaling.
+ Reliability: Data backups; error handling with user-friendly messages.
+
+3.3 Other Requirements
+ Maintainability: Modular code design; documentation for handover.
+ Testing: Unit, integration, and user acceptance testing mandated.
+
+12
+
+

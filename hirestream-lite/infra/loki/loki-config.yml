@@ -1,0 +1,74 @@
+# Loki — minimal single-binary mode with filesystem storage.
+# Targets ~90 days of HireStream log retention on a modest VM. Adjust
+# `retention_period` and `max_query_lookback` for the deployment's SLA.
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+  log_level: info
+
+common:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+  replication_factor: 1
+  path_prefix: /loki
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /loki/tsdb-index
+    cache_location: /loki/tsdb-cache
+  filesystem:
+    directory: /loki/chunks
+
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+  delete_request_store: filesystem
+
+limits_config:
+  retention_period: 2160h          # 90 days hot retention
+  max_query_lookback: 2160h
+  ingestion_rate_mb: 8
+  ingestion_burst_size_mb: 16
+  reject_old_samples: true
+  reject_old_samples_max_age: 2160h # 90 days — matches retention so Promtail
+                                    # can backfill rotated app2.log etc. without
+                                    # the "timestamp too old" rejection storm
+  # Cap per-stream cardinality; we promote only low-cardinality labels in
+  # Promtail (level, service, method, statusCode) so this is mostly a guardrail.
+  max_global_streams_per_user: 5000
+  allow_structured_metadata: false
+
+query_range:
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 200
+
+ruler:
+  storage:
+    type: local
+    local:
+      directory: /loki/rules
+  rule_path: /loki/rules-temp
+  ring:
+    kvstore:
+      store: inmemory
+  enable_api: true

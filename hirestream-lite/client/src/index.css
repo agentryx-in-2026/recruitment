@@ -1,0 +1,307 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(210, 25%, 7.8431%);
+  --card: hsl(180, 6.6667%, 97.0588%);
+  --card-foreground: hsl(210, 25%, 7.8431%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(210, 25%, 7.8431%);
+  --primary: hsl(203.8863, 88.2845%, 53.1373%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(210, 25%, 7.8431%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --muted: hsl(240, 1.9608%, 90%);
+  --muted-foreground: hsl(215, 16%, 57%);
+  --accent: hsl(211.5789, 51.3514%, 92.7451%);
+  --accent-foreground: hsl(203.8863, 88.2845%, 53.1373%);
+  --destructive: hsl(356.3033, 90.5579%, 54.3137%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(201.4286, 30.4348%, 90.9804%);
+  --input: hsl(200, 23.0769%, 97.4510%);
+  --ring: hsl(202.8169, 89.1213%, 53.1373%);
+  --chart-1: hsl(203.8863, 88.2845%, 53.1373%);
+  --chart-2: hsl(159.7826, 100%, 36.0784%);
+  --chart-3: hsl(42.0290, 92.8251%, 56.2745%);
+  --chart-4: hsl(147.1429, 78.5047%, 41.9608%);
+  --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
+  --sidebar: hsl(180, 6.6667%, 97.0588%);
+  --sidebar-foreground: hsl(210, 25%, 7.8431%);
+  --sidebar-primary: hsl(203.8863, 88.2845%, 53.1373%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(211.5789, 51.3514%, 92.7451%);
+  --sidebar-accent-foreground: hsl(203.8863, 88.2845%, 53.1373%);
+  --sidebar-border: hsl(205.0000, 25.0000%, 90.5882%);
+  --sidebar-ring: hsl(202.8169, 89.1213%, 53.1373%);
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 1.3rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 1px 2px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 1px 2px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 2px 4px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 4px 6px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 8px 10px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+  
+  /* Government color theme */
+  --gov-blue: hsl(210, 83.3%, 45.7%);
+  --gov-dark-blue: hsl(218, 83.3%, 34.7%);
+  --gov-orange: hsl(13, 84.6%, 62.7%);
+  --gov-green: hsl(122, 43.3%, 31.4%);
+  --gov-amber: hsl(38, 100%, 48.4%);
+  --gov-red: hsl(356, 76.3%, 48.2%);
+}
+
+.dark {
+  --background: hsl(0, 0%, 0%);
+  --foreground: hsl(200, 6.6667%, 91.1765%);
+  --card: hsl(228, 9.8039%, 10%);
+  --card-foreground: hsl(0, 0%, 85.0980%);
+  --popover: hsl(0, 0%, 0%);
+  --popover-foreground: hsl(200, 6.6667%, 91.1765%);
+  --primary: hsl(203.7736, 87.6033%, 52.5490%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(195.0000, 15.3846%, 94.9020%);
+  --secondary-foreground: hsl(210, 25%, 7.8431%);
+  --muted: hsl(0, 0%, 9.4118%);
+  --muted-foreground: hsl(210, 3.3898%, 46.2745%);
+  --accent: hsl(205.7143, 70%, 7.8431%);
+  --accent-foreground: hsl(203.7736, 87.6033%, 52.5490%);
+  --destructive: hsl(356.3033, 90.5579%, 54.3137%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(210, 5.2632%, 14.9020%);
+  --input: hsl(207.6923, 27.6596%, 18.4314%);
+  --ring: hsl(202.8169, 89.1213%, 53.1373%);
+  --chart-1: hsl(203.8863, 88.2845%, 53.1373%);
+  --chart-2: hsl(159.7826, 100%, 36.0784%);
+  --chart-3: hsl(42.0290, 92.8251%, 56.2745%);
+  --chart-4: hsl(147.1429, 78.5047%, 41.9608%);
+  --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
+  --sidebar: hsl(228, 9.8039%, 10%);
+  --sidebar-foreground: hsl(0, 0%, 85.0980%);
+  --sidebar-primary: hsl(202.8169, 89.1213%, 53.1373%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(205.7143, 70%, 7.8431%);
+  --sidebar-accent-foreground: hsl(203.7736, 87.6033%, 52.5490%);
+  --sidebar-border: hsl(205.7143, 15.7895%, 26.0784%);
+  --sidebar-ring: hsl(202.8169, 89.1213%, 53.1373%);
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 1.3rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 1px 2px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 1px 2px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 2px 4px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 4px 6px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00), 0px 8px 10px -1px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169, 89.1213%, 53.1373%, 0.00);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* ── Global Dark Mode Theme Overrides ────────────────────────────────────
+   Pragmatic approach: remap commonly-used Tailwind surface classes when
+   .dark is on <html>. Avoids per-component dark: variant churn while
+   delivering full dark mode coverage across the app.
+   Component-level dark: classes still take precedence where used.
+*/
+.dark body {
+  background-color: hsl(222 47% 8%);
+  color: hsl(210 20% 90%);
+}
+
+/* Backgrounds — light surfaces become dark surfaces */
+.dark .bg-white { background-color: hsl(222 47% 11%); }
+.dark .bg-slate-50 { background-color: hsl(222 47% 9%); }
+.dark .bg-slate-100 { background-color: hsl(222 47% 14%); }
+.dark .bg-gray-50 { background-color: hsl(222 47% 9%); }
+.dark .bg-gray-100 { background-color: hsl(222 47% 14%); }
+
+/* Text — dark text becomes light text */
+.dark .text-slate-900 { color: hsl(210 20% 96%); }
+.dark .text-slate-800 { color: hsl(210 20% 92%); }
+.dark .text-slate-700 { color: hsl(210 20% 86%); }
+.dark .text-slate-600 { color: hsl(210 14% 76%); }
+.dark .text-slate-500 { color: hsl(210 10% 64%); }
+.dark .text-slate-400 { color: hsl(210 8% 52%); }
+.dark .text-gray-900 { color: hsl(210 20% 96%); }
+.dark .text-gray-800 { color: hsl(210 20% 92%); }
+.dark .text-gray-700 { color: hsl(210 20% 86%); }
+.dark .text-gray-600 { color: hsl(210 14% 76%); }
+.dark .text-gray-500 { color: hsl(210 10% 64%); }
+.dark .text-gray-400 { color: hsl(210 8% 52%); }
+
+/* Borders — light borders become subtle dark borders */
+.dark .border-slate-100 { border-color: hsl(222 47% 16%); }
+.dark .border-slate-200 { border-color: hsl(222 47% 18%); }
+.dark .border-slate-300 { border-color: hsl(222 47% 22%); }
+.dark .border-gray-100 { border-color: hsl(222 47% 16%); }
+.dark .border-gray-200 { border-color: hsl(222 47% 18%); }
+
+/* Borders with opacity (e.g. border-slate-200/80) */
+.dark [class*="border-slate-200/"] { border-color: hsl(222 47% 18% / 0.8); }
+.dark [class*="border-slate-100/"] { border-color: hsl(222 47% 16% / 0.6); }
+
+/* Hover backgrounds */
+.dark .hover\:bg-slate-50:hover { background-color: hsl(222 47% 14%); }
+.dark .hover\:bg-slate-100:hover { background-color: hsl(222 47% 16%); }
+.dark .hover\:bg-gray-50:hover { background-color: hsl(222 47% 14%); }
+.dark .hover\:bg-gray-100:hover { background-color: hsl(222 47% 16%); }
+
+/* Inputs — keep darker than card surfaces for contrast */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: hsl(222 47% 14%);
+  color: hsl(210 20% 92%);
+  border-color: hsl(222 47% 22%);
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(210 8% 48%);
+}
+
+/* Soft-tinted backgrounds (gradient panels) — keep tint but darker */
+.dark .bg-blue-50 { background-color: hsl(217 50% 14%); }
+.dark .bg-emerald-50 { background-color: hsl(151 50% 12%); }
+.dark .bg-violet-50 { background-color: hsl(263 40% 14%); }
+.dark .bg-amber-50 { background-color: hsl(38 50% 13%); }
+.dark .bg-rose-50 { background-color: hsl(346 50% 13%); }
+.dark .bg-purple-50 { background-color: hsl(263 40% 14%); }
+.dark .bg-orange-50 { background-color: hsl(24 60% 14%); }
+.dark .bg-indigo-50 { background-color: hsl(231 40% 14%); }
+.dark .bg-cyan-50 { background-color: hsl(190 50% 13%); }
+.dark .bg-pink-50 { background-color: hsl(330 40% 14%); }
+.dark .bg-red-50 { background-color: hsl(0 50% 13%); }
+.dark .bg-yellow-50 { background-color: hsl(48 60% 13%); }
+.dark .bg-teal-50 { background-color: hsl(173 50% 12%); }
+.dark .bg-sky-50 { background-color: hsl(199 60% 13%); }
+
+/* Tinted-background text — keep tinted text more vivid in dark */
+.dark .text-blue-700 { color: hsl(217 80% 75%); }
+.dark .text-emerald-700 { color: hsl(151 60% 60%); }
+.dark .text-violet-700 { color: hsl(263 70% 75%); }
+.dark .text-amber-700 { color: hsl(38 80% 65%); }
+.dark .text-rose-700 { color: hsl(346 70% 70%); }
+.dark .text-purple-700 { color: hsl(263 70% 75%); }
+.dark .text-orange-700 { color: hsl(24 80% 65%); }
+.dark .text-indigo-700 { color: hsl(231 70% 75%); }
+
+/* Shadows — softer in dark mode */
+.dark .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.4); }
+.dark .shadow-md { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5); }
+.dark .shadow-lg { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.6); }
+.dark .shadow-xl { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.7); }
+
+/* Gradient hero panels — keep their gradients (look great in dark) */
+/* Already-dark gradients (admin hero, super admin hero) need no override */
+
+@layer utilities {
+  .gov-blue {
+    color: var(--gov-blue);
+  }
+  .gov-dark-blue {
+    color: var(--gov-dark-blue);
+  }
+  .gov-orange {
+    color: var(--gov-orange);
+  }
+  .gov-green {
+    color: var(--gov-green);
+  }
+  .gov-amber {
+    color: var(--gov-amber);
+  }
+  .gov-red {
+    color: var(--gov-red);
+  }
+  
+  .bg-gov-blue {
+    background-color: var(--gov-blue);
+  }
+  .bg-gov-dark-blue {
+    background-color: var(--gov-dark-blue);
+  }
+  .bg-gov-orange {
+    background-color: var(--gov-orange);
+  }
+  .bg-gov-green {
+    background-color: var(--gov-green);
+  }
+  .bg-gov-amber {
+    background-color: var(--gov-amber);
+  }
+  .bg-gov-red {
+    background-color: var(--gov-red);
+  }
+  
+  .border-gov-blue {
+    border-color: var(--gov-blue);
+  }
+  .border-gov-green {
+    border-color: var(--gov-green);
+  }
+  .border-gov-orange {
+    border-color: var(--gov-orange);
+  }
+  .border-gov-amber {
+    border-color: var(--gov-amber);
+  }
+  
+  .text-gov-blue {
+    color: var(--gov-blue);
+  }
+  .text-gov-dark-blue {
+    color: var(--gov-dark-blue);
+  }
+  .text-gov-orange {
+    color: var(--gov-orange);
+  }
+  .text-gov-green {
+    color: var(--gov-green);
+  }
+  .text-gov-amber {
+    color: var(--gov-amber);
+  }
+  .text-gov-red {
+    color: var(--gov-red);
+  }
+  
+  .hover\:bg-gov-blue:hover {
+    background-color: var(--gov-blue);
+  }
+  .hover\:bg-gov-dark-blue:hover {
+    background-color: var(--gov-dark-blue);
+  }
+  .hover\:bg-gov-green:hover {
+    background-color: var(--gov-green);
+  }
+  .hover\:bg-gov-orange:hover {
+    background-color: var(--gov-orange);
+  }
+  
+  .hover\:text-gov-blue:hover {
+    color: var(--gov-blue);
+  }
+  .hover\:text-gov-dark-blue:hover {
+    color: var(--gov-dark-blue);
+  }
+}
+

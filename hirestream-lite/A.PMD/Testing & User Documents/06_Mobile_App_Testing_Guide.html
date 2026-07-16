@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>HireStream Mobile — Setup Guide</title>
+<style>
+  @page { size: A4; margin: 14mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; font-size: 11pt; line-height: 1.5; }
+  body { max-width: 800px; margin: 0 auto; padding: 30px 20px; background: #f8fafc; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #0c4a6e, #1e3a5f); border-radius: 16px; padding: 32px; color: white; text-align: center; margin-bottom: 24px; }
+  .header h1 { font-size: 22pt; font-weight: 700; margin-bottom: 6px; }
+  .header p { font-size: 11pt; opacity: 0.85; }
+  .badge { display: inline-block; background: rgba(255,255,255,0.2); border-radius: 20px; padding: 2px 12px; font-size: 9pt; margin-top: 8px; }
+
+  /* Step cards */
+  .step-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .step-header { display: flex; align-items: center; gap: 14px; padding: 18px 22px; border-bottom: 1px solid #f1f5f9; }
+  .step-num { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #0c4a6e, #0369a1); color: white; display: flex; align-items: center; justify-content: center; font-size: 16pt; font-weight: 700; flex-shrink: 0; }
+  .step-title { font-size: 14pt; font-weight: 600; color: #0c4a6e; }
+  .step-subtitle { font-size: 9pt; color: #64748b; margin-top: 2px; }
+  .step-body { padding: 20px 22px; }
+  .step-body p { margin-bottom: 10px; color: #334155; }
+  .step-body .action { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+  .step-body .action strong { color: #0369a1; }
+  .step-body .warning { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: 10pt; }
+  .step-body .success { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: 10pt; }
+  .screenshot { text-align: center; padding: 16px; background: #f8fafc; }
+  .screenshot img { max-width: 280px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); border: 1px solid #e2e8f0; }
+  .screenshot .caption { font-size: 9pt; color: #94a3b8; margin-top: 8px; font-style: italic; }
+
+  /* QR section */
+  .qr-card { background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border: 2px solid #7dd3fc; border-radius: 16px; padding: 30px; text-align: center; margin: 24px 0; }
+  .qr-card h2 { font-size: 16pt; color: #0c4a6e; margin-bottom: 6px; }
+  .qr-card p { color: #475569; font-size: 10pt; margin-bottom: 14px; }
+  .qr-card img { margin: 0 auto; display: block; }
+  .url-box { background: white; border: 2px dashed #0ea5e9; border-radius: 8px; padding: 10px 18px; margin-top: 14px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13pt; font-weight: 600; color: #0369a1; display: inline-block; }
+
+  /* Accounts table */
+  .accounts { margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f1f5f9; font-weight: 600; color: #334155; text-transform: uppercase; font-size: 8pt; letter-spacing: 0.5px; }
+  td code { background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-family: "SF Mono", Menlo, monospace; font-size: 9.5pt; }
+
+  /* Troubleshooting */
+  .trouble { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 22px; margin: 20px 0; }
+  .trouble h3 { color: #0c4a6e; font-size: 12pt; margin-bottom: 10px; }
+  .trouble-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+  .trouble-item:last-child { border-bottom: none; }
+  .trouble-q { font-weight: 600; color: #dc2626; min-width: 200px; font-size: 10pt; }
+  .trouble-a { color: #334155; font-size: 10pt; }
+
+  /* Footer */
+  footer { text-align: center; padding: 20px 0; color: #94a3b8; font-size: 8.5pt; border-top: 1px solid #e2e8f0; margin-top: 24px; }
+
+  @media print {
+    body { background: white; }
+    .step-card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════ HEADER ═══════ -->
+<div class="header">
+  <h1>📱 HireStream Mobile App</h1>
+  <p>Step-by-step setup guide for HPSEDC testing team</p>
+  <div class="badge">Android · Expo Go · 5 minutes to set up</div>
+</div>
+
+<!-- ═══════ STEP 1 ═══════ -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-num">1</div>
+    <div>
+      <div class="step-title">Install "Expo Go" from Google Play Store</div>
+      <div class="step-subtitle">Free app · ~60 MB · by Expo Project</div>
+    </div>
+  </div>
+  <div class="step-body">
+    <p>Open the <strong>Google Play Store</strong> on your Android phone and search for <strong>"Expo Go"</strong>.</p>
+    <div class="action">
+      <strong>👆 Action:</strong> Tap the green <strong>Install</strong> button and wait for the download to complete.
+    </div>
+    <p>Expo Go is a free testing app used by developers worldwide. It allows you to preview mobile apps without installing separate APK files.</p>
+  </div>
+  <div class="screenshot">
+    <img src="mobile-setup-images/step1_playstore.png" alt="Google Play Store showing Expo Go" />
+    <div class="caption">Search for "Expo Go" in the Play Store and tap Install</div>
+  </div>
+</div>
+
+<!-- ═══════ STEP 2 ═══════ -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-num">2</div>
+    <div>
+      <div class="step-title">Open Expo Go and tap "Enter URL manually"</div>
+      <div class="step-subtitle">Skip the QR scanner for now</div>
+    </div>
+  </div>
+  <div class="step-body">
+    <p>After installation, <strong>open the Expo Go app</strong>. You will see the welcome screen.</p>
+    <div class="action">
+      <strong>👆 Action:</strong> Tap the <strong>"Enter URL manually"</strong> link (below the QR code button).
+    </div>
+    <div class="warning">
+      <strong>⚠️ Note:</strong> You do NOT need to create an Expo account. Skip any sign-up prompts.
+    </div>
+  </div>
+  <div class="screenshot">
+    <img src="mobile-setup-images/step2_expo_home.png" alt="Expo Go home screen" />
+    <div class="caption">Tap "Enter URL manually" — highlighted with the yellow arrow</div>
+  </div>
+</div>
+
+<!-- ═══════ STEP 3 ═══════ -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-num">3</div>
+    <div>
+      <div class="step-title">Enter the HireStream app URL</div>
+      <div class="step-subtitle">Type the exact URL shown below</div>
+    </div>
+  </div>
+  <div class="step-body">
+    <p>In the URL input field, type the following address <strong>exactly as shown</strong>:</p>
+    <div class="action" style="text-align: center; font-size: 14pt;">
+      <strong>exp://hirestream-mobile.agentryx.dev:80</strong>
+    </div>
+    <div class="action">
+      <strong>👆 Action:</strong> After typing the URL, tap the <strong>"Connect"</strong> button.
+    </div>
+    <div class="warning">
+      <strong>⚠️ Important:</strong> Make sure to type <code>exp://</code> (not <code>https://</code>). Include the <code>:80</code> at the end.
+    </div>
+  </div>
+  <div class="screenshot">
+    <img src="mobile-setup-images/step3_enter_url.png" alt="Entering the HireStream URL" />
+    <div class="caption">Type the URL and tap "Connect" — the arrow shows where to tap</div>
+  </div>
+</div>
+
+<!-- ═══════ OR SCAN QR ═══════ -->
+<div class="qr-card">
+  <h2>🔲 Or scan this QR code instead</h2>
+  <p>If you prefer, go back and tap <strong>"Scan QR code"</strong> in Expo Go, then point your camera at this code:</p>
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=exp%3A%2F%2Fhirestream-mobile.agentryx.dev%3A80&bgcolor=f0f9ff" alt="QR Code" width="220" height="220" style="border-radius: 8px;" />
+  <div class="url-box">exp://hirestream-mobile.agentryx.dev:80</div>
+</div>
+
+<!-- ═══════ STEP 4 ═══════ -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-num">4</div>
+    <div>
+      <div class="step-title">Wait for the app to load</div>
+      <div class="step-subtitle">First load takes 15–30 seconds</div>
+    </div>
+  </div>
+  <div class="step-body">
+    <p>After tapping Connect, the app will download and compile. You will see a loading screen.</p>
+    <div class="action">
+      <strong>⏳ Wait:</strong> The first load takes <strong>15–30 seconds</strong>. This is normal — subsequent loads are faster.
+    </div>
+    <div class="warning">
+      <strong>⚠️ If you see "Something went wrong":</strong> Pull down on the screen to refresh, or close Expo Go completely and reopen it, then re-enter the URL.
+    </div>
+  </div>
+  <div class="screenshot">
+    <img src="mobile-setup-images/step4_loading.png" alt="App loading screen" />
+    <div class="caption">The loading screen — wait for it to finish</div>
+  </div>
+</div>
+
+<!-- ═══════ STEP 5 ═══════ -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-num">5</div>
+    <div>
+      <div class="step-title">Login with your test credentials</div>
+      <div class="step-subtitle">Use any of the test accounts below</div>
+    </div>
+  </div>
+  <div class="step-body">
+    <p>Once loaded, you will see the <strong>HireStream login screen</strong>. Enter your test credentials.</p>
+    <div class="action">
+      <strong>👆 Action:</strong> Enter username <code><strong>mobiletest</strong></code> and password <code><strong>test123</strong></code>, then tap <strong>Sign In</strong>.
+    </div>
+    <div class="success">
+      <strong>✅ Success!</strong> You should now see the home screen with available job listings. You can browse jobs, apply, check notifications, and manage your profile.
+    </div>
+  </div>
+  <div class="screenshot">
+    <img src="mobile-setup-images/step5_login.png" alt="Login screen" />
+    <div class="caption">Enter your username and password, then tap Sign In</div>
+  </div>
+</div>
+
+<!-- ═══════ TEST ACCOUNTS ═══════ -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-num">📋</div>
+    <div>
+      <div class="step-title">Available test accounts</div>
+      <div class="step-subtitle">All passwords are: test123</div>
+    </div>
+  </div>
+  <div class="step-body">
+    <div class="accounts">
+      <table>
+        <thead><tr><th>Username</th><th>Role</th><th>Best for testing</th></tr></thead>
+        <tbody>
+          <tr><td><code>mobiletest</code></td><td>Candidate</td><td>General mobile testing — use this one first</td></tr>
+          <tr><td><code>priya_verma</code></td><td>Candidate</td><td>Full profile (100% complete), has accepted placement</td></tr>
+          <tr><td><code>meera_iyer</code></td><td>Candidate</td><td>Incomplete profile (88%), missing documents</td></tr>
+          <tr><td><code>demo_candidate</code></td><td>Candidate</td><td>Basic candidate for fresh testing</td></tr>
+          <tr><td><code>rohan_mehta</code></td><td>Candidate</td><td>Alternate candidate account</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top: 10px; font-size: 10pt; color: #64748b;">
+      <strong>Password for all accounts:</strong> <code>test123</code><br/>
+      You can also tap <strong>"Create Account"</strong> on the login screen to register a new account.
+    </p>
+    <div class="action">
+      <strong>💡 Tip:</strong> The mobile app connects to the same staging database as the web portal at <code>hirestream-stg.agentryx.dev</code>. Any changes made on mobile will be reflected on the web portal and vice versa.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ TROUBLESHOOTING ═══════ -->
+<div class="trouble">
+  <h3>🔧 Troubleshooting</h3>
+  <div class="trouble-item">
+    <div class="trouble-q">App won't load / blank screen</div>
+    <div class="trouble-a">Close Expo Go completely (swipe away from recent apps), reopen it, and re-enter the URL.</div>
+  </div>
+  <div class="trouble-item">
+    <div class="trouble-q">"Something went wrong" error</div>
+    <div class="trouble-a">Pull down on the screen to refresh. If it persists, check your internet connection.</div>
+  </div>
+  <div class="trouble-item">
+    <div class="trouble-q">Login fails</div>
+    <div class="trouble-a">Usernames are case-sensitive. Make sure to type exactly as shown (lowercase). Password is <code>test123</code>.</div>
+  </div>
+  <div class="trouble-item">
+    <div class="trouble-q">QR code doesn't work</div>
+    <div class="trouble-a">Make sure Expo Go is installed first. Try the manual URL entry method instead (Step 2 → Step 3).</div>
+  </div>
+  <div class="trouble-item">
+    <div class="trouble-q">App loads very slowly</div>
+    <div class="trouble-a">The first load downloads the JavaScript bundle (15–30 seconds). Subsequent loads are much faster.</div>
+  </div>
+</div>
+
+<footer>
+  HireStream Mobile · Android App v0.4.1 · Setup Guide for HPSEDC Testing Team · Prepared 2026-05-13<br/>
+  Questions? Contact the Agentryx delivery team.
+</footer>
+
+</body>
+</html>

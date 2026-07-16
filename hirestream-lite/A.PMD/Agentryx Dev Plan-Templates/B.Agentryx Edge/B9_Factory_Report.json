@@ -1,0 +1,160 @@
+{
+  "_meta": {
+    "template": "B9_Factory_Report",
+    "version": "2.0",
+    "generatedBy": "Pipeline Automation",
+    "description": "Automated pipeline trace and audit log. Documents the full build lifecycle for every project."
+  },
+
+  "project": {
+    "name": "{project-name}",
+    "code": "{PROJ-XXX}",
+    "client": "{client-name}",
+    "startedAt": "YYYY-MM-DDThh:mm:ssZ",
+    "completedAt": "YYYY-MM-DDThh:mm:ssZ",
+    "totalDuration": "{Xm Xs}",
+    "status": "COMPLETE | PARTIAL | FAILED"
+  },
+
+  "scope": {
+    "inputFormat": "SRS | FRS | TOR | BRD | FREE_TEXT",
+    "modulesPlanned": 0,
+    "modulesCompleted": 0,
+    "standardModulesIncluded": ["M0-Infrastructure", "M-AUTH", "M-ADMIN"],
+    "projectModulesPlanned": 0,
+    "projectModulesCompleted": 0,
+    "phasesPlanned": 0,
+    "phasesCompleted": 0,
+    "quickWinsAdded": 0
+  },
+
+  "pipeline": {
+    "phases": [
+      {
+        "phase": 1,
+        "name": "{Phase Name}",
+        "modules": ["M0", "M-AUTH", "M-ADMIN.1", "M1"],
+        "startedAt": "YYYY-MM-DDThh:mm:ssZ",
+        "completedAt": "YYYY-MM-DDThh:mm:ssZ",
+        "gateStatus": "PASS | FAIL",
+        "steps": {
+          "sourceAnalysis": {
+            "task": "A0 Source Analysis & Gap Report",
+            "duration": "0m 0s",
+            "gapsFound": 0,
+            "ambiguities": 0,
+            "output": ["A0_Source_Analysis.md"]
+          },
+          "architecture": {
+            "task": "A1-A2 Solution Brief & Architecture",
+            "duration": "0m 0s",
+            "output": ["A1_Solution_Brief.md", "A2_Solution_Architecture.md"]
+          },
+          "planning": {
+            "task": "A3-A6 Module Breakdown, Phasing, PRDs, Acceptance",
+            "duration": "0m 0s",
+            "output": ["A3_Module_Breakdown.md", "A4_Dev_Plan_Phasing.md", "A5_PRD_Phase1.md", "A6_Acceptance_Criteria.md"]
+          },
+          "development": {
+            "task": "Code generation",
+            "duration": "0m 0s",
+            "filesWritten": 0,
+            "linesOfCode": 0,
+            "output": []
+          },
+          "review": {
+            "task": "Architecture review",
+            "duration": "0m 0s",
+            "verdict": "APPROVED | NEEDS_FIX | REJECTED",
+            "issues": 0,
+            "output": []
+          },
+          "testing": {
+            "task": "QA + Test execution",
+            "duration": "0m 0s",
+            "testFiles": 0,
+            "totalTests": 0,
+            "testsPassed": 0,
+            "testsFailed": 0,
+            "coverage": "0%",
+            "securityIssues": 0,
+            "output": []
+          },
+          "documentation": {
+            "task": "B-series documentation generation",
+            "duration": "0m 0s",
+            "docsGenerated": 0,
+            "output": []
+          },
+          "deployment": {
+            "task": "Packaging & deployment",
+            "duration": "0m 0s",
+            "deployed": false,
+            "gitCommit": "",
+            "packageGenerated": false,
+            "output": []
+          }
+        }
+      }
+    ]
+  },
+
+  "quality": {
+    "testSummary": {
+      "totalTests": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "0%"
+    },
+    "securityScan": {
+      "critical": 0,
+      "major": 0,
+      "minor": 0,
+      "info": 0
+    },
+    "selfHealingLoops": 0,
+    "humanReviewFlags": []
+  },
+
+  "standardModules": {
+    "adminOps": {
+      "configManagement": false,
+      "logViewer": false,
+      "healthDashboard": false,
+      "userManagement": false,
+      "auditTrail": false,
+      "logLevelControl": false
+    },
+    "authentication": {
+      "registration": false,
+      "login": false,
+      "rbac": false,
+      "sessionManagement": false
+    },
+    "security": {
+      "helmet": false,
+      "rateLimiting": false,
+      "cors": false,
+      "inputValidation": false
+    }
+  },
+
+  "deliverables": {
+    "sourceFiles": 0,
+    "testFiles": 0,
+    "documentationFiles": 0,
+    "totalLinesOfCode": 0,
+    "totalLinesOfTests": 0,
+    "packageSize": "0 KB",
+    "deliveryFormat": ".zip | Git Repo | Both",
+    "documentsGenerated": {
+      "A_series": ["A0", "A1", "A2", "A3", "A4", "A5", "A6"],
+      "B_series": ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9"]
+    }
+  },
+
+  "timeline": [
+    { "timestamp": "", "step": "", "action": "", "detail": "" }
+  ]
+}

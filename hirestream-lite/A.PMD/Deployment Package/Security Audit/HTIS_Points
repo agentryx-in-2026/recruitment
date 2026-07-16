@@ -1,0 +1,9 @@
+1. Scripts and CSS should not be included via URL.
+2. Scripts and CSS should always be up to date.
+3. Login and change password pages should not be directly accessible via the browser; they should be properly handled and described by the system.
+4. A user should be allowed to log in on only one browser at a time. If the same credentials are used in another browser, the first session should be logged out.
+5. The session timeout should be a maximum of 30 minutes.
+6. CAPTCHA should be required for login and change password.
+7. Passwords must meet strong validation requirements and should not be weak.
+8. A “Page Not Found” message should be displayed for invalid URLs.
+9. Only GET and POST methods should be allowed; all other HTTP methods should be blocked.
