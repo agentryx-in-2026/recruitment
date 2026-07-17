@@ -237,20 +237,23 @@ describe('GET /api/v1/candidates/profile/completion', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveProperty('percentage');
     expect(res.body.data).toHaveProperty('missing');
-    expect(res.body.data).toHaveProperty('total', 8);
+    // 9 checkpoints since HP-4c split "documents" into idDocument + passport
+    // (both required for overseas placement, per HPSEDC review).
+    expect(res.body.data).toHaveProperty('total', 9);
   });
 
-  it('shows 62% with name+email+phone+location+skills (5/8)', async () => {
+  it('shows 56% with name+email+phone+location+skills (5/9)', async () => {
     // Profile already has name, email, phone, location, skills from beforeEach
     const res = await request(app)
       .get('/api/v1/candidates/profile/completion')
       .set('Cookie', candidateCookie);
 
-    // 5 of 8 filled = 62.5% → rounds to 63%
-    expect(res.body.data.percentage).toBe(63);
+    // 5 of 9 filled = 55.6% → rounds to 56%
+    expect(res.body.data.percentage).toBe(56);
     expect(res.body.data.missing).toContain('education');
     expect(res.body.data.missing).toContain('experience');
-    expect(res.body.data.missing).toContain('documents');
+    expect(res.body.data.missing).toContain('idDocument');
+    expect(res.body.data.missing).toContain('passport');
   });
 
   it('shows 100% when everything is filled', async () => {
@@ -266,7 +269,8 @@ describe('GET /api/v1/candidates/profile/completion', () => {
       .set('Cookie', candidateCookie)
       .send({ company: 'TCS', role: 'Dev', years: 2 });
 
-    // Upload a document
+    // Upload the two required documents (HP-4c: an identity proof AND a
+    // passport are both needed — a CV alone no longer reaches 100%)
     const path = await import('path');
     const fs = await import('fs/promises');
     const fixtureDir = path.resolve(process.cwd(), 'tests/fixtures');
@@ -279,7 +283,13 @@ describe('GET /api/v1/candidates/profile/completion', () => {
     await request(app)
       .post('/api/v1/candidates/documents')
       .set('Cookie', candidateCookie)
-      .field('type', 'cv')
+      .field('type', 'identity_proof')
+      .attach('file', testFile);
+
+    await request(app)
+      .post('/api/v1/candidates/documents')
+      .set('Cookie', candidateCookie)
+      .field('type', 'passport')
       .attach('file', testFile);
 
     const res = await request(app)

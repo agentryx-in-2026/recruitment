@@ -73,13 +73,47 @@ never updates — once HPSEDC edit a row it is theirs, and a redeploy that
   is broken separately (`dotenv: not found`); use
   `DATABASE_URL="$TEST_DATABASE_URL" npx drizzle-kit push`.
 
+- **The smoke had NEVER run against this fork — and silently smoked a different
+  portal instead.** `deep-smoke.mjs` defaulted `DEEP_URL` to
+  `hirestream-stg.agentryx.dev`, and `smoke:local` pointed at port **5001**
+  (neither lite:5004 nor hp:5003 — copied unchanged through two forks). So
+  `npm run test:deep` reported on someone else's system and looked fine. Fixed:
+  `DEEP_URL` is now REQUIRED (no default), `smoke` → hirestream-lite.agentryx.dev,
+  `smoke:local` → :5004, and **every run prints the target's
+  `/api/v1/version` banner first** so the four-portal landmine cannot bite again.
+- **The smoke could not authenticate at all over http.** pm2 runs
+  `NODE_ENV=production` → `cookieSecure=true` → no session cookie over plain
+  http. Every role then failed to log in, and the AUTHZ layer read that as
+  "correctly denied" — i.e. it **passed while testing nothing**. The harness now
+  sends `X-Forwarded-Proto: https` (what nginx does; `trust proxy` is on) and
+  shouts if a 200 login yields no cookie. Same trick works with curl:
+  `curl -H 'X-Forwarded-Proto: https' ...` — without it every local API call 401s.
+- **Route autodiscovery** needs `DEEP_SMOKE_TOKEN` + `DEEP_ROUTES_DEBUG=1` (the
+  latter because production omits `/api/v1/__routes`, so the SPA catch-all
+  returns HTML and it died on `Unexpected token '<'`). Both are now in `.env`
+  (gitignored — **the token is NOT in git; regenerate per environment**).
+- **The smoke's 72 "authz LEAK: admin reached X" were calibration, not leaks.**
+  Verified against each route's real guard: admin is HPSEDC's oversight role by
+  design (e.g. `employer.routes.ts:26-31` explicitly allows
+  `["employer","admin","superadmin"]`). The allowlist was never calibrated
+  because the harness had never run. Now calibrated with a `file:line`
+  justification per pattern — **deliberately NOT a wildcard for admin**, so the
+  negative matrix keeps meaning something. A new admin-reachable route must be
+  justified and added the same way. Self-scoped endpoints (`/candidates/*`) were
+  verified empirically, not just by reading: uploaded a passport as
+  demo_candidate, confirmed agent and employer both see 0 rows.
+
+**Current gate status: `npm test` 497/497 · `npm run smoke:local` pass=537 warn=35 FAIL=0.**
+Run `set -a; . ./.env; set +a` before `smoke:local` so the token is exported.
+Note the smoke probes ~350 endpoints and the API rate limit is 2000/15min per IP
+— two or three back-to-back runs will 429 you. `pm2 restart hirestream-lite`
+resets the in-memory limiter.
+
 ### Known-broken, NOT fixed (pre-existing)
 
-- **The smoke half of `test:deep` has never worked against lite.** Two reasons:
-  the script reads **`DEEP_URL`** (not `SMOKE_BASE` — passing the wrong var
-  silently smokes `hirestream-stg` instead, which is exactly the four-portal
-  landmine above), and its route autodiscovery needs `DEEP_SMOKE_TOKEN` + the
-  `/api/v1/__routes` endpoint, which is dev-only — on a production build the SPA
-  catch-all returns HTML and it dies on `Unexpected token '<'`. Setting the token
-  is a config/secret decision for a human. **`npm test` (jest) is currently the
-  only working gate.**
+- `npm run db:push:test` fails with `dotenv: not found`. Use
+  `DATABASE_URL="$TEST_DATABASE_URL" npx drizzle-kit push` instead.
+- `job.routes.ts:~913` has a DRIFTED SECOND COPY of the profile-completion
+  calculation (8 checks, generic any-document) vs the endpoint's 9 (id + passport
+  specifically). Two definitions of the same number. Left alone deliberately —
+  changing it alters the apply gate, and UAT-05 rewrites completion anyway.

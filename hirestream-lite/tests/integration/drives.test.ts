@@ -270,8 +270,11 @@ describe('PATCH /api/v1/drives/placements/:id/accept', () => {
       .set('Cookie', agentCookie).send({ applicationId: appRes.body.data.id, scheduledAt: '2026-05-01T14:00:00Z' });
     await request(app).patch(`/api/v1/drives/interviews/${interview.body.data.id}/result`)
       .set('Cookie', agentCookie).send({ result: 'selected' });
+    // appointmentLetterUrl is required for accept: the compliance gate
+    // "placement.require_letter_to_accept" (audit 2026-07-06, Batch 4B)
+    // defaults ON — a candidate cannot accept an offer with no letter on file.
     const placement = await request(app).post('/api/v1/drives/placements').set('Cookie', agentCookie)
-      .send({ applicationId: appRes.body.data.id, country: 'United Arab Emirates' });
+      .send({ applicationId: appRes.body.data.id, country: 'United Arab Emirates', appointmentLetterUrl: '/uploads/letters/test-letter.pdf' });
 
     // Accept
     const res = await request(app).patch(`/api/v1/drives/placements/${placement.body.data.id}/accept`)

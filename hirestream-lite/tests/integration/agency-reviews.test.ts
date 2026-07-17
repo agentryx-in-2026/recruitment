@@ -3,7 +3,7 @@ import request from 'supertest';
 import type { Express } from 'express';
 import bcrypt from 'bcrypt';
 import { createTestApp, truncateAllTables, getDb } from '../helpers';
-import { users, recruitmentAgents } from '../../shared/schema';
+import { users, recruitmentAgents, candidates, jobs, applications } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 let app: Express;
@@ -38,6 +38,27 @@ async function loginAs(role: string, suffix = '1') {
   return agent;
 }
 
+// The C17 rating-manipulation guard (audit 2026-07-06) only lets a candidate
+// review an agency they have a real relationship with: an application to one
+// of that agency's jobs. Give the candidate user that relationship.
+async function grantReviewEligibility(candidateSuffix: string, agency: { userId: string | null }) {
+  const db = getDb();
+  const [u] = await db.select().from(users).where(eq(users.username, `candidate_${candidateSuffix}`));
+  const [cand] = await db.insert(candidates).values({
+    userId: u.id,
+    fullName: `Candidate ${candidateSuffix}`,
+    email: u.email,
+  }).returning();
+  const [job] = await db.insert(jobs).values({
+    title: 'Agency Job',
+    company: 'Agency Co',
+    location: 'Dubai',
+    country: 'United Arab Emirates',
+    agentId: agency.userId,
+  }).returning();
+  await db.insert(applications).values({ candidateId: cand.id, jobId: job.id });
+}
+
 async function createAgency(verified = true) {
   const agentUser = await createUser('agent', 'a1');
   const db = getDb();
@@ -66,8 +87,10 @@ describe('GET /api/v1/agencies/:id/reviews', () => {
   it('returns reviews with computed average rating', async () => {
     const agency = await createAgency();
     const cAgent = await loginAs('candidate', 'c1');
+    await grantReviewEligibility('c1', agency);
 
-    await cAgent.post(`/api/v1/agencies/${agency.id}/reviews`).send({ rating: 5, title: 'Great', review: 'Excellent service' });
+    const post = await cAgent.post(`/api/v1/agencies/${agency.id}/reviews`).send({ rating: 5, title: 'Great', review: 'Excellent service' });
+    expect(post.status).toBe(201);
 
     const res = await request(app).get(`/api/v1/agencies/${agency.id}/reviews`);
     expect(res.status).toBe(200);
@@ -117,6 +140,7 @@ describe('POST /api/v1/agencies/:id/reviews', () => {
   it('creates a valid review and updates aggregate rating', async () => {
     const agency = await createAgency();
     const cAgent = await loginAs('candidate', 'c1');
+    await grantReviewEligibility('c1', agency);
 
     const res = await cAgent.post(`/api/v1/agencies/${agency.id}/reviews`).send({
       rating: 4,
@@ -136,9 +160,13 @@ describe('POST /api/v1/agencies/:id/reviews', () => {
     const agency = await createAgency();
     const c1 = await loginAs('candidate', 'c1');
     const c2 = await loginAs('candidate', 'c2');
+    await grantReviewEligibility('c1', agency);
+    await grantReviewEligibility('c2', agency);
 
-    await c1.post(`/api/v1/agencies/${agency.id}/reviews`).send({ rating: 5 });
-    await c2.post(`/api/v1/agencies/${agency.id}/reviews`).send({ rating: 3 });
+    const r1 = await c1.post(`/api/v1/agencies/${agency.id}/reviews`).send({ rating: 5 });
+    const r2 = await c2.post(`/api/v1/agencies/${agency.id}/reviews`).send({ rating: 3 });
+    expect(r1.status).toBe(201);
+    expect(r2.status).toBe(201);
 
     const db = getDb();
     const [updated] = await db.select().from(recruitmentAgents).where(eq(recruitmentAgents.id, agency.id));

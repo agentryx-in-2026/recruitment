@@ -604,7 +604,8 @@ router.get("/profile/completion", protect, async (req, res, next) => {
     const profileRows = await db.select().from(candidates).where(eq(candidates.id, candidateId)).limit(1);
     const profile = profileRows[0];
 
-    // Check each section (8 checkpoints, each worth 12.5%)
+    // Check each section (9 checkpoints — was 8 until HP-4c split the single
+    // "documents" check into idDocument + passport, both required)
     const checks: { name: string; done: boolean }[] = [];
 
     // 1. Full name
