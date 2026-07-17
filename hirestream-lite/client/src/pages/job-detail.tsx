@@ -8,7 +8,7 @@ import {
   ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Shield,
   CheckCircle, Loader2, ArrowRight, Bookmark, BookmarkCheck, Share2, Tag, FileCheck2, Circle,
 } from "lucide-react";
-import { jobCategoryLabel, requiredDocsForCountry, DOC_TYPE_LABELS, UPLOADABLE_DOC_TYPES, salaryBandFor } from "@/lib/reference-data";
+import { jobCategoryLabel, salaryBandFor } from "@/lib/reference-data";
 
 async function fetchJson(url: string) {
   const res = await fetch(url);
@@ -41,6 +41,15 @@ export default function JobDetailPage() {
   const { data: docsRes } = useQuery({
     queryKey: ["/api/v1/candidates/documents"],
     queryFn: () => fetchJson("/api/v1/candidates/documents"),
+  });
+  // UAT-05: the SERVER resolves what this job needs (base ∪ profession ∪ country
+  // ∪ vacancy) and splits it by stage. This was a client-side table the server
+  // never read — so the portal told candidates the UK needs IELTS while nothing
+  // checked, and told everyone they needed a PCC before they had even applied.
+  const { data: docPreview } = useQuery({
+    queryKey: [`/api/v1/candidates/documents/preview?jobId=${id}`],
+    queryFn: () => fetchJson(`/api/v1/candidates/documents/preview?jobId=${id}`),
+    enabled: !!id,
   });
 
   const job = jobRes?.data;
@@ -168,31 +177,47 @@ export default function JobDetailPage() {
           );
         })()}
 
-        {/* UAT-03 #15: only the documents THIS job's country needs — with a
-            have/need marker for the ones the candidate can upload in-portal. */}
+        {/* UAT-03 #15 → UAT-05 item 9.
+            This section used to render requiredDocsForCountry(), whose base set
+            included medical_certificate and police_clearance — so it told EVERY
+            candidate, before they had even applied, that they needed a PCC and a
+            medical for this job. Both are perishable and cost the candidate
+            Rs 2,000-3,500. That is exactly what item 9 objects to.
+            Now it comes from the server's resolver, split by stage: what you'd
+            be asked for IF shortlisted, and what only happens IF selected.
+            Nothing here asks for an upload. Item 9 hides the PCC/medical upload
+            SECTIONS until selection (they live on /documents, gated); it does not
+            require hiding the FACT that the job eventually needs them — telling
+            someone up front helps them plan and costs them nothing. */}
         {(() => {
-          const required = requiredDocsForCountry(job.country);
-          const myTypes = new Set<string>(((docsRes?.data ?? []) as any[]).map((d) => String(d.type || "").toLowerCase()));
-          const has = (t: string) => t === "identity_proof" ? ["identity_proof", "id", "aadhaar", "national_id", "voter_id"].some((x) => myTypes.has(x)) : myTypes.has(t);
+          const prev = docPreview?.data;
+          if (!prev) return null;
+          const Line = ({ d }: { d: any }) => (
+            <div className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 ${d.have ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200 bg-white"}`}>
+              {d.have ? <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-slate-300 shrink-0" />}
+              <span className="text-sm text-slate-700 flex-1">{d.label}</span>
+              {d.have && <span className="text-[11px] font-semibold text-emerald-600">Have it</span>}
+            </div>
+          );
           return (
             <section className="mt-6">
-              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Documents required for this job — {job.country}</h2>
+              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                If you are shortlisted for this job — {job.country}
+              </h2>
               <div className="grid sm:grid-cols-2 gap-2">
-                {required.map((t) => {
-                  const uploadable = UPLOADABLE_DOC_TYPES.has(t);
-                  const have = uploadable && has(t);
-                  return (
-                    <div key={t} className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 ${have ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200 bg-white"}`}>
-                      {have ? <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-slate-300 shrink-0" />}
-                      <span className="text-sm text-slate-700 flex-1">{DOC_TYPE_LABELS[t] || t}</span>
-                      {have ? <span className="text-[11px] font-semibold text-emerald-600">Have it</span>
-                        : uploadable ? <span className="text-[11px] font-semibold text-amber-600">Upload</span>
-                        : <span className="text-[11px] text-slate-400">Arrange</span>}
-                    </div>
-                  );
-                })}
+                {prev.ifShortlisted.map((d: any) => <Line key={d.key} d={d} />)}
               </div>
-              <p className="text-[11px] text-slate-400 mt-2">“Arrange” documents (medical, police clearance, trade test, IELTS) are obtained outside the portal — HPSEDC guides you.</p>
+              {prev.ifSelected?.length > 0 && (
+                <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5">
+                  <p className="text-[11px] text-slate-600">
+                    <strong>Only if you are selected:</strong>{" "}
+                    {prev.ifSelected.map((d: any) => d.label).join(", ")}.{" "}
+                    <span className="text-slate-500">
+                      You do not need these to apply — they expire, so HPSEDC ask for them only once you have the job.
+                    </span>
+                  </p>
+                </div>
+              )}
             </section>
           );
         })()}

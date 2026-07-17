@@ -148,6 +148,12 @@ export default function CandidateDashboard() {
   const appCount = applications.length;
   const shortlistedCount = applications.filter((a: any) => ["shortlisted", "interview_scheduled", "selected"].includes(a.status)).length;
 
+  // MUST stay above the `if (isLoading)` early return below: hooks are counted
+  // per render, so a useQuery placed after it runs on the loaded render and not
+  // on the loading one — React then throws #310 and takes the whole dashboard
+  // down. Found by driving the page, not by typechecking; TS cannot see this.
+  const { data: oblRes } = useQuery<any>({ queryKey: ["/api/v1/candidates/documents/obligations"] });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -185,15 +191,28 @@ export default function CandidateDashboard() {
   // mathematically stuck below 100%.
   const goRegister = () => setLocation("/register");
 
-  // Document + completion state (documents are now REQUIRED for "ready").
+  // ── UAT-05: completion and documents are now DIFFERENT QUESTIONS ──────────
+  //
+  // This block used to read both out of `completion.missing`, because documents
+  // were two of its nine checkpoints. They are not any more: completion is
+  // "have you answered the form" (7 checks, no documents) and documents are owed
+  // per APPLICATION at shortlist/selection.
+  //
+  // Deriving `docsMissing` from completion.missing today would silently always
+  // be empty — which looks correct for the 20,000 who owe nothing, and is badly
+  // wrong for the shortlisted candidate the dashboard would then never prompt.
+  // Right answer for the wrong reason is still wrong, so it reads the
+  // obligations endpoint instead.
   const missing: string[] = completion.missing || [];
-  const docChecks = ["idDocument", "passport"];
-  const questionsMissing = missing.filter((m) => !docChecks.includes(m));
-  const docsMissing = missing.filter((m) => docChecks.includes(m));
-  const questionsDone = questionsMissing.length === 0;
+  const questionsDone = missing.length === 0;
   const ready = missing.length === 0 && completion.percentage >= 100;
-  const hasIdDoc = !missing.includes("idDocument");
-  const hasPassportDoc = !missing.includes("passport");
+
+  const obligations: any[] = oblRes?.data?.obligations || [];
+  // Only prompt when a real application has actually reached a stage that
+  // justifies asking. No shortlist, no ask — that IS the 20k:500 saving.
+  const docsOwed = obligations.filter((o) => !o.complete);
+  const docsNeeded = docsOwed.length > 0;
+  const docsUrgent = docsOwed.some((o) => o.stage === "deploy");
 
   // Advanced nav — the full set. Minimal nav — 4 big, verb-first items.
   const navItemsFull = [
@@ -215,7 +234,7 @@ export default function CandidateDashboard() {
     { key: "overview", label: t("minDash.navHome"), icon: Home, count: null, color: "text-blue-600 bg-blue-100" },
     { key: "jobs", label: t("minDash.navJobs"), icon: Briefcase, count: null, color: "text-indigo-600 bg-indigo-100" },
     { key: "applications", label: t("minDash.navApplication"), icon: ClipboardList, count: appCount, color: "text-emerald-600 bg-emerald-100" },
-    { key: "documents", label: t("minDash.navDocuments"), icon: FileText, count: null, dot: !hasIdDoc || !hasPassportDoc, color: "text-violet-600 bg-violet-100" },
+    { key: "documents", label: t("minDash.navDocuments"), icon: FileText, count: null, dot: docsNeeded, color: "text-violet-600 bg-violet-100" },
   ];
   const navItems = minimal ? navItemsMinimal : navItemsFull;
 
@@ -303,7 +322,7 @@ export default function CandidateDashboard() {
                 </div>
               )}
               <p className="text-[11px] text-slate-400 mt-1.5">
-                {ready ? t("simpleDash.profileReady") : (questionsDone && docsMissing.length ? t("minDash.capDocs") : t("minDash.capQuestions"))}
+                {ready && !docsNeeded ? t("simpleDash.profileReady") : docsNeeded ? t("minDash.capDocs") : t("minDash.capQuestions")}
               </p>
             </div>
 
@@ -315,7 +334,7 @@ export default function CandidateDashboard() {
                 className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold">
                 <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> {minimal ? t("minDash.findJob") : "Review Profile"}
               </Button>
-            ) : (questionsDone && docsMissing.length) ? (
+            ) : docsNeeded ? (
               <Button size="sm" onClick={goDocuments}
                 className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold">
                 <FileText className="w-3.5 h-3.5 mr-1.5" /> {t("minDash.addDocuments")}
@@ -471,7 +490,7 @@ export default function CandidateDashboard() {
           <AnimatePresence mode="wait">
             <motion.div key={activeView + (minimal ? "-min" : "")} variants={scaleIn} initial="initial" animate="animate" exit="exit">
               {activeView === "overview" && (minimal
-                ? <MinimalOverview profile={profile} completion={completion} applications={applications} setActiveView={setActiveView} setLocation={setLocation} goDocuments={goDocuments} goRegister={goRegister} capabilities={capabilities} regCode={regCode} helpline={helpline} ready={ready} questionsDone={questionsDone} docsMissing={docsMissing} hasIdDoc={hasIdDoc} hasPassportDoc={hasPassportDoc} t={t} />
+                ? <MinimalOverview profile={profile} completion={completion} applications={applications} setActiveView={setActiveView} setLocation={setLocation} goDocuments={goDocuments} goRegister={goRegister} capabilities={capabilities} regCode={regCode} helpline={helpline} ready={ready} questionsDone={questionsDone} docsNeeded={docsNeeded} docsUrgent={docsUrgent} obligations={obligations} t={t} />
                 : <OverviewView appCount={appCount} shortlisted={shortlistedCount} docs={docs.length} savedCount={savedJobsList.length} completion={completion} applications={applications} recommendations={recommendations} setActiveView={setActiveView} profile={profile} education={education} experience={experience} />)}
               {activeView === "jobs" && <JobsView allJobs={allJobs} appliedJobIds={appliedJobIds} savedJobIds={savedJobIds} recommendations={recommendations} completion={completion} />}
               {activeView === "applications" && <ApplicationsView applications={applications} initialIntent={intent} setActiveView={setActiveView} />}
@@ -513,14 +532,13 @@ function minFriendlyKey(app: any): MinFriendlyKey {
 }
 const MIN_PRIORITY = ["offered", "placed", "selected", "interview_scheduled", "shortlisted", "reviewed", "submitted", "rejected", "withdrawn"];
 
-function MinimalOverview({ profile, completion, applications, setActiveView, setLocation, goDocuments, goRegister, capabilities, regCode, helpline, ready, questionsDone, docsMissing, hasIdDoc, hasPassportDoc, t }: any) {
+function MinimalOverview({ profile, completion, applications, setActiveView, setLocation, goDocuments, goRegister, capabilities, regCode, helpline, ready, questionsDone, docsNeeded, docsUrgent, obligations, t }: any) {
   const tier: string | null = profile.registrationTier || null;
   const firstName = (profile.fullName || "").split(" ")[0];
   const BIG = "w-full h-14 text-lg font-semibold rounded-xl";
   const apps = applications || [];
   const rank = (a: any) => MIN_PRIORITY.indexOf(a.placement?.status === "offered" ? "offered" : a.status);
   const primary = apps.length ? [...apps].sort((a, b) => rank(a) - rank(b))[0] : null;
-  const docsNeeded = !hasIdDoc || !hasPassportDoc;
 
   return (
     <div className="max-w-xl mx-auto space-y-5">
@@ -555,7 +573,7 @@ function MinimalOverview({ profile, completion, applications, setActiveView, set
             <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-700" style={{ width: `${completion.percentage}%` }} />
             </div>
-            {questionsDone && docsMissing.length ? (
+            {docsNeeded ? (
               <Button onClick={goDocuments} className={`${BIG} mt-4 bg-blue-700 hover:bg-blue-800 text-white`}>{t("minDash.addDocuments")} <ArrowRight className="w-5 h-5 ml-2" /></Button>
             ) : (
               // UAT-05: one flow, one button. This block used to be a SECOND
@@ -585,17 +603,28 @@ function MinimalOverview({ profile, completion, applications, setActiveView, set
         )}
       </section>
 
-      {/* 2 · Documents — required step, prominent while ID or passport missing */}
+      {/* 2 · Documents — UAT-05 item 9.
+          Shown ONLY when a real application has reached shortlist or selection.
+          It used to be permanent, hardcoded to two rows (ID + passport), and
+          shown to every candidate from signup — i.e. it asked 20,000 people for
+          documents that 500 need. Now the rows ARE the obligation: whatever this
+          candidate's trade, this job's country and this vacancy actually require. */}
       {docsNeeded && (
-        <section className="bg-white rounded-2xl border-2 border-amber-200 shadow-sm p-5 sm:p-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-1">{t("minDash.docTitle")}</h2>
-          <p className="text-sm text-slate-500 mb-4">{t("minDash.docSub")}</p>
+        <section className={`bg-white rounded-2xl border-2 shadow-sm p-5 sm:p-6 ${docsUrgent ? "border-amber-300" : "border-blue-200"}`}>
+          <h2 className="text-xl font-bold text-slate-900 mb-1">
+            {docsUrgent ? t("docs2.selectedShort") : t("docs2.shortlistedShort")}
+          </h2>
+          <p className="text-sm text-slate-500 mb-4">
+            {docsUrgent ? t("docs2.selectedBody") : t("docs2.dashSub")}
+          </p>
           <div className="space-y-2.5">
-            <MinDocRow icon={IdCard} label={t("minDash.docId")} done={hasIdDoc} t={t} />
-            <MinDocRow icon={BookUser} label={t("minDash.docPassport")} done={hasPassportDoc} t={t} />
+            {obligations.flatMap((o: any) => o.required).slice(0, 6).map((d: any) => (
+              <MinDocRow key={d.key} icon={d.have ? BookUser : IdCard} label={d.label} done={d.have} t={t} />
+            ))}
           </div>
-          {!hasPassportDoc && <p className="text-xs text-slate-400 mt-3">{t("minDash.noPassportYet")}</p>}
-          <Button onClick={goDocuments} className={`${BIG} mt-4 bg-blue-700 hover:bg-blue-800 text-white`}><Upload className="w-5 h-5 mr-2" /> {t("minDash.addDocsPhoto")}</Button>
+          <Button onClick={goDocuments} className={`${BIG} mt-4 bg-blue-700 hover:bg-blue-800 text-white`}>
+            <Upload className="w-5 h-5 mr-2" /> {t("minDash.addDocsPhoto")}
+          </Button>
         </section>
       )}
 

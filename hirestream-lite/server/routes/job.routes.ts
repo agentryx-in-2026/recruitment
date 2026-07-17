@@ -910,19 +910,15 @@ router.post("/:id/apply", protect, async (req, res, next) => {
     const { getSetting } = await import("../services/settings.service");
     const minProfilePct: number = await getSetting("application.profile_completion_required_pct");
     if (minProfilePct > 0) {
-      // Inline completion calc: 8 checks, same weights as /profile/completion endpoint
-      const [eduC, expC, docC] = await Promise.all([
-        db.select().from(candidateEducation).where(eq(candidateEducation.candidateId, candidate.id)),
-        db.select().from(candidateExperience).where(eq(candidateExperience.candidateId, candidate.id)),
-        db.select().from(documents).where(eq(documents.candidateId, candidate.id)),
-      ]);
-      const checks = [
-        !!candidate.fullName && candidate.fullName !== "Unknown",
-        !!candidate.email, !!candidate.phone, !!candidate.location,
-        (candidate.skills?.length ?? 0) > 0,
-        eduC.length > 0, expC.length > 0, docC.length > 0,
-      ];
-      const pct = Math.round((checks.filter(Boolean).length / checks.length) * 100);
+      // UAT-05: was an INLINE copy of the completion calc — 8 checks including a
+      // generic "any document", while /profile/completion used 9 including an ID
+      // scan and a passport scan specifically. Two different numbers with the
+      // same name: the one shown to the candidate and the one they were judged
+      // by. Now the single shared function, so they cannot drift again — and it
+      // no longer counts documents, because applying is a stage-1 act and
+      // stage 1 has zero uploads.
+      const { computeCompletion } = await import("../services/profile-completion.service");
+      const { percentage: pct } = await computeCompletion(candidate.id);
       if (pct < minProfilePct) {
         return res.status(403).json({ success: false, error: { code: 403, message: `Your profile is ${pct}% complete. Reach ${minProfilePct}% before applying.` } });
       }

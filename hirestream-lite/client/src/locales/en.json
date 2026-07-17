@@ -1444,5 +1444,27 @@
       "certBody": "Certificate body",
       "tradeTest": "Have you passed a trade test?"
     }
+  },
+  "docs2": {
+    "sub": "You have been shortlisted. Now we need to see the documents that prove what you told us.",
+    "noneTitle": "You don't need to upload anything yet",
+    "noneBody": "Your application is complete. We only ask for documents once an employer shortlists you — there is no point in you paying for certificates before there is a real job on the table.",
+    "noneWhen": "If you are shortlisted, this page will show exactly which documents that job needs, and we'll tell you.",
+    "shortlistedTitle": "Shortlisted for {{job}}",
+    "shortlistedBody": "{{company}} · {{country}} — please upload these so HPSEDC can check them before your interview.",
+    "selectedTitle": "Selected for {{job}}",
+    "selectedBody": "Now we need your Police Clearance and Medical Fitness certificates. Get these done soon — they expire, so we ask for them only now.",
+    "allIn": "All received",
+    "optional": "(optional)",
+    "verified": "Checked",
+    "pendingCheck": "HPSEDC checking",
+    "whyBase": "Needed for every overseas job",
+    "whyCountry": "Required by {{country}}",
+    "whyProfession": "Required for your trade",
+    "whyVacancy": "This employer asks for it",
+    "whySelected": "Needed before you travel",
+    "selectedShort": "Documents needed before you travel",
+    "shortlistedShort": "Documents needed for your interview",
+    "dashSub": "You have been shortlisted — HPSEDC need to see these before your interview."
   }
 }

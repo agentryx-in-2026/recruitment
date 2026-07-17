@@ -13,6 +13,7 @@ import { z } from "zod";
 import { notify } from "../services/notification.service";
 import { userOwnsCandidate } from "../lib/ownership";
 import { normalizeQualification } from "@shared/education";
+import { computeCompletion } from "../services/profile-completion.service";
 
 const router = Router();
 
@@ -604,42 +605,11 @@ router.get("/profile/completion", protect, async (req, res, next) => {
     const profileRows = await db.select().from(candidates).where(eq(candidates.id, candidateId)).limit(1);
     const profile = profileRows[0];
 
-    // Check each section (9 checkpoints — was 8 until HP-4c split the single
-    // "documents" check into idDocument + passport, both required)
-    const checks: { name: string; done: boolean }[] = [];
-
-    // 1. Full name
-    checks.push({ name: "fullName", done: Boolean(profile.fullName && profile.fullName !== "Unknown") });
-    // 2. Email
-    checks.push({ name: "email", done: Boolean(profile.email) });
-    // 3. Phone
-    checks.push({ name: "phone", done: Boolean(profile.phone) });
-    // 4. Location
-    checks.push({ name: "location", done: Boolean(profile.location) });
-    // 5. Skills (at least 1)
-    checks.push({ name: "skills", done: Boolean(profile.skills && profile.skills.length > 0) });
-    // 6. At least 1 education record
-    const eduCount = await db.select({ c: count() }).from(candidateEducation).where(eq(candidateEducation.candidateId, candidateId));
-    checks.push({ name: "education", done: (eduCount[0]?.c ?? 0) > 0 });
-    // 7. Experience — a detailed record OR the total (the simplified /apply flow
-    //    sets candidates.experience_months, not a candidate_experience row).
-    const expCount = await db.select({ c: count() }).from(candidateExperience).where(eq(candidateExperience.candidateId, candidateId));
-    checks.push({ name: "experience", done: (expCount[0]?.c ?? 0) > 0 || (profile.experienceMonths ?? 0) > 0 || (profile.experience ?? 0) > 0 });
-    // 8 + 9. Documents are REQUIRED for overseas placement (HP-4c, per HPSEDC
-    //    review): an identity proof (Aadhaar / ID) AND a passport. A profile is
-    //    never "ready" (100%) without both — no more "ready" with zero uploads.
-    const docRows = await db.select({ type: documents.type }).from(documents).where(eq(documents.candidateId, candidateId));
-    const docTypes = new Set(docRows.map((d: { type: string | null }) => String(d.type || "").toLowerCase()));
-    const hasIdDoc = ["identity_proof", "id", "aadhaar", "national_id", "voter_id"].some((t) => docTypes.has(t));
-    const hasPassportDoc = docTypes.has("passport");
-    checks.push({ name: "idDocument", done: hasIdDoc });
-    checks.push({ name: "passport", done: hasPassportDoc });
-
-    const completed = checks.filter((c) => c.done).length;
-    const percentage = Math.round((completed / checks.length) * 100);
-    const missing = checks.filter((c) => !c.done).map((c) => c.name);
-
-    res.json({ success: true, data: { percentage, completed, total: checks.length, missing, checks } });
+    // One definition, shared with the apply gate — see
+    // server/services/profile-completion.service.ts for what this measures and
+    // why documents are deliberately not in it.
+    const result = await computeCompletion(candidateId);
+    res.json({ success: true, data: result });
   } catch (error) {
     next(error);
   }

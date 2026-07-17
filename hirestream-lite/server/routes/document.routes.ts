@@ -5,6 +5,7 @@ import { storage } from "../storage";
 import { protect } from "../middleware/auth.middleware";
 import { upload, UPLOAD_DIR, HS_DOCS_DIR, verifyUploadedFile, handleUploadErrors } from "../middleware/upload.middleware";
 import { documents, candidates, applications, jobs } from "@shared/schema";
+import { isValidDocType, DOC_TYPE_KEYS } from "@shared/documents";
 import { eq, and } from "drizzle-orm";
 import { logger } from "../config/logger.config";
 
@@ -35,21 +36,14 @@ router.post("/", upload.single("file"), verifyUploadedFile, async (req, res, nex
     }
 
     const docType = req.body.type || "cv";
-    // v0.4.31 (HPSEDC Item 7): expanded vocabulary so each doc class has
-    // its own slot + ✓ indicator in the wizard. Legacy "certificate" still
-    // accepted for backward-compat with existing data.
-    const validTypes = [
-      "cv",
-      "passport",
-      "identity_proof",
-      "educational_certificate",
-      "experience_certificate",
-      "offer_letter",
-      "certificate", // legacy, kept for backward-compat
-      "other",
-    ];
-    if (!validTypes.includes(docType)) {
-      return res.status(400).json({ success: false, error: { code: 400, message: `Invalid document type. Must be one of: ${validTypes.join(", ")}` } });
+    // UAT-05: the whitelist now comes from shared/documents.ts — the single
+    // vocabulary. It used to be a hardcoded 8-item list here, which was the ONLY
+    // one of three vocabularies actually enforced, and it had no medical, no
+    // PCC, no trade test and none of the profession-specific certificates. Every
+    // key professions.seed asks for (nursing_council_registration,
+    // driving_licence, iti_certificate…) would have 400'd on upload.
+    if (!isValidDocType(docType)) {
+      return res.status(400).json({ success: false, error: { code: 400, message: `Invalid document type. Must be one of: ${DOC_TYPE_KEYS.join(", ")}` } });
     }
 
     // Store under the HS namespace so candidate docs can never be confused with

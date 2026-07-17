@@ -197,6 +197,14 @@ export const jobs = pgTable("jobs", {
   qualificationRequired: text("qualification_required"),    // school | diploma | bachelor | master | doctorate
   languagesRequired: jsonb("languages_required"),           // { english: "B2", arabic: "A1" } or { english_ielts: 6.0 }
   requiredIeltsBand: decimal("required_ielts_band"),
+  // UAT-05 §7.5 — the VACANCY dimension of the document union.
+  //
+  // Deliberately small: a job already carries `category` and `country`, so most
+  // of its requirements DERIVE (professionDocs(category) ∪ countryDocs(country)).
+  // This column carries only the genuine exception — one employer wanting a
+  // trade test on THIS welder vacancy when the profession does not normally
+  // need one. Every other welder vacancy inherits the default.
+  additionalRequiredDocs: text("additional_required_docs").array(),
   salary: text("salary"),
   description: text("description"),
   requirements: text("requirements").array(),

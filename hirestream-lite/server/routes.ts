@@ -17,6 +17,7 @@ import agencyRouter from "./routes/agency.routes";
 import jobRouter from "./routes/job.routes";
 import notificationRouter from "./routes/notification.routes";
 import documentRouter from "./routes/document.routes";
+import documentObligationsRouter from "./routes/document-obligations.routes";
 import applicationRouter from "./routes/application.routes";
 import driveRouter from "./routes/drive.routes";
 import reportsRouter from "./routes/admin/reports";
@@ -149,6 +150,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/v1/agencies", agencyRouter);
   app.use("/api/v1/jobs", jobRouter);
   app.use("/api/v1/notifications", notificationRouter);
+  // UAT-05 items 9 + 21. MOUNTED FIRST: document.routes has a GET /:id/download
+  // and a DELETE /:id, so /obligations and /preview would be swallowed as an
+  // ":id" if they were mounted after it — the exact route-shadow class of bug
+  // the smoke harness was written to catch.
+  app.use("/api/v1/candidates/documents", documentObligationsRouter);
   app.use("/api/v1/candidates/documents", documentRouter);
   app.use("/api/v1/applications", applicationRouter);
   app.use("/api/v1/drives", driveRouter);

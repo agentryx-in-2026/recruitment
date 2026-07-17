@@ -351,43 +351,17 @@ export const FIELD_LIMITS = {
 // Jobs inherit their country's matrix; on a job the candidate sees ONLY the
 // documents that job/country needs (with a have/need marker), not a generic
 // list. Base docs apply to every overseas placement; per-country adds extra.
-export const BASE_JOB_DOCUMENTS = ["identity_proof", "passport", "medical_certificate", "police_clearance"];
-export const COUNTRY_DOC_REQUIREMENTS: Record<string, string[]> = {
-  "UAE": ["educational_certificate"],
-  "Saudi Arabia": ["educational_certificate", "trade_test"],
-  "Qatar": ["educational_certificate"],
-  "Kuwait": ["educational_certificate"],
-  "Oman": [],
-  "Bahrain": [],
-  "UK": ["educational_certificate", "ielts", "cv"],
-  "Germany": ["educational_certificate", "cv"],
-  "Canada": ["educational_certificate", "ielts", "cv"],
-  "Australia": ["educational_certificate", "ielts", "cv"],
-  "Ireland": ["educational_certificate", "ielts", "cv"],
-  "New Zealand": ["educational_certificate", "ielts", "cv"],
-  "Singapore": ["educational_certificate", "cv"],
-  "Japan": ["educational_certificate", "cv"],
-  "USA": ["educational_certificate", "ielts", "cv"],
-};
-export const DOC_TYPE_LABELS: Record<string, string> = {
-  identity_proof: "ID (Aadhaar / Voter ID)",
-  passport: "Passport",
-  medical_certificate: "Medical fitness certificate",
-  police_clearance: "Police clearance (PCC)",
-  educational_certificate: "Education certificate",
-  experience_certificate: "Work experience letter",
-  trade_test: "Trade test result",
-  ielts: "IELTS score",
-  cv: "CV / Resume",
-  certificate: "Certificate",
-  other: "Other document",
-};
-// Types the candidate can upload in-portal now (so we can show have/need);
-// the rest (medical/PCC/trade test/IELTS) they arrange offline.
-export const UPLOADABLE_DOC_TYPES = new Set(["identity_proof", "passport", "educational_certificate", "experience_certificate", "cv", "certificate", "other"]);
-export function requiredDocsForCountry(country: string): string[] {
-  return [...BASE_JOB_DOCUMENTS, ...(COUNTRY_DOC_REQUIREMENTS[country] || [])];
-}
+// ── Documents ───────────────────────────────────────────────────────────────
+// The country→documents table, the doc labels and the uploadable set USED to
+// live here. They are gone: they were client-only and the server never read
+// them, so this file told candidates the UK needs IELTS while nothing enforced
+// it, and its base set demanded a PCC and a medical from every applicant for
+// every job (UAT-05 item 9).
+//
+// The single vocabulary now lives in shared/documents.ts, and the server
+// resolves requirements per (candidate, job) — see
+// server/routes/document-obligations.routes.ts. Deleted rather than deprecated
+// on purpose: left here, someone imports it and we are back to two lists.
 
 // ── UAT-03 #14: seeded typical MONTHLY salary bands per category × country ──
 // Cold-start backstop so a candidate sees a realistic range and sets an

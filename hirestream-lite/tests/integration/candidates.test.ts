@@ -237,60 +237,50 @@ describe('GET /api/v1/candidates/profile/completion', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveProperty('percentage');
     expect(res.body.data).toHaveProperty('missing');
-    // 9 checkpoints since HP-4c split "documents" into idDocument + passport
-    // (both required for overseas placement, per HPSEDC review).
-    expect(res.body.data).toHaveProperty('total', 9);
+    // UAT-05: 7 checkpoints. Was 9, two of which were an ID SCAN and a PASSPORT
+    // SCAN — so a candidate who answered every question truthfully sat at 78%.
+    // Documents are no longer a property of the candidate at all: they are owed
+    // per APPLICATION at shortlist/selection (document-obligations.routes.ts).
+    expect(res.body.data).toHaveProperty('total', 7);
+    expect(res.body.data.checks.map((c: any) => c.name)).toEqual(
+      ['fullName', 'email', 'phone', 'location', 'skills', 'education', 'experience']);
   });
 
-  it('shows 56% with name+email+phone+location+skills (5/9)', async () => {
+  it('shows 71% with name+email+phone+location+skills (5/7)', async () => {
     // Profile already has name, email, phone, location, skills from beforeEach
     const res = await request(app)
       .get('/api/v1/candidates/profile/completion')
       .set('Cookie', candidateCookie);
 
-    // 5 of 9 filled = 55.6% → rounds to 56%
-    expect(res.body.data.percentage).toBe(56);
+    // 5 of 7 filled = 71.4% → rounds to 71%
+    expect(res.body.data.percentage).toBe(71);
     expect(res.body.data.missing).toContain('education');
     expect(res.body.data.missing).toContain('experience');
-    expect(res.body.data.missing).toContain('idDocument');
-    expect(res.body.data.missing).toContain('passport');
+    // Documents must NOT appear here any more.
+    expect(res.body.data.missing).not.toContain('idDocument');
+    expect(res.body.data.missing).not.toContain('passport');
   });
 
-  it('shows 100% when everything is filled', async () => {
-    // Add education
+  it('shows 100% with ZERO documents — the 20,000:500 rule', async () => {
+    // THE regression test for UAT-05. HPSEDC: "we get 20,000 applications and
+    // only 500 are selected. Why collect 20,000 applicants' documents when they
+    // are not needed until the candidate is selected?"
+    //
+    // This test used to upload an identity_proof AND a passport to reach 100%.
+    // It now uploads NOTHING and must still reach 100% — if someone re-adds a
+    // document checkpoint to completion, this fails, which is the point.
     await request(app)
       .post('/api/v1/candidates/education')
       .set('Cookie', candidateCookie)
       .send({ degree: 'B.Tech', institution: 'IIT', year: 2020 });
 
-    // Add experience
     await request(app)
       .post('/api/v1/candidates/experience')
       .set('Cookie', candidateCookie)
-      .send({ company: 'TCS', role: 'Dev', years: 2 });
+      .send({ company: 'Acme Constructions', role: 'Dev', years: 2 });
 
-    // Upload the two required documents (HP-4c: an identity proof AND a
-    // passport are both needed — a CV alone no longer reaches 100%)
-    const path = await import('path');
-    const fs = await import('fs/promises');
-    const fixtureDir = path.resolve(process.cwd(), 'tests/fixtures');
-    await fs.mkdir(fixtureDir, { recursive: true });
-    const testFile = path.join(fixtureDir, 'test-cv.pdf');
-    try { await fs.access(testFile); } catch {
-      await fs.writeFile(testFile, Buffer.from('%PDF-1.4 test'));
-    }
-
-    await request(app)
-      .post('/api/v1/candidates/documents')
-      .set('Cookie', candidateCookie)
-      .field('type', 'identity_proof')
-      .attach('file', testFile);
-
-    await request(app)
-      .post('/api/v1/candidates/documents')
-      .set('Cookie', candidateCookie)
-      .field('type', 'passport')
-      .attach('file', testFile);
+    const docs = await request(app).get('/api/v1/candidates/documents').set('Cookie', candidateCookie);
+    expect(docs.body.data).toHaveLength(0);   // not one document uploaded
 
     const res = await request(app)
       .get('/api/v1/candidates/profile/completion')

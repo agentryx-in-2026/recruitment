@@ -138,35 +138,90 @@ never updates — once HPSEDC edit a row it is theirs, and a redeploy that
   verified empirically, not just by reading: uploaded a passport as
   demo_candidate, confirmed agent and employer both see 0 rows.
 
+**v0.4.1 — the content sweep** (items 7/17/19 across the surfaces the rebuild did
+not touch; `/profile` had kept ALL the old wrong content).
+
+**v0.5.0 — documents are stage-gated. Items 9 + 21 closed.**
+
+The back half of the 20k:500 design. Documents are now owed per (candidate,
+APPLICATION) and only once that application justifies the ask:
+
+| application status | owes |
+|---|---|
+| submitted / reviewed | **NOTHING.** ~19,500 people sit here |
+| shortlisted / interview_scheduled | prove the claims (base ∪ profession ∪ country ∪ vacancy) |
+| selected / placed | PCC + medical (item 9) |
+
+- **`shared/documents.ts`** — ONE vocabulary. There were three and they
+  disagreed: the server whitelist (the only enforced one, missing medical/PCC/
+  trade test and every profession certificate), a client-only country table the
+  server never read (so the portal claimed the UK needs IELTS while nothing
+  checked), and the compliance service reading status columns. `shared/` on
+  purpose — a client copy and a server copy is how you get back to two lists.
+- **The stage is a property OF THE DOCUMENT**, not a rule beside it. The old
+  `BASE_JOB_DOCUMENTS` demanded medical + PCC from every applicant for every job
+  — that IS item 9, and the fix is `stage: "deploy"` on those two rows.
+- **`relevantProfessions()`** — found by smoking the resolver, not by reading it:
+  a candidate shortlisted for a MASON job was asked for a Nursing Council
+  registration because the union ran over every trade they hold. Scoped via
+  `profession_requirements.jobCategoryKey` → `jobs.category`. A job with NO
+  category matches nothing and under-asks deliberately.
+- **Completion means APPLICATION COMPLETE** — 7 checks, no documents. It had 9,
+  two of them document scans, so a candidate who answered everything truthfully
+  sat at 78% and was nagged for a passport scan they need only if they are one of
+  the 500. **A candidate with zero documents is now 100%.** The drifted inline
+  copy in `job.routes` is gone: both callers use
+  `services/profile-completion.service.ts`.
+- **`jobs.additional_required_docs`** — the vacancy dimension. Small on purpose:
+  a job carries `category` + `country`, so most requirements derive; this is only
+  the exception (one employer wanting a trade test).
+
 ### Still to do (UAT-05)
 
-- **Pages 5 + 6** — documents. Page 5 unlocks on `shortlisted` (prove the claims);
-  page 6 on `selected` (PCC + medical, item 9). Nothing is stage-gated yet, and
-  `/documents` still shows every slot to everyone.
-- **The completion rewrite** — `/profile/completion` still demands an ID scan and
-  a passport scan for 100%, which is the rule the 20k:500 design reverses. Split
-  into "application complete" (pages 1-4, no docs) and "deployment ready".
-  Remember the drifted second copy in `job.routes.ts:~913`.
-- **Document vocabulary** — still THREE disagreeing lists. The seeded
-  `requiredDocs` keys (`nursing_council_registration`, `driving_licence`,
-  `iti_certificate`, `trade_test`) are NOT in the upload whitelist at
-  `document.routes.ts:40` and will 400 until it is unified. Inert until page 5
-  exists, which is why seeding them early was safe.
 - **Admin CRUD for professions** — HPSEDC can only edit `profession_requirements`
-  via SQL today. Item 21's "configurable by the administrator" is not met until
-  the screen exists.
+  via SQL. Item 21's "configurable by the administrator" is NOT met until the
+  screen exists. This is the largest remaining piece.
 - **Job Posting module** — items 10 (fixed salary), 11 (hide placed vacancies),
-  20 (remove the pipeline). Untouched, and there is no field spec for it yet;
-  item 20's scope question blocks writing one.
+  20 (remove the pipeline). Untouched; no field spec yet, and item 20's scope
+  question blocks writing one.
 - **Email verification (item 1)** — the field is collected, the verification is
   not built. Send the mail and gate the SUBMIT, not page 1 — hard-blocking at the
   first page sends the candidate to an inbox and a real share never come back.
+- **Item 2** — `/register` resumes correctly, but login still lands on the
+  dashboard; the "page 0" routing rule is unbuilt.
+- **PDO / PBBY / emigration** are deploy-stage in the spec but are still tracked
+  as candidate STATUS columns by `deployment.service.ts`, not as uploads. Left
+  alone: that service is a third model of the same domain and merging it is its
+  own job.
+- **An SLA on deploy-stage documents.** Deferring PCC/medical to selection means
+  a selected candidate must produce them or the placement slips. HPSEDC to set
+  the number; nothing chases them today.
 
 **Current gate status: `npm test` 497/497 · `npm run smoke:local` pass=537 warn=35 FAIL=0.**
 Run `set -a; . ./.env; set +a` before `smoke:local` so the token is exported.
 Note the smoke probes ~350 endpoints and the API rate limit is 2000/15min per IP
 — two or three back-to-back runs will 429 you. `pm2 restart hirestream-lite`
 resets the in-memory limiter.
+
+### Testing this portal — learned the hard way, 17-07-2026
+
+- **NEVER set application status with raw SQL.** `UPDATE applications SET
+  status=… WHERE job_id=…` hits EVERY candidate on that job — it clobbered four
+  demo candidates' statuses in one line. It also skips the audit log and the
+  route's side effects (a `selected` transition auto-creates a placement). Use
+  `PATCH /api/v1/applications/:id/status` as **demo_admin** (demo_agent hits the
+  IDOR guard — it does not own the seeded jobs). Recovery, if it happens again:
+  `audit_log.details->>'from'/'to'` holds the history, and no audit rows means
+  the application never left its creation default (`submitted`).
+- **Playwright: one browser context per ROLE.** Contexts share cookies, so after
+  the candidate logs in, `/auth` redirects any other page in that context away as
+  already-authenticated and the login form never renders (a 30s locator timeout
+  that looks like a broken page). `browser.newContext()` per role.
+- **curl against localhost needs `-H 'X-Forwarded-Proto: https'`** or every call
+  401s — pm2 runs NODE_ENV=production, so session cookies are `Secure`.
+- **Reset candidate state between UI runs.** Tiles toggle, so a driver that
+  assumes a clean slate un-picks what a previous run selected and then reports
+  the app is broken.
 
 ### Known-broken, NOT fixed (pre-existing)
 
