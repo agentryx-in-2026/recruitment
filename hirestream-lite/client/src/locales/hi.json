@@ -578,7 +578,8 @@
     "regNo": "पंजीकरण सं.",
     "supportAfterPlacement": "विदेश में काम कर रहे हैं? सहायता लें →",
     "noPassportYet": "अभी पासपोर्ट नहीं है? अभी अपनी पहचान जोड़ें — पासपोर्ट में HPSEDC मदद करेगा।",
-    "addDocsPhoto": "दस्तावेज़ जोड़ें — फ़ोटो लें"
+    "addDocsPhoto": "दस्तावेज़ जोड़ें — फ़ोटो लें",
+    "editDetails": "मेरी जानकारी बदलें"
   },
   "shell": {
     "govBrand": "HPSEDC",

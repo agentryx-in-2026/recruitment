@@ -102,6 +102,16 @@ export default function SimpleApplyPage() {
     const p = profileRes?.data;
     if (!p || langRes === undefined || resumedRef.current) return;
     resumedRef.current = true;
+    // UAT-04: "/apply?edit=1" means "I came here to change something", so go
+    // straight to the review — every field there has an Edit that jumps to its
+    // question. Resume can't be reused for this: it stops at the first UNANSWERED
+    // step, so a candidate with no passport (step 8 is skippable, and most
+    // first-time emigrants have none) would land on the passport question instead
+    // of the review, which reads as "why is it asking me this again?".
+    if (new URLSearchParams(window.location.search).get("edit") === "1") {
+      setStep(TOTAL - 1);
+      return;
+    }
     const langs = langRes?.data || [];
     let s = 0;
     if (p.skills?.[0] && BLUE_COLLAR_TRADES.some((x) => x.label === p.skills[0])) s = 1;

@@ -578,7 +578,8 @@
     "regNo": "Reg. No.",
     "supportAfterPlacement": "Working overseas? Get support →",
     "noPassportYet": "No passport yet? Upload your ID now — HPSEDC will help you with the passport.",
-    "addDocsPhoto": "Add documents — take a photo"
+    "addDocsPhoto": "Add documents — take a photo",
+    "editDetails": "Edit my details"
   },
   "shell": {
     "govBrand": "HPSEDC",

@@ -327,7 +327,19 @@ export default function CandidateDashboard() {
                 <ArrowRight className="w-3.5 h-3.5 mr-1.5" /> {t("minDash.continueProfile")}
               </Button>
             )}
-            {!minimal && (
+            {minimal ? (
+              // UAT-04: Simple view had NO edit at all. Once the profile was
+              // complete the CTA became "Find a Job" and the only editor was the
+              // full ProfileWizard, which this line is removing — so a candidate
+              // could not change a wrong phone number without leaving the simple UI.
+              // Routes to the simple flow's own review screen, which already lists
+              // every answer with a per-field Edit. ?edit=1 lands there directly
+              // rather than resuming to the first unanswered question.
+              <Button variant="outline" size="sm" onClick={() => setLocation("/apply?edit=1")}
+                className="w-full rounded-lg text-xs font-semibold mt-2 border-slate-300 text-slate-700 hover:bg-slate-50">
+                <User className="w-3.5 h-3.5 mr-1.5" /> {t("minDash.editDetails")}
+              </Button>
+            ) : (
               // audit 2026-07-07 (UI): "Edit Profile" used to route to /apply —
               // the linear blue-collar onboarding flow, which restarts from
               // scratch and (for a professional candidate) drops them into the
