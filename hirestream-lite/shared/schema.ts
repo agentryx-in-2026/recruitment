@@ -458,7 +458,9 @@ export const candidateEducation = pgTable("candidate_education", {
   // (which captures the school name). `subject` is for the field of study
   // on degrees (e.g. "Computer Science", "Mechanical Engineering").
   type: text("type"),         // school | university | diploma | certification | course
-  board: text("board"),       // CBSE / ICSE / HPBSE / Cambridge / IB / etc.
+  board: text("board"),       // HPBOSE / CBSE / ICSE / NIOS / etc. (UAT-05 item 17:
+                              // the HP board is HPBOSE — this comment had it wrong,
+                              // which is where the wrong name kept getting copied from)
   subject: text("subject"),
   // HP-4a (UAT-03 Item 7): affiliating university/body, distinct from
   // `institution` (the school/college name). Nullable — pre-HP rows keep the

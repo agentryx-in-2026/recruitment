@@ -959,7 +959,10 @@ function EducationStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
                     </FormField>
                     {type === "school" && (
                       <FormField label="Board" icon={Award}>
-                        <Input value={board} onChange={e => setBoard(e.target.value)} placeholder="CBSE / ICSE / HPBSE / Cambridge" maxLength={100}
+                        {/* UAT-05 item 17: the HP board is HPBOSE — Himachal Pradesh
+                            Board Of School Education is HPBOSE — this portal had
+                            the name of its own state's board wrong. */}
+                        <Input value={board} onChange={e => setBoard(e.target.value)} placeholder="HPBOSE / CBSE / ICSE / NIOS" maxLength={100}
                           className="pl-11 h-12 rounded-xl border-violet-200/80 bg-white" />
                       </FormField>
                     )}
@@ -1125,7 +1128,13 @@ function ExperienceStep({ onNext, onBack }: { onNext: () => void; onBack: () => 
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField label="Company" required icon={Building}>
-                      <Input value={company} onChange={e => setCompany(e.target.value)} placeholder="TCS, Infosys..." maxLength={100}
+                      {/* UAT-05 item 19: named companies removed "wherever they
+                          appear". The two firms this used to name were also
+                          simply wrong for this portal — it prompted a Mandi
+                          welder with two Bangalore IT firms. Plain string, not
+                          t(): this wizard has no useTranslation at all and is
+                          hardcoded English (pre-existing — see AGENT_STATE). */}
+                      <Input value={company} onChange={e => setCompany(e.target.value)} placeholder="Name of the company you worked for" maxLength={100}
                         className="pl-11 h-12 rounded-xl border-emerald-200/80 bg-white" />
                     </FormField>
                     <FormField label="Job Role" required icon={Briefcase}>
@@ -1191,7 +1200,11 @@ const PROFICIENCY_LEVELS = [
   { v: "professional", label: "Fluent" },
   { v: "native", label: "Native" },
 ];
-const COMMON_LANGUAGES = ["Hindi", "English", "Punjabi", "Pahari", "Nepali", "Urdu", "Arabic", "Malayalam"];
+// UAT-05 item 7: "Pahari" removed — HPSEDC consider it a dialect group, not a
+// listable language. Kept in step with /register's list (client/src/pages/
+// register.tsx LANGS); these two MUST agree, and the last time two flows kept
+// their own language lists they drifted, which is part of why the tiers are gone.
+const COMMON_LANGUAGES = ["Hindi", "English", "Punjabi", "Nepali", "Urdu", "Arabic", "Malayalam"];
 
 function LanguagesSection() {
   const queryClient = useQueryClient();

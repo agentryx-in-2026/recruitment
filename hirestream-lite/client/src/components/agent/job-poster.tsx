@@ -265,9 +265,15 @@ export function JobPoster({ isVerified, editJob, trigger, controlledOpen, onOpen
                   placeholder="e.g. Registered Nurse — ICU" />
               </Field>
               <Field label="Employer / company" required error={form.formState.errors.company?.message}>
+                {/* UAT-05 item 19: named companies removed "wherever they
+                    appear". The two firms HPSEDC named were EXAMPLES — this
+                    placeholder was a real named NHS trust, which is the same
+                    defect: an actual organisation used as filler on a government
+                    portal, where it reads as an employer HPSEDC places workers
+                    with. No real organisation belongs in a placeholder here. */}
                 <IconInput icon={<Building className="w-4 h-4 text-slate-400" />} {...form.register("company")}
                   maxLength={FIELD_LIMITS.companyName}
-                  placeholder="e.g. Royal London NHS Trust" />
+                  placeholder="Name of the hiring company" />
               </Field>
               <Field label="Country" required>
                 <Select value={form.watch("country")} onValueChange={(v) => {

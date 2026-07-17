@@ -725,7 +725,7 @@ function QualificationsPage({
           {eduLevel && eduLevel !== "none" && (
             <>
               <div>
-                {/* UAT-05 item 17: HPBSE -> HPBOSE. The Himachal Pradesh Board of
+                {/* UAT-05 item 17: the HP board is HPBOSE — Himachal Pradesh Board of
                     School Education is HPBOSE; the old placeholder had it wrong
                     in three places. */}
                 <Label className="text-sm font-medium text-slate-700">{t("reg.p3.board")}</Label>

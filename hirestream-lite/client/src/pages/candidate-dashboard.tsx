@@ -3519,7 +3519,10 @@ function CandidateReferencesPanel() {
           <p className="text-xs font-semibold text-slate-600 mb-2">Add a reference</p>
           <div className="grid md:grid-cols-2 gap-2">
             <Input placeholder="Full name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-9 text-sm" />
-            <Input placeholder="Relationship (e.g. Manager at Infosys)" value={form.relationship} onChange={(e) => setForm({ ...form, relationship: e.target.value })} className="h-9 text-sm" />
+            {/* UAT-05 item 19 — named companies removed "wherever they appear".
+                The references section is not part of the registration rebuild,
+                so this one does NOT get fixed by that work; it needed the sweep. */}
+            <Input placeholder="Relationship (e.g. Site supervisor, Head nurse)" value={form.relationship} onChange={(e) => setForm({ ...form, relationship: e.target.value })} className="h-9 text-sm" />
             <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-9 text-sm" />
             <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-9 text-sm" />
             <Input placeholder="Organisation" value={form.organization} onChange={(e) => setForm({ ...form, organization: e.target.value })} className="h-9 text-sm md:col-span-2" />
