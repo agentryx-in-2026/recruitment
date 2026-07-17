@@ -6,6 +6,7 @@ import pg from "pg";
 import { passport } from "./config/passport.config";
 import authRouter from "./routes/auth.routes";
 import candidateRouter from "./routes/candidate.routes";
+import professionRouter from "./routes/profession.routes";
 import adminRouter from "./routes/admin.routes";
 import superadminRouter from "./routes/superadmin.routes";
 import superadminOpsRouter from "./routes/superadmin-ops.routes";
@@ -136,6 +137,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register API routes
   app.use("/api/v1/auth", authLimiter, authRouter);
   app.use("/api/v1/candidates", candidateRouter);
+  // UAT-05 Item 21. GET / is public (the picker must render before login);
+  // /mine is session-scoped.
+  app.use("/api/v1/professions", professionRouter);
   app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1/superadmin", superadminRouter);
   app.use("/api/v1/superadmin/ops", superadminOpsRouter);

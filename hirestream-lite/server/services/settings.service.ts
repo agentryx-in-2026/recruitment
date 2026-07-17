@@ -11,7 +11,7 @@ import { logger } from "../config/logger.config";
  * Add new keys to DEFAULTS below; call `getSetting(key)` from any endpoint.
  */
 
-export type SettingCategory = "pipeline" | "rejection" | "access" | "notifications" | "matching" | "lifecycle" | "uploads" | "security" | "capability" | "contact" | "compliance";
+export type SettingCategory = "pipeline" | "rejection" | "access" | "notifications" | "matching" | "lifecycle" | "uploads" | "security" | "capability" | "contact" | "compliance" | "registration";
 
 export interface SettingSpec {
   key: string;
@@ -377,6 +377,41 @@ export const SETTING_SPECS: SettingSpec[] = [
     default: 0,
     min: 0,
     max: 100,
+  },
+
+  // ── Registration (UAT-05) ────────────────────────────────────────────
+  // These three exist because they are POLICY, not engineering. HPSEDC asked
+  // for behaviour whose trade-offs only they can price; each is a toggle so
+  // they decide without a release — and can change their mind after seeing
+  // real numbers, which is the only honest way to settle any of them.
+  {
+    key: "registration.passport_mandatory",
+    category: "registration",
+    label: "Passport number is hard-mandatory",
+    description:
+      "UAT-05 Item 4. ON: no passport number, no application — full stop. OFF (default): the candidate may tick \"I don't have a passport yet\", finish applying, and is blocked at SELECTION instead. Off is recommended: a passport is not needed to be shortlisted, only to be deployed, and passport-holding is low among HP blue-collar workers — hard-blocking at field one of page one turns away applicants who would gladly get one once a real job existed. Turn ON only if HPSEDC want the seriousness filter and accept the lost applicants.",
+    type: "boolean",
+    default: false,
+  },
+  {
+    key: "registration.gate_browsing",
+    category: "registration",
+    label: "Block job browsing until the application is submitted",
+    description:
+      "UAT-05 Item 2 (\"before accessing other portal features\"). ON: the whole portal is gated behind a finished application. OFF (default): the candidate lands on the form, may browse jobs, but cannot APPLY until it is submitted. Off is recommended and matches the item's own stated intent (\"enabling candidates to conveniently\") — a candidate who cannot see a single vacancy has no reason to start the form; browsing is what motivates registering.",
+    type: "boolean",
+    default: false,
+  },
+  {
+    key: "registration.max_professions",
+    category: "registration",
+    label: "Maximum professions a candidate may select",
+    description:
+      "UAT-05 Item 15. Most people work one or two trades; someone claiming five is telling us about their honesty, not their skills. The cap also bounds the length of the qualifications page, which renders one add-on card per selected profession.",
+    type: "number",
+    default: 3,
+    min: 1,
+    max: 10,
   },
 
   // ── Access & limits ──────────────────────────────────────────────────

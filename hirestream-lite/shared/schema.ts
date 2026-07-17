@@ -69,24 +69,56 @@ export const candidates = pgTable("candidates", {
   // registration but expected before placement paperwork is finalised.
   fatherName: text("father_name"),
   motherName: text("mother_name"),
-  // Current/postal address fields (the address the candidate lives at today).
-  // Captured separately from the free-text `location` (which holds city/state).
-  // All nullable.
+  // UAT-05 Item 16: "Your Town" -> "Home Town". First-class column; previously
+  // only survived inside the free-text `location`.
+  homeTown: text("home_town"),
+  // Correspondence address (UAT-03 Item 3 renamed this from "Address").
+  //
+  // UAT-05 Item 13 (district + state): both candidate addresses now carry the
+  // SAME five parts as an agency's registered address — line1/line2/city/
+  // district/state/pin. Until v0.2.x neither candidate address had district or
+  // state at all while recruitment_agents.registered_state did, and the wizard
+  // quietly derived `location` = "district, state" from fields it never stored.
+  // That asymmetry IS Item 13. One address shape, used everywhere.
   addressLine1: text("address_line_1"),
   addressLine2: text("address_line_2"),
   city: text("city"),
+  district: text("district"),
+  state: text("state"),
   pinCode: text("pin_code"),
-  // Permanent address — distinct from current address (v0.4.31, HPSEDC Item 4).
+  // Permanent address — distinct from correspondence (v0.4.31, HPSEDC Item 4).
   // Many overseas placement docs (PCC, visa, emigration) need the candidate's
   // permanent home address even if they currently reside elsewhere for work or
-  // study. All nullable; wizard offers "same as current" checkbox.
+  // study. All nullable; the form offers "same as permanent" on correspondence
+  // (UAT-05 reversed the direction — permanent is the one we always want).
   permanentAddressLine1: text("permanent_address_line_1"),
   permanentAddressLine2: text("permanent_address_line_2"),
   permanentCity: text("permanent_city"),
+  permanentDistrict: text("permanent_district"),
+  permanentState: text("permanent_state"),
   permanentPinCode: text("permanent_pin_code"),
+  // UAT-05 Item 5: WhatsApp is a first-class contact channel, not a note on the
+  // phone number — HPSEDC reach candidates on it and the numbers genuinely
+  // differ (the household smartphone is often not the candidate's own SIM).
+  whatsappNumber: text("whatsapp_number"),
+  // UAT-05 Item 12: disability declaration. `disabilityStatus` is a tri-state
+  // and NOT a boolean-with-default — "no" and "never asked" must stay
+  // distinguishable, otherwise every profile written before v0.3.0 would read
+  // as an affirmative "not disabled" that the candidate never actually gave.
+  disabilityStatus: text("disability_status"),    // yes | no  (null = not asked)
+  disabilityType: text("disability_type"),        // free text, only when status = yes
   // Regulatory compliance (Emigration Act, MEA) + overseas-placement essentials
   passportNumber: text("passport_number"),
   passportExpiry: date("passport_expiry"),
+  // UAT-05 Item 4 (passport first + mandatory). Everything the bio page prints,
+  // asked together while the candidate has the passport in their hand.
+  passportIssueDate: date("passport_issue_date"),
+  passportPlaceOfIssue: text("passport_place_of_issue"),
+  // `noPassportYet` is the escape hatch: passport is mandatory-with-an-out, and
+  // this records the out explicitly rather than inferring it from a NULL number
+  // (which is also what an abandoned half-filled form looks like). Gates
+  // SELECTION, not application — see setting registration.passport_mandatory.
+  noPassportYet: boolean("no_passport_yet").default(false),
   ecrStatus: text("ecr_status"),                  // ecr | ecnr | unknown
   pccStatus: text("pcc_status"),                  // submitted | pending | not_required
   pccExpiry: date("pcc_expiry"),
@@ -449,6 +481,96 @@ export const candidateExperience = pgTable("candidate_experience", {
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ── Profession Requirements ─────────────────────────────────────────
+// UAT-05 Item 21: profession-specific mandatory qualifications and documents,
+// "configurable by the administrator ... without requiring changes to the
+// application".
+//
+// This is a LOOKUP TABLE, deliberately. The temptation is a rule engine —
+// HPSEDC's Driver example says "appropriate vehicle class" and "badge licence
+// where applicable", which reads like conditional logic. It isn't: the required
+// DOCUMENT is the same (a licence) whatever the class, so class is a captured
+// field, not a rule. Every nuance that looks conditional is either a field
+// inside the add-on block or a separate row. No conditionals, no rule builder.
+//
+// What IS admin-editable: qualifications, skillsOptions, requiredDocs,
+// optionalDocs, candidateNote, label, order, active. What is NOT: the add-on
+// block's field shape (`hasAddonBlock` selects a code-defined block, keyed by
+// professionKey — see client/src/lib/profession-blocks.tsx). Making the field
+// shapes admin-authorable is the rule-builder we are explicitly not building.
+export const professionRequirements = pgTable("profession_requirements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Stable machine key — "nurse", "driver". Never renamed; `label` is what moves.
+  professionKey: text("profession_key").notNull().unique(),
+  // Bridge to jobs.category (server/services/job-categories.seed.ts), which is
+  // a COARSER vocabulary — it has construction_worker but not mason/carpenter/
+  // painter, and healthcare but not nurse. Professions are what a candidate IS;
+  // categories are how a vacancy is filed. Many-to-one, and this column is the
+  // mapping. Without it the profession list would be a fourth disagreeing
+  // vocabulary alongside the three the document model already has.
+  jobCategoryKey: text("job_category_key"),
+  label: text("label").notNull(),
+  // Hindi label. The portal is bilingual and admin-authored rows cannot go
+  // through i18n JSON, so the translation has to live with the row.
+  labelHi: text("label_hi"),
+  displayOrder: integer("display_order").default(0),
+  // Any ONE of these satisfies the profession (GNM *or* B.Sc. *or* Post Basic).
+  // Rendered as a dropdown, never a free-text box: let someone type
+  // "B.Sc Nursing (Hons.)" and we have invented a fuzzy-matching problem that
+  // only a model could solve; give them a list and it cannot arise.
+  qualifications: text("qualifications").array(),
+  hasAddonBlock: boolean("has_addon_block").default(false),
+  // Optional per-profession skills multi-select (UAT-05 — "specific skills for
+  // those jobs added as optional fields as per the profession selected").
+  // Every profession gets one, not just the five with add-on blocks: a Gulf
+  // employer is not hiring "a welder", they are hiring a 6G pipe welder.
+  skillsEnabled: boolean("skills_enabled").default(true),
+  skillsOptions: text("skills_options").array(),
+  requiredDocs: text("required_docs").array(),
+  optionalDocs: text("optional_docs").array(),
+  // Shown on the qualifications page the moment this profession is picked, so a
+  // candidate who cannot meet it self-selects out for free — instead of
+  // consuming a shortlisting slot and an HPSEDC review to reach the same end.
+  candidateNote: text("candidate_note"),
+  candidateNoteHi: text("candidate_note_hi"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ── Candidate Professions ───────────────────────────────────────────
+// UAT-05 Item 15 (select multiple professions) + Item 14 ("What skills do you
+// have?"). Replaces candidates.skills[] as the matching surface: skills[] is a
+// flat string array with no per-trade experience, which is why the old flow had
+// to ask for experience once, globally, and could not tell 8 years of welding
+// from 8 years of driving.
+//
+// One row per (candidate, profession). Cap enforced at the route, configurable
+// via setting registration.max_professions.
+export const candidateProfessions = pgTable("candidate_professions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  candidateId: varchar("candidate_id").references(() => candidates.id, { onDelete: "cascade" }).notNull(),
+  professionKey: text("profession_key").notNull(),
+  // Only when professionKey = "other" — the typed-in trade.
+  otherLabel: text("other_label"),
+  // Per-trade, not global. UAT-03 Item 10 asked for months; this is where they live.
+  experienceMonths: integer("experience_months").default(0),
+  specificSkills: text("specific_skills").array(),
+  lastEmployerName: text("last_employer_name"),
+  lastEmployerCountry: text("last_employer_country"),
+  // The add-on block's answers, shape keyed by professionKey (nurse ->
+  // {qualification, institution, year, councilRegNumber, councilName,
+  // councilValidUntil}). jsonb rather than sparse columns: the five blocks share
+  // almost no fields, so columns would be ~30 nullables of which any one row
+  // uses ~5. Read through the code-defined block spec, never ad hoc.
+  addonData: jsonb("addon_data"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => [
+  // A candidate cannot hold the same trade twice; also the hot path for
+  // "everything this candidate does".
+  uniqueIndex("candidate_professions_candidate_key_idx").on(t.candidateId, t.professionKey),
+]);
 
 // ── Candidate Languages ─────────────────────────────────────────────
 // HP-4a (UAT-03 Item 12): for blue-collar overseas placement, spoken-language
@@ -874,15 +996,44 @@ export const updateCandidateSchema = createInsertSchema(candidates).omit({
   location: z.string().trim().max(150).optional().nullable(),
   fatherName: z.string().trim().max(120).optional().nullable(),
   motherName: z.string().trim().max(120).optional().nullable(),
+  // UAT-05 Item 16.
+  homeTown: z.string().trim().max(80).optional().nullable(),
   addressLine1: z.string().trim().max(200).optional().nullable(),
   addressLine2: z.string().trim().max(200).optional().nullable(),
   city: z.string().trim().max(80).optional().nullable(),
+  // UAT-05 Item 13 — district + state on BOTH addresses, same shape.
+  district: z.string().trim().max(80).optional().nullable(),
+  state: z.string().trim().max(80).optional().nullable(),
   pinCode: z.string().trim().max(10).optional().nullable(),
   permanentAddressLine1: z.string().trim().max(200).optional().nullable(),
   permanentAddressLine2: z.string().trim().max(200).optional().nullable(),
   permanentCity: z.string().trim().max(80).optional().nullable(),
+  permanentDistrict: z.string().trim().max(80).optional().nullable(),
+  permanentState: z.string().trim().max(80).optional().nullable(),
   permanentPinCode: z.string().trim().max(10).optional().nullable(),
+  // UAT-05 Item 5 — WhatsApp. Same shape rule as the candidate's own phone;
+  // empty string clears (the "same as mobile" tick sends the mobile, not "").
+  whatsappNumber: z.union([
+    z.literal(""),
+    z.string().trim().regex(phoneRegex, {
+      message: "WhatsApp number must be digits only (optionally with +country code, spaces, or dashes).",
+    }),
+  ]).optional().nullable().transform((v) => (v === "" ? null : v)),
+  // UAT-05 Item 12 — disability. Tri-state: null means never asked.
+  disabilityStatus: z.enum(["yes", "no"]).optional().nullable(),
+  disabilityType: z.string().trim().max(200).optional().nullable(),
   passportNumber: z.string().trim().max(20).optional().nullable(),
+  // UAT-05 Item 4 — the rest of the bio page. Issue date cannot be in the
+  // future; unlike expiry it has no lower bound worth enforcing (a 10-year-old
+  // passport is ordinary).
+  passportIssueDate: z.union([
+    z.string().refine((v) => !v || new Date(v) <= new Date(), {
+      message: "Passport issue date cannot be in the future.",
+    }),
+    z.null(),
+  ]).optional(),
+  passportPlaceOfIssue: z.string().trim().max(80).optional().nullable(),
+  noPassportYet: z.boolean().optional().nullable(),
   // HP-4c: DOB must be a real past date (and not absurdly old). Server-checked
   // so a hand-crafted PATCH can't set a future/garbage birth date.
   dateOfBirth: z.union([
@@ -981,6 +1132,50 @@ export const insertLanguageSchema = createInsertSchema(candidateLanguages).omit(
   }),
 });
 
+// UAT-05 Item 15 — one trade the candidate does. `candidateId` is omitted: it
+// comes from the session, never the body (the same IDOR guard every other
+// candidate-owned row uses).
+export const insertCandidateProfessionSchema = createInsertSchema(candidateProfessions).omit({
+  id: true,
+  candidateId: true,
+  createdAt: true,
+}).extend({
+  professionKey: z.string().trim().min(1, "Pick a trade.").max(60),
+  // Only meaningful when professionKey = "other"; the route rejects it otherwise.
+  otherLabel: z.string().trim().max(60).optional().nullable(),
+  experienceMonths: z.number().int()
+    .min(0, { message: "Experience cannot be negative." })
+    .max(600, { message: "Experience looks too high — please check." })
+    .optional().nullable(),
+  specificSkills: z.array(z.string().trim().max(60)).max(20).optional().nullable(),
+  lastEmployerName: z.string().trim().max(120).optional().nullable(),
+  lastEmployerCountry: z.string().trim().max(60).optional().nullable(),
+  // Shape is validated per-profession at the route against the code-defined
+  // block spec — drizzle-zod types this as `unknown`, which would let any JSON
+  // through. Bounded here only to stop an arbitrarily large blob.
+  addonData: z.record(z.unknown()).optional().nullable(),
+});
+
+// UAT-05 Item 21 — admin-editable profession config. No `addonFields` here:
+// the block's field shape is code, not data (see the table comment).
+export const upsertProfessionRequirementSchema = createInsertSchema(professionRequirements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).partial().extend({
+  professionKey: z.string().trim().min(1).max(60)
+    .regex(/^[a-z0-9_]+$/, { message: "Key must be lowercase letters, numbers and underscores only." }),
+  label: z.string().trim().min(1).max(80),
+  labelHi: z.string().trim().max(80).optional().nullable(),
+  qualifications: z.array(z.string().trim().max(120)).max(30).optional().nullable(),
+  skillsOptions: z.array(z.string().trim().max(60)).max(40).optional().nullable(),
+  requiredDocs: z.array(z.string().trim().max(60)).max(20).optional().nullable(),
+  optionalDocs: z.array(z.string().trim().max(60)).max(20).optional().nullable(),
+  candidateNote: z.string().trim().max(400).optional().nullable(),
+  candidateNoteHi: z.string().trim().max(400).optional().nullable(),
+  displayOrder: z.number().int().min(0).max(999).optional().nullable(),
+});
+
 export const insertDriveSchema = createInsertSchema(recruitmentDrives).omit({
   id: true,
   status: true,
@@ -1055,6 +1250,11 @@ export type Document = typeof documents.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type CandidateEducation = typeof candidateEducation.$inferSelect;
 export type CandidateExperience = typeof candidateExperience.$inferSelect;
+// UAT-05 Items 15 + 21.
+export type CandidateProfession = typeof candidateProfessions.$inferSelect;
+export type InsertCandidateProfession = z.infer<typeof insertCandidateProfessionSchema>;
+export type ProfessionRequirement = typeof professionRequirements.$inferSelect;
+export type UpsertProfessionRequirement = z.infer<typeof upsertProfessionRequirementSchema>;
 export type RecruitmentDrive = typeof recruitmentDrives.$inferSelect;
 export type Interview = typeof interviews.$inferSelect;
 export type Placement = typeof placements.$inferSelect;
