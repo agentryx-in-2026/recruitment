@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import ProfessionsPanel from "@/pages/admin/ProfessionsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import React, { useState } from "react";
@@ -149,6 +150,8 @@ export default function AdminDashboard() {
       { key: "lifecycle", label: "Lifecycle", icon: Clock },
       { key: "drives", label: "Drives", icon: Handshake, count: pendingDrives.length },
       { key: "matching", label: "Matching Engine", icon: Cpu },
+      // UAT-05 item 21: HPSEDC edit profession eligibility without a release.
+      { key: "professions", label: "Professions", icon: Briefcase },
       // readiness 2026-07-07: fleet-wide pre-departure readiness (ring/stage/CSV)
       { key: "deployment_readiness", label: t("readiness.admin.navLabel"), icon: Plane },
       { key: "welfare", label: "Welfare SLA", icon: GraduationCap },
@@ -597,6 +600,11 @@ export default function AdminDashboard() {
 
         <TabsContent value="integrations">
           <IntegrationsPanel />
+        </TabsContent>
+
+        {/* ── Professions & eligibility (UAT-05 item 21) ── */}
+        <TabsContent value="professions">
+          <ProfessionsPanel />
         </TabsContent>
 
         {/* ── System Config Tab ─────────────────────────── */}

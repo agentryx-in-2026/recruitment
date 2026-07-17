@@ -176,14 +176,38 @@ APPLICATION) and only once that application justifies the ask:
   a job carries `category` + `country`, so most requirements derive; this is only
   the exception (one employer wanting a trade test).
 
+**v0.6.0 — Admin → Professions. Item 21 fully MET.**
+
+Admin Console → OPERATIONS → **Professions**. HPSEDC edit a trade's accepted
+qualifications, specific-skills list, required/optional documents and the note
+the candidate sees — live, no release. Verified end-to-end in a browser: admin
+edits welder's note → candidate's catalogue returns the new text immediately.
+
+Editable = the DATA (HPSEDC's eligibility policy). NOT editable:
+- `professionKey` after creation — it is identity; `candidate_professions` rows
+  point at it and renaming orphans every candidate holding that trade. Verified
+  the server drops it even when a valid lowercase key is sent.
+- `hasAddonBlock` — it selects a CODE-defined form shape in
+  `client/src/pages/register/profession-blocks.tsx`. Turning it on for a trade
+  with no block is a silent no-op. Admin-authorable field SHAPES = a form
+  builder = the rule engine this design exists to avoid. The panel says so.
+- Documents are picked from the shared vocabulary, never typed — a free-text key
+  would be silently unenforceable and 400 on upload.
+
+**Delete is deactivate.** A hard delete breaks every `candidate_professions` row
+pointing at the key (no cascade from that side). Deactivating drops it from the
+picker and leaves existing candidates' trades and documents intact.
+
 ### Still to do (UAT-05)
 
-- **Admin CRUD for professions** — HPSEDC can only edit `profession_requirements`
-  via SQL. Item 21's "configurable by the administrator" is NOT met until the
-  screen exists. This is the largest remaining piece.
 - **Job Posting module** — items 10 (fixed salary), 11 (hide placed vacancies),
-  20 (remove the pipeline). Untouched; no field spec yet, and item 20's scope
-  question blocks writing one.
+  20 (remove the pipeline). Untouched; no field spec yet.
+  **Item 20's scope question is now ANSWERED by the code, not by opinion:** the
+  pipeline CANNOT be removed for HPSEDC, because document staging depends on it
+  — `shortlisted` triggers page 5 and `selected` triggers PCC/medical
+  (`document-obligations.routes.ts:stageForStatus`). Remove HPSEDC's pipeline and
+  item 9 stops working. Item 20 can only mean the CANDIDATE-facing views. Worth
+  telling HPSEDC as a finding rather than asking them again.
 - **Email verification (item 1)** — the field is collected, the verification is
   not built. Send the mail and gate the SUBMIT, not page 1 — hard-blocking at the
   first page sends the candidate to an inbox and a real share never come back.
