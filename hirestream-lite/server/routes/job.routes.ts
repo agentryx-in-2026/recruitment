@@ -4,10 +4,11 @@ import { storage } from "../storage";
 import { logger } from "../config/logger.config";
 import {
   insertJobSchema, draftJobSchema, jobs, recruitmentAgents, applications,
-  candidates, notifications, savedJobs,
+  candidates, notifications, savedJobs, placements,
   candidateEducation, candidateExperience, documents,
 } from "@shared/schema";
 import { eq, and, or, ne, ilike, gte, lte, sql, desc, asc, count, inArray, notInArray } from "drizzle-orm";
+import { SETTLED_PLACEMENT_STATUSES } from "../services/deployment.service";
 import { notify } from "../services/notification.service";
 
 const router = Router();
@@ -256,6 +257,27 @@ router.get("/", async (req, res, next) => {
       const candRow = await db.select({ rc: candidates.rejectedCountries }).from(candidates).where(eq(candidates.userId, authedUserId)).limit(1);
       const rejected = (candRow[0]?.rc || []).filter(Boolean);
       if (rejected.length) conditions.push(notInArray(jobs.country, rejected));
+    }
+
+    // UAT-05 item 11: once a job's hires are placed, the vacancy disappears from
+    // candidate-facing listings — but stays for staff, who need it to manage the
+    // placement and close the requisition. `!isStaff` covers candidates AND
+    // anonymous visitors (prospective candidates), and excludes agents/employers/
+    // admins. A "filled" job is one whose SETTLED placements (accepted/active/
+    // completed) have reached its targetHires — most overseas postings hire one,
+    // so a single placement fills them; a 5-hire requisition stays open until the
+    // fifth. Placement -> application -> job.
+    if (!isStaff) {
+      const filled = await db
+        .select({ jobId: applications.jobId })
+        .from(placements)
+        .innerJoin(applications, eq(placements.applicationId, applications.id))
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(inArray(placements.status, SETTLED_PLACEMENT_STATUSES))
+        .groupBy(applications.jobId, jobs.targetHires)
+        .having(gte(count(), sql`coalesce(${jobs.targetHires}, 1)`));
+      const filledIds = filled.map((r: { jobId: string | null }) => r.jobId).filter(Boolean) as string[];
+      if (filledIds.length) conditions.push(notInArray(jobs.id, filledIds));
     }
 
     // Ownership filter when viewing own jobs

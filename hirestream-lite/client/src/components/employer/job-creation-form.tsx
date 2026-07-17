@@ -16,7 +16,7 @@ import {
   Calendar, Zap, FileText, Sparkles, Building, AlertTriangle, Flame, Tag,
 } from "lucide-react";
 import { CITIES_BY_COUNTRY, FIELD_LIMITS, JOB_CATEGORIES } from "@/lib/reference-data";
-import { SalaryRangePicker, EXPERIENCE_OPTIONS } from "@/components/shared/salary-range-picker";
+import { SalaryAmountPicker, EXPERIENCE_OPTIONS } from "@/components/shared/salary-range-picker";
 import { HiringCriteriaSection } from "@/components/shared/HiringCriteriaSection";
 
 // Countries dropdown is DB-driven via useActiveCountries() below.
@@ -370,8 +370,9 @@ export function JobCreationForm({ editJob, trigger, controlledOpen, onOpenChange
                   min={new Date().toISOString().slice(0, 10)}
                   onChange={(v) => setForm({ ...form, hiringDeadline: v })} />
               </Field>
-              <Field label="Salary range" hint="Pick currency, period, and band — preview shows below" fullWidth>
-                <SalaryRangePicker
+              {/* UAT-05 item 10: fixed amount, not a range. */}
+              <Field label="Salary" hint="Pick currency, period, and the amount offered — preview below" fullWidth>
+                <SalaryAmountPicker
                   value={form.salary}
                   onChange={(v) => setForm((prev) => ({ ...prev, salary: v }))}
                 />

@@ -146,6 +146,89 @@ export function SalaryRangePicker({
   );
 }
 
+// ── Fixed salary amount (UAT-05 item 10) ────────────────────────────
+// HPSEDC: "Under the Job Posting module, replace the salary range with a fixed
+// salary amount field." A range implies a negotiation this programme does not
+// run — the employer states one figure and the candidate takes the job at it.
+// Same currency/period/tier machinery as the range picker, one amount.
+//
+// Still writes to the free-text `jobs.salary` column, so old ranged postings
+// keep rendering; new posts read back as a single figure.
+function formatFixedString(currency: string, period: SalaryPeriod, amount: number, note: string) {
+  const extra = note.trim() ? ` · ${note.trim()}` : "";
+  return `${currency} ${amount.toLocaleString()} ${PERIOD_LABEL[period]}${extra}`;
+}
+
+function parseExistingFixed(value: string | undefined) {
+  if (!value) return null;
+  const currencyMatch = value.match(/\b(USD|GBP|EUR|AED|SAR|QAR|OMR|KWD|BHD|CAD|AUD|NZD|SGD|MYR|JPY|INR)\b/i);
+  const nums = Array.from(value.matchAll(/(\d[\d,]*)/g)).map(m => parseInt(m[1].replace(/,/g, ""), 10)).filter(n => n >= 10);
+  if (!currencyMatch || nums.length < 1) return null;
+  const period: SalaryPeriod = /\/?\s*(hr|hour)/i.test(value) ? "hourly"
+    : /\/?\s*(mo|month)/i.test(value) ? "monthly" : "annual";
+  // An OLD ranged posting has two numbers; take the FLOOR of the range as the
+  // fixed figure, since that is the amount actually guaranteed.
+  return { currency: currencyMatch[1].toUpperCase(), period, amount: Math.min(...nums) };
+}
+
+export function SalaryAmountPicker({
+  value, onChange, defaultCurrency = "USD",
+}: { value?: string; onChange: (next: string) => void; defaultCurrency?: string }) {
+  const parsed = useMemo(() => parseExistingFixed(value), [value]);
+  const [currency, setCurrency] = useState(parsed?.currency ?? defaultCurrency);
+  const [period, setPeriod] = useState<SalaryPeriod>(parsed?.period ?? "monthly");
+  const [amount, setAmount] = useState<number>(parsed?.amount ?? TIERS.monthly[3]);
+  const [note, setNote] = useState("");
+
+  const tiers = TIERS[period];
+
+  useEffect(() => {
+    // Snap the amount into the new tier space when the period changes.
+    const closest = (n: number) => tiers.reduce((p, c) => Math.abs(c - n) < Math.abs(p - n) ? c : p, tiers[0]);
+    const next = closest(amount);
+    if (next !== amount) setAmount(next);
+  }, [period]);
+
+  useEffect(() => {
+    onChange(formatFixedString(currency, period, amount, note));
+  }, [currency, period, amount, note]);
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-2">
+        <Select value={currency} onValueChange={setCurrency}>
+          <SelectTrigger className="h-10 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {CURRENCIES.map(c => (
+              <SelectItem key={c.code} value={c.code}><span className="mr-1">{c.flag}</span>{c.code}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={period} onValueChange={(v) => setPeriod(v as SalaryPeriod)}>
+          <SelectTrigger className="h-10 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="monthly">Per month</SelectItem>
+            <SelectItem value="annual">Per year</SelectItem>
+            <SelectItem value="hourly">Per hour</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={String(amount)} onValueChange={(v) => setAmount(parseInt(v, 10))}>
+          <SelectTrigger className="h-10 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {tiers.map(n => <SelectItem key={n} value={String(n)}>{formatAmount(n)}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <Input value={note} onChange={(e) => setNote(e.target.value.slice(0, 80))} maxLength={80}
+        placeholder="Optional note e.g. tax-free, + accommodation, food included"
+        className="h-9 text-xs" />
+      <p className="text-[11px] text-slate-500">
+        Preview: <span className="font-mono text-slate-700">{formatFixedString(currency, period, amount, note)}</span>
+      </p>
+    </div>
+  );
+}
+
 // ── Experience year options (practical presets) ─────────────────────
 export const EXPERIENCE_OPTIONS: { value: number; label: string }[] = [
   { value: 0, label: "Fresher (0 yrs)" },

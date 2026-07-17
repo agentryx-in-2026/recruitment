@@ -20,7 +20,7 @@ import {
   DollarSign, Clock, FileText, Sparkles, X, Tag,
 } from "lucide-react";
 import { CITIES_BY_COUNTRY, FIELD_LIMITS, JOB_CATEGORIES } from "@/lib/reference-data";
-import { SalaryRangePicker, EXPERIENCE_OPTIONS } from "@/components/shared/salary-range-picker";
+import { SalaryAmountPicker, EXPERIENCE_OPTIONS } from "@/components/shared/salary-range-picker";
 import { HiringCriteriaSection } from "@/components/shared/HiringCriteriaSection";
 
 const CATEGORY_KEYS = JOB_CATEGORIES.map((c) => c.key) as [string, ...string[]];
@@ -360,8 +360,9 @@ export function JobPoster({ isVerified, editJob, trigger, controlledOpen, onOpen
           {/* Package */}
           <Section icon={DollarSign} color="text-emerald-600 bg-emerald-50" title="Compensation & experience" subtitle="What you're offering and who should apply">
             <div className="space-y-3">
-              <Field label="Salary range" hint="Pick currency, period, and the band you're offering">
-                <SalaryRangePicker
+              {/* UAT-05 item 10: a fixed amount, not a range. */}
+              <Field label="Salary" hint="Pick currency, period, and the amount you're offering">
+                <SalaryAmountPicker
                   value={form.watch("salary")}
                   onChange={(v) => form.setValue("salary", v, { shouldDirty: true })}
                 />

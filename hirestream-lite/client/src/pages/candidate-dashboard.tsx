@@ -914,13 +914,16 @@ function OverviewView({ appCount, shortlisted, docs, savedCount, completion, app
           everything to find the most actionable item in their life. */}
       <OffersBanner applications={applications} setActiveView={setActiveView} />
 
-      {/* v0.4.29: Candidate Application Pipeline — same 6 stages the
-          agent sees, with candidate-friendly labels. User noticed the
-          stat cards below mix pipeline stages (Shortlisted, Offers)
-          with non-pipeline things (Recommended jobs, Documents) and
-          asked for honest pipeline visibility. Each pill is clickable
-          and filters the My Applications view via the intent system. */}
-      <CandidatePipelineStrip applications={applications} setActiveView={setActiveView} />
+      {/* UAT-05 item 20: the detailed 6-stage recruitment pipeline
+          (Submitted → Reviewed → Shortlisted → Interview → Selected → Placed)
+          is REMOVED from the candidate dashboard. HPSEDC asked to simplify the
+          candidate view; that funnel showed the candidate the agency's internal
+          machinery. The stat cards below (Applications / Shortlisted / Offers)
+          plus the offers banner above and the plain per-application status in
+          "My Applications" are what a candidate actually needs — "where am I?",
+          not "here are the six boxes we move you through".
+          The pipeline itself is UNTOUCHED for HPSEDC/agents — document staging
+          depends on shortlisted/selected (item 9), so it cannot be removed there. */}
 
       {/* Stat Cards — compact, aligned, info-rich
           v0.4.16: added Offers card. UAT feedback: even with the hero
@@ -3219,58 +3222,9 @@ function UpcomingInterviews({ applications, setActiveView }: { applications: any
 // non-pipeline things (Recommended jobs, Documents) so they're not a
 // faithful pipeline view. This strip is honest about stage
 // distribution; the cards stay for "action items I should attend to".
-const PIPELINE_STAGES = [
-  { key: "submitted",           label: "Applied",      intent: "status:submitted",           ring: "ring-blue-500",    bg: "bg-blue-50",    text: "text-blue-700",    dot: "bg-blue-500" },
-  { key: "reviewed",            label: "Under Review", intent: "status:reviewed",            ring: "ring-amber-500",   bg: "bg-amber-50",   text: "text-amber-700",   dot: "bg-amber-500" },
-  { key: "shortlisted",         label: "Shortlisted",  intent: "status:shortlisted",         ring: "ring-purple-500",  bg: "bg-purple-50",  text: "text-purple-700",  dot: "bg-purple-500" },
-  { key: "interview_scheduled", label: "Interview",    intent: "status:interview_scheduled", ring: "ring-cyan-500",    bg: "bg-cyan-50",    text: "text-cyan-700",    dot: "bg-cyan-500" },
-  // v0.4.33.3: renamed from "Offer" to "Selected" so the pipeline pill
-  // (counts applications in status=selected) stops colliding with the
-  // dashboard "Offers" stat card (counts placements in status=offered).
-  // Both are valid concepts — agency-picked vs offer-letter-issued —
-  // but two cards labelled the same was confusing users.
-  { key: "selected",            label: "Selected",     intent: "status:selected",            ring: "ring-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
-  { key: "placed",              label: "Accepted",     intent: "status:placed",              ring: "ring-green-600",   bg: "bg-green-50",   text: "text-green-700",   dot: "bg-green-600" },
-] as const;
+// UAT-05 item 20: PIPELINE_STAGES + CandidatePipelineStrip removed — the
+// candidate no longer sees the detailed recruitment funnel (see OverviewView).
 
-function CandidatePipelineStrip({ applications, setActiveView }: { applications: any[]; setActiveView: (v: string, intent?: string) => void }) {
-  if (!applications || applications.length === 0) return null;
-  const counts: Record<string, number> = {};
-  for (const s of PIPELINE_STAGES) counts[s.key] = 0;
-  for (const a of applications) {
-    if (a.status && counts[a.status] !== undefined) counts[a.status]++;
-  }
-  return (
-    <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Route className="w-4 h-4 text-indigo-600" /> Your Application Pipeline
-          <span className="text-[11px] font-normal text-slate-500">{applications.length} application{applications.length !== 1 ? "s" : ""} total</span>
-        </h3>
-      </div>
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-        {PIPELINE_STAGES.map((s, i) => {
-          const count = counts[s.key];
-          const isEmpty = count === 0;
-          return (
-            <button
-              key={s.key}
-              onClick={() => setActiveView("applications", s.intent)}
-              className={`relative rounded-lg px-3 py-2.5 text-left transition border ${isEmpty ? "bg-slate-50 text-slate-400 border-slate-100" : `${s.bg} ${s.text} border-transparent hover:ring-2 hover:${s.ring}`}`}
-              title={isEmpty ? `No applications in ${s.label} stage` : `View ${count} application${count === 1 ? "" : "s"} in ${s.label}`}
-            >
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${isEmpty ? "bg-slate-200" : s.dot}`} />
-                <span className="text-[10px] uppercase font-bold opacity-80">{i + 1}. {s.label}</span>
-              </div>
-              <div className="text-2xl font-bold tabular-nums mt-1">{count}</div>
-            </button>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-}
 
 // ── Offers Waiting Banner (FRS 1.26 / 1.27) ──────────────────────────
 // v0.4.15: promoted to top of dashboard. Bumped to a hero-card visual —

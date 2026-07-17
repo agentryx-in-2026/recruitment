@@ -198,16 +198,27 @@ Editable = the DATA (HPSEDC's eligibility policy). NOT editable:
 pointing at the key (no cascade from that side). Deactivating drops it from the
 picker and leaves existing candidates' trades and documents intact.
 
-### Still to do (UAT-05)
+**v0.7.0 — Job Posting: items 10, 11, 20.**
 
-- **Job Posting module** — items 10 (fixed salary), 11 (hide placed vacancies),
-  20 (remove the pipeline). Untouched; no field spec yet.
-  **Item 20's scope question is now ANSWERED by the code, not by opinion:** the
-  pipeline CANNOT be removed for HPSEDC, because document staging depends on it
-  — `shortlisted` triggers page 5 and `selected` triggers PCC/medical
-  (`document-obligations.routes.ts:stageForStatus`). Remove HPSEDC's pipeline and
-  item 9 stops working. Item 20 can only mean the CANDIDATE-facing views. Worth
-  telling HPSEDC as a finding rather than asking them again.
+- **Item 10** — salary RANGE → fixed AMOUNT. New `SalaryAmountPicker` beside the
+  range picker (shared currency/period/tier machinery), wired into BOTH posting
+  forms (agent `job-poster` + employer `job-creation-form`). Still writes the
+  free-text `jobs.salary`, so old ranged posts still render; a legacy range reads
+  back as its floor (the guaranteed figure).
+- **Item 11** — a placed vacancy disappears from candidate/anonymous listings,
+  stays for staff. A job is "filled" when its SETTLED placements
+  (accepted/active/completed/placed) reach `targetHires` (default 1). Filter in
+  the public `GET /jobs` behind `!isStaff`. Verified by walking one placement
+  across the settled boundary: placed/accepted → hidden, offered/declined →
+  visible; admin always sees it.
+- **Item 20** — the detailed 6-stage `CandidatePipelineStrip` is removed from the
+  candidate dashboard (both views). The candidate keeps the stat cards
+  (Applications/Shortlisted/Offers), the offers banner, and the simple
+  per-application status. The AGENT/HPSEDC pipeline (`AgentPipelineFunnel`) is
+  untouched — it MUST stay, because document staging depends on
+  shortlisted/selected (item 9). Dead `application-tracker.tsx` deleted too.
+
+### Still to do (UAT-05)
 - **Email verification (item 1)** — the field is collected, the verification is
   not built. Send the mail and gate the SUBMIT, not page 1 — hard-blocking at the
   first page sends the candidate to an inbox and a real share never come back.
