@@ -176,15 +176,14 @@ export default function CandidateDashboard() {
   // Minimal routes documents to the camera-first /documents page (ID + passport
   // slots, blue-collar friendly); advanced uses the in-dashboard DocumentsView.
   const goDocuments = () => (minimal ? setLocation("/documents") : setActiveView("documents"));
-  // First-time tier choice on the dashboard (v0.7.1 requirement): record the
-  // chosen tier, then route to the matching flow.
-  const setTierAndGo = async (tierKey: string, path: string) => {
-    try {
-      await fetch("/api/v1/candidates/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ registrationTier: tierKey }) });
-      dashQueryClient.invalidateQueries({ queryKey: ["/api/v1/candidates/profile"] });
-    } catch { /* non-blocking */ }
-    setLocation(path);
-  };
+  // UAT-05: there is ONE registration flow, so there is no tier to choose and
+  // nothing to record before routing. `setTierAndGo` (and the three tier cards
+  // it fed) is gone: choosing *how* to register was a question that solved our
+  // problem, not the candidate's, and the Standard/Professional split is what
+  // let /apply omit email while email was a completion checkpoint — a
+  // blue-collar candidate could finish Standard perfectly and still be
+  // mathematically stuck below 100%.
+  const goRegister = () => setLocation("/register");
 
   // Document + completion state (documents are now REQUIRED for "ready").
   const missing: string[] = completion.missing || [];
@@ -322,20 +321,18 @@ export default function CandidateDashboard() {
                 <FileText className="w-3.5 h-3.5 mr-1.5" /> {t("minDash.addDocuments")}
               </Button>
             ) : (
-              <Button size="sm" onClick={() => setLocation(profile.registrationTier === "professional" ? "/apply/pro" : "/apply")}
+              <Button size="sm" onClick={goRegister}
                 className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold">
                 <ArrowRight className="w-3.5 h-3.5 mr-1.5" /> {t("minDash.continueProfile")}
               </Button>
             )}
             {minimal ? (
-              // UAT-04: Simple view had NO edit at all. Once the profile was
-              // complete the CTA became "Find a Job" and the only editor was the
-              // full ProfileWizard, which this line is removing — so a candidate
-              // could not change a wrong phone number without leaving the simple UI.
-              // Routes to the simple flow's own review screen, which already lists
-              // every answer with a per-field Edit. ?edit=1 lands there directly
-              // rather than resuming to the first unanswered question.
-              <Button variant="outline" size="sm" onClick={() => setLocation("/apply?edit=1")}
+              // UAT-04 kept: the Simple view had no editor at all, so a wrong
+              // phone number could not be fixed without leaving the simple UI.
+              // /register resumes at the furthest incomplete page, and its page 4
+              // lists every answer with a per-field Edit — which is what the old
+              // /apply?edit=1 deep-link was reaching for.
+              <Button variant="outline" size="sm" onClick={goRegister}
                 className="w-full rounded-lg text-xs font-semibold mt-2 border-slate-300 text-slate-700 hover:bg-slate-50">
                 <User className="w-3.5 h-3.5 mr-1.5" /> {t("minDash.editDetails")}
               </Button>
@@ -351,14 +348,8 @@ export default function CandidateDashboard() {
                 <User className="w-3.5 h-3.5 mr-1.5" /> Edit Profile
               </Button>
             )}
-            {/* Change registration route — visible once a tier is chosen and the profile isn't complete.
-                audit 2026-07-07 (UI): was a tiny [11px] grey underline nobody noticed —
-                promoted to a bordered chip with an icon so it reads as a real secondary action. */}
-            {!ready && (profile.registrationTier === "standard" || profile.registrationTier === "professional") && (
-              <button onClick={() => setLocation("/start")} className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-700 hover:bg-blue-50/50 text-xs font-semibold py-2.5 mt-2 transition-colors">
-                <Repeat className="w-3.5 h-3.5" /> {t("simpleDash.changeRegister")}
-              </button>
-            )}
+            {/* UAT-05: "Change how you register" is gone with the tiers. There
+                is one flow, so there is no other route to change to. */}
           </div>
 
           {/* Navigation */}
@@ -480,7 +471,7 @@ export default function CandidateDashboard() {
           <AnimatePresence mode="wait">
             <motion.div key={activeView + (minimal ? "-min" : "")} variants={scaleIn} initial="initial" animate="animate" exit="exit">
               {activeView === "overview" && (minimal
-                ? <MinimalOverview profile={profile} completion={completion} applications={applications} setActiveView={setActiveView} setLocation={setLocation} goDocuments={goDocuments} setTierAndGo={setTierAndGo} capabilities={capabilities} regCode={regCode} helpline={helpline} ready={ready} questionsDone={questionsDone} docsMissing={docsMissing} hasIdDoc={hasIdDoc} hasPassportDoc={hasPassportDoc} t={t} />
+                ? <MinimalOverview profile={profile} completion={completion} applications={applications} setActiveView={setActiveView} setLocation={setLocation} goDocuments={goDocuments} goRegister={goRegister} capabilities={capabilities} regCode={regCode} helpline={helpline} ready={ready} questionsDone={questionsDone} docsMissing={docsMissing} hasIdDoc={hasIdDoc} hasPassportDoc={hasPassportDoc} t={t} />
                 : <OverviewView appCount={appCount} shortlisted={shortlistedCount} docs={docs.length} savedCount={savedJobsList.length} completion={completion} applications={applications} recommendations={recommendations} setActiveView={setActiveView} profile={profile} education={education} experience={experience} />)}
               {activeView === "jobs" && <JobsView allJobs={allJobs} appliedJobIds={appliedJobIds} savedJobIds={savedJobIds} recommendations={recommendations} completion={completion} />}
               {activeView === "applications" && <ApplicationsView applications={applications} initialIntent={intent} setActiveView={setActiveView} />}
@@ -522,7 +513,7 @@ function minFriendlyKey(app: any): MinFriendlyKey {
 }
 const MIN_PRIORITY = ["offered", "placed", "selected", "interview_scheduled", "shortlisted", "reviewed", "submitted", "rejected", "withdrawn"];
 
-function MinimalOverview({ profile, completion, applications, setActiveView, setLocation, goDocuments, setTierAndGo, capabilities, regCode, helpline, ready, questionsDone, docsMissing, hasIdDoc, hasPassportDoc, t }: any) {
+function MinimalOverview({ profile, completion, applications, setActiveView, setLocation, goDocuments, goRegister, capabilities, regCode, helpline, ready, questionsDone, docsMissing, hasIdDoc, hasPassportDoc, t }: any) {
   const tier: string | null = profile.registrationTier || null;
   const firstName = (profile.fullName || "").split(" ")[0];
   const BIG = "w-full h-14 text-lg font-semibold rounded-xl";
@@ -566,44 +557,30 @@ function MinimalOverview({ profile, completion, applications, setActiveView, set
             </div>
             {questionsDone && docsMissing.length ? (
               <Button onClick={goDocuments} className={`${BIG} mt-4 bg-blue-700 hover:bg-blue-800 text-white`}>{t("minDash.addDocuments")} <ArrowRight className="w-5 h-5 ml-2" /></Button>
-            ) : tier === "standard" || tier === "professional" ? (
-              // A path is already chosen — continue it, or switch route.
+            ) : (
+              // UAT-05: one flow, one button. This block used to be a SECOND
+              // tier chooser (Standard / Professional / callback cards, gated on
+              // three capability flags, with a "change how you register" switch
+              // once a tier was picked) — ~35 lines whose entire job was making
+              // the candidate choose a lane before answering anything. The lanes
+              // are gone; /register resumes wherever they left off.
               <>
-                <Button onClick={() => setLocation(tier === "professional" ? "/apply/pro" : "/apply")} className={`${BIG} mt-4 bg-blue-700 hover:bg-blue-800 text-white`}>{t("minDash.continueProfile")} <ArrowRight className="w-5 h-5 ml-2" /></Button>
-                <button onClick={() => setLocation("/start")} className="mt-2 w-full flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-700 hover:bg-blue-50/50 text-sm font-semibold py-2.5 transition-colors"><Repeat className="w-4 h-4" /> {t("simpleDash.changeRegister")}</button>
+                <Button onClick={goRegister} className={`${BIG} mt-4 bg-blue-700 hover:bg-blue-800 text-white`}>
+                  {completion.percentage > 0 ? t("minDash.continueProfile") : t("simpleDash.fillMyDetails")} <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+                {/* The callback survives as a way OUT of the form, not a way
+                    into a different one — and only if HPSEDC staff the queue. */}
+                {capabilities?.assistedCallbackEnabled !== false && (
+                  <button onClick={() => setLocation("/callback")} className="w-full flex items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 text-left hover:border-emerald-300 hover:bg-emerald-50/40 hover:shadow-sm active:scale-[0.99] transition-all mt-3">
+                    <span className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"><Phone className="w-6 h-6" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-base font-bold text-slate-900 leading-tight">{t("simpleDash.callbackCardTitle")}</span>
+                      <span className="block text-xs text-slate-500 mt-0.5">{t("simpleDash.callbackCardSub")}</span>
+                    </span>
+                  </button>
+                )}
               </>
-            ) : (() => {
-              // First time (no tier yet): show only the registration routes admin
-              // has enabled. The first enabled route is the big default.
-              const stdOn = capabilities?.standardRegistrationEnabled !== false;
-              const proOn = capabilities?.professionalRegistrationEnabled !== false;
-              const cbOn = capabilities?.assistedCallbackEnabled !== false;
-              const proCard = (
-                <button key="pro" onClick={() => setTierAndGo("professional", "/apply/pro")} className="w-full flex items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 text-left hover:border-violet-300 hover:bg-violet-50/40 hover:shadow-sm active:scale-[0.99] transition-all">
-                  <span className="w-11 h-11 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0"><GraduationCap className="w-6 h-6" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-base font-bold text-slate-900 leading-tight">{t("simpleDash.proCardTitle")}</span><span className="block text-xs text-slate-500 mt-0.5">{t("simpleDash.proCardSub")}</span></span>
-                </button>
-              );
-              const cbCard = (
-                <button key="cb" onClick={() => setLocation("/start?mode=assisted")} className="w-full flex items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 text-left hover:border-emerald-300 hover:bg-emerald-50/40 hover:shadow-sm active:scale-[0.99] transition-all">
-                  <span className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"><Phone className="w-6 h-6" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-base font-bold text-slate-900 leading-tight">{t("simpleDash.callbackCardTitle")}</span><span className="block text-xs text-slate-500 mt-0.5">{t("simpleDash.callbackCardSub")}</span></span>
-                </button>
-              );
-              let primary: any = null; const secondary: any[] = [];
-              if (stdOn) { primary = <Button onClick={() => setTierAndGo("standard", "/apply")} className={`${BIG} mt-4 bg-blue-700 hover:bg-blue-800 text-white`}>{t("simpleDash.fillMyDetails")} <ArrowRight className="w-5 h-5 ml-2" /></Button>; if (proOn) secondary.push(proCard); if (cbOn) secondary.push(cbCard); }
-              else if (proOn) { primary = <Button onClick={() => setTierAndGo("professional", "/apply/pro")} className={`${BIG} mt-4 bg-blue-700 hover:bg-blue-800 text-white`}>{t("simpleDash.proCardTitle")} <ArrowRight className="w-5 h-5 ml-2" /></Button>; if (cbOn) secondary.push(cbCard); }
-              else if (cbOn) { primary = <Button onClick={() => setLocation("/start?mode=assisted")} className={`${BIG} mt-4 bg-emerald-600 hover:bg-emerald-700 text-white`}>{t("simpleDash.callbackCardTitle")} <ArrowRight className="w-5 h-5 ml-2" /></Button>; }
-              return (
-                <>
-                  {primary}
-                  {secondary.length > 0 && (<>
-                    <p className="text-xs text-slate-500 mt-5 mb-2">{t("simpleDash.otherWays")}</p>
-                    <div className="space-y-2.5">{secondary}</div>
-                  </>)}
-                </>
-              );
-            })()}
+            )}
           </>
         )}
       </section>

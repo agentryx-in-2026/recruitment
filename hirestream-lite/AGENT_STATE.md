@@ -34,9 +34,44 @@ real time twice.
 Design docs: `PMD-Final wrapup/UAT & Approval/UAT-05/` — the proposal (why), the
 field spec (what), and the checklist (HPSEDC's 21 items).
 
-**v0.3.0 — foundation.** Schema, profession catalogue, settings, API. No UI yet;
-the old flows (`/start`, `/apply`, `/apply/pro`, `/profile`) are all still live
-and still write to the old shape. The 4-page flow is the next push.
+**v0.3.0 — foundation.** Schema, profession catalogue, settings, API.
+**v0.3.1 — both test gates repaired** (see below).
+**v0.4.0 — the flow is live.** `/register` is now the ONLY way in.
+
+| route | was | now |
+|---|---|---|
+| `/register` | — | **the flow** — 4 pages |
+| `/callback` | — | assisted callback (extracted from the tier chooser) |
+| `/apply` | 10-screen blue-collar flow | → redirects to `/register` |
+| `/apply/pro` | 14-screen professional flow | → redirects to `/register` |
+| `/start` | tier chooser | → `/register` (`?mode=assisted` → `/callback`) |
+| `/profile` | onboarding wizard | edit-only surface for an existing profile |
+
+Old routes REDIRECT, they do not 404 — candidates have them in history, SMS
+links and printouts, and a dead link to a government portal reads as "the scheme
+is gone", not "the URL changed". Drop them once the logs go quiet.
+
+**Deleted:** `simple-apply.tsx`, `simple-apply/`, `simple-apply-pro.tsx`,
+`simple-apply-pro/`, `register-start.tsx`. The tiers are gone entirely — the
+Standard/Professional split is what let `/apply` omit email while email is one
+of the nine completion checkpoints, so a blue-collar candidate could finish it
+perfectly and still be mathematically stuck below 100%.
+
+**The layout complaint (HPSEDC demo).** The old shell hard-capped every screen at
+`max-w-xl` = 576px — 30% of a 1920px projector, 70% white. It was a deliberate
+mobile-first choice that nobody made responsive. Now 576 → 768 → **1100px** with
+two-column fields on desktop; verified in a real browser at 1600px (form uses
+1052px, grid `514px 514px`) and at 390px (single column, no sideways scroll).
+**"Make it wider" would have been the wrong fix** — 20,000 HP applicants are on
+phones.
+
+**Page 4 prints a real A4 form** (`window.print()` → Print + native Save-as-PDF).
+Verified by generating the PDF, not by trusting the CSS: the first attempt
+printed the progress bar, the screen heading and the buttons, and dropped the
+trust footer ON TOP of the candidate's answers — because the print rule targeted
+`header, nav, footer` and the shell is built from divs. Chrome now carries
+`print:hidden` at its source. A server-generated stored PDF is the later option
+if HPSEDC want one on file.
 
 **Three policy questions are settings, not code** — HPSEDC flip them without a
 release, and can change their mind after seeing real numbers:
@@ -102,6 +137,30 @@ never updates — once HPSEDC edit a row it is theirs, and a redeploy that
   justified and added the same way. Self-scoped endpoints (`/candidates/*`) were
   verified empirically, not just by reading: uploaded a passport as
   demo_candidate, confirmed agent and employer both see 0 rows.
+
+### Still to do (UAT-05)
+
+- **Pages 5 + 6** — documents. Page 5 unlocks on `shortlisted` (prove the claims);
+  page 6 on `selected` (PCC + medical, item 9). Nothing is stage-gated yet, and
+  `/documents` still shows every slot to everyone.
+- **The completion rewrite** — `/profile/completion` still demands an ID scan and
+  a passport scan for 100%, which is the rule the 20k:500 design reverses. Split
+  into "application complete" (pages 1-4, no docs) and "deployment ready".
+  Remember the drifted second copy in `job.routes.ts:~913`.
+- **Document vocabulary** — still THREE disagreeing lists. The seeded
+  `requiredDocs` keys (`nursing_council_registration`, `driving_licence`,
+  `iti_certificate`, `trade_test`) are NOT in the upload whitelist at
+  `document.routes.ts:40` and will 400 until it is unified. Inert until page 5
+  exists, which is why seeding them early was safe.
+- **Admin CRUD for professions** — HPSEDC can only edit `profession_requirements`
+  via SQL today. Item 21's "configurable by the administrator" is not met until
+  the screen exists.
+- **Job Posting module** — items 10 (fixed salary), 11 (hide placed vacancies),
+  20 (remove the pipeline). Untouched, and there is no field spec for it yet;
+  item 20's scope question blocks writing one.
+- **Email verification (item 1)** — the field is collected, the verification is
+  not built. Send the mail and gate the SUBMIT, not page 1 — hard-blocking at the
+  first page sends the candidate to an inbox and a real share never come back.
 
 **Current gate status: `npm test` 497/497 · `npm run smoke:local` pass=537 warn=35 FAIL=0.**
 Run `set -a; . ./.env; set +a` before `smoke:local` so the token is exported.

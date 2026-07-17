@@ -1,5 +1,5 @@
 import "./lib/i18n"; // Initialize i18n before anything else
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -24,10 +24,11 @@ const SuperAdminDashboard = lazy(() => import("@/pages/superadmin-dashboard"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
 const FaqPage = lazy(() => import("@/pages/faq-page"));
 const GrievancePage = lazy(() => import("@/pages/grievance-page"));
+// UAT-05: ProfileWizard is demoted from an onboarding path to an EDIT-ONLY
+// surface for an existing profile. /register is the only way in.
 const ProfileWizard = lazy(() => import("@/pages/profile-wizard"));
-const SimpleApply = lazy(() => import("@/pages/simple-apply"));
-const RegisterStart = lazy(() => import("@/pages/register-start"));
-const SimpleApplyPro = lazy(() => import("@/pages/simple-apply-pro"));
+const RegisterPage = lazy(() => import("@/pages/register"));
+const CallbackPage = lazy(() => import("@/pages/callback"));
 const DocumentsPage = lazy(() => import("@/pages/documents"));
 const SupportPage = lazy(() => import("@/pages/support"));
 const HelpPage = lazy(() => import("@/pages/help"));
@@ -95,6 +96,19 @@ function DashboardContent() {
   );
 }
 
+/**
+ * /start used to be the tier chooser. UAT-05 deletes it, but it had ONE link
+ * worth keeping: `?mode=assisted` deep-linked straight to the callback form,
+ * and that link is in SMS messages and on printed material. Everything else
+ * about /start — "choose how you want to register" — was a question the
+ * candidate should never have been asked, so it just goes to the form.
+ */
+function LegacyStartRedirect() {
+  const assisted = typeof window !== "undefined"
+    && new URLSearchParams(window.location.search).get("mode") === "assisted";
+  return <Redirect to={assisted ? "/callback" : "/register"} />;
+}
+
 function Router() {
   return (
     <Suspense fallback={<RouteFallback />}>
@@ -121,15 +135,23 @@ function Router() {
         <Route path="/profile">
           <PageLayout><ProfileWizard /></PageLayout>
         </Route>
-        <Route path="/apply">
-          <PageLayout><SimpleApply /></PageLayout>
+        {/* UAT-05 item 3: ONE registration flow, four pages. Replaces the tier
+            chooser (/start) plus the two parallel flows (/apply, /apply/pro). */}
+        <Route path="/register">
+          <PageLayout><RegisterPage /></PageLayout>
         </Route>
-        <Route path="/start">
-          <PageLayout><RegisterStart /></PageLayout>
+        <Route path="/callback">
+          <PageLayout><CallbackPage /></PageLayout>
         </Route>
-        <Route path="/apply/pro">
-          <PageLayout><SimpleApplyPro /></PageLayout>
-        </Route>
+        {/* The old routes REDIRECT rather than 404. Candidates have these in
+            their history, in SMS links and on printouts, and a dead link to a
+            government portal reads as "the scheme is gone" — not as "the URL
+            changed". They can be dropped once the logs go quiet.
+            /start?mode=assisted was the callback deep-link, so it keeps its
+            destination; the tier chooser it used to open no longer exists. */}
+        <Route path="/apply"><Redirect to="/register" /></Route>
+        <Route path="/apply/pro"><Redirect to="/register" /></Route>
+        <Route path="/start"><LegacyStartRedirect /></Route>
         <Route path="/documents">
           <PageLayout><DocumentsPage /></PageLayout>
         </Route>
