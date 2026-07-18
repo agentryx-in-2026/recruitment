@@ -179,7 +179,7 @@ export function Header() {
                       <Home className="w-4 h-4 mr-2" /> Dashboard
                     </DropdownMenuItem>
                     {user.role === "candidate" && (
-                      <DropdownMenuItem onClick={() => setLocation("/profile")}>
+                      <DropdownMenuItem onClick={() => setLocation("/register")}>
                         <UserIcon className="w-4 h-4 mr-2" /> My Profile
                       </DropdownMenuItem>
                     )}

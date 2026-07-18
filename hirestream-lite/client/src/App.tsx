@@ -24,9 +24,6 @@ const SuperAdminDashboard = lazy(() => import("@/pages/superadmin-dashboard"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
 const FaqPage = lazy(() => import("@/pages/faq-page"));
 const GrievancePage = lazy(() => import("@/pages/grievance-page"));
-// UAT-05: ProfileWizard is demoted from an onboarding path to an EDIT-ONLY
-// surface for an existing profile. /register is the only way in.
-const ProfileWizard = lazy(() => import("@/pages/profile-wizard"));
 const RegisterPage = lazy(() => import("@/pages/register"));
 const CallbackPage = lazy(() => import("@/pages/callback"));
 const DocumentsPage = lazy(() => import("@/pages/documents"));
@@ -132,9 +129,23 @@ function Router() {
         <Route path="/grievances">
           <PageLayout><GrievancePage /></PageLayout>
         </Route>
-        <Route path="/profile">
-          <PageLayout><ProfileWizard /></PageLayout>
-        </Route>
+        {/* /profile was the old five-tab wizard (Personal · Education ·
+            Experience · Skills & Prefs · Documents). Demoting it to "edit only"
+            was not enough: every Edit button still landed there, so a candidate
+            who registered on the new four-page form was thrown back into the old
+            one to change anything — with a DIFFERENT set of fields.
+
+            It had drifted into contradicting UAT-05 outright: no disability
+            (item 12), no district/state on the permanent address (item 13), no
+            Home Town (item 16), and it still showed the "where do you want to
+            work" country picker that item 8 asked us to remove. It was also
+            English-only, so a Hindi candidate lost their language by clicking
+            Edit. Its document upload is not a loss — the dashboard and the
+            compliance panel both upload, and per item 9 documents are asked for
+            after shortlisting, not during profile editing.
+
+            /register is now the single form for both first fill and edit. */}
+        <Route path="/profile"><Redirect to="/register" /></Route>
         {/* UAT-05 item 3: ONE registration flow, four pages. Replaces the tier
             chooser (/start) plus the two parallel flows (/apply, /apply/pro). */}
         <Route path="/register">

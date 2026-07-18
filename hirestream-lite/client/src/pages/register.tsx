@@ -53,6 +53,41 @@ import { isTestMode, TEST_DATA } from "./register/test-mode";
 import { Check, Plus, Minus, Info, Briefcase, BookUser, User, Phone, MapPin,
          Wrench, GraduationCap, ClipboardCheck, FlaskConical, Wand2 } from "lucide-react";
 
+/**
+ * Four pages TODAY — everything HPSEDC need to match a candidate to a vacancy.
+ *
+ * Pages 5 and 6 are planned but deliberately NOT built yet: they collect the
+ * extra detail that only matters once a candidate progresses through the
+ * pipeline (post-shortlist, pre-deployment), and they will be enabled by
+ * pipeline stage rather than shown to everyone. That is the same 20,000:500
+ * rule the document engine already follows — do not ask 20,000 people for what
+ * 500 will need.
+ *
+ * So treat this as a current count, not a fixed one. The stepper, the
+ * per-page progress and the weighted overall percentage all read from it; the
+ * ?page= deep-link clamps to it. Adding a page should mean adding its
+ * component and its weight, not touching those mechanics.
+ */
+/**
+ * Which education row does the registration page own?
+ *
+ * The page keeps ONE row — "highest qualification". Finding it by degree label
+ * works for rows this page wrote, but not for rows the retired profile-wizard
+ * wrote: it stored free text ("B.Sc Nursing", "12th (Medical)"), which matches
+ * no label. That broke both directions — the fields came up blank on edit, and
+ * on save the label lookup missed and INSERTED a second row, so the candidate
+ * silently ended up claiming two qualifications.
+ *
+ * So: prefer an exact label match; otherwise fall back to the most advanced row
+ * we can identify (highest year), which is what "highest qualification" means.
+ */
+export function findOwnEducationRow(rows: any[], knownLabels: string[]): any | undefined {
+  if (!rows?.length) return undefined;
+  const labelled = rows.find((e: any) => knownLabels.includes(e.degree));
+  if (labelled) return labelled;
+  return [...rows].sort((a, b) => (Number(b.year) || 0) - (Number(a.year) || 0))[0];
+}
+
 const TOTAL = 4;
 // 18 is the statutory minimum emigration age. The `max` attribute stops the
 // picker offering an under-age date at all; the inline error covers typed input.
@@ -86,7 +121,7 @@ export interface PickedProfession {
 // read past is a cost paid by every applicant to serve a few, and the free-text
 // field serves those few without it. Arabic stays because it is the DESTINATION
 // language: a candidate who speaks it is materially more employable in the Gulf.
-// MUST stay in sync with COMMON_LANGUAGES in pages/profile-wizard.tsx.
+// (The old profile-wizard's parallel COMMON_LANGUAGES list is gone with it.)
 const LANGS = ["Hindi", "English", "Urdu", "Arabic"];
 const LANG_LEVELS = ["elementary", "intermediate", "professional", "native"] as const;
 const EDU_LEVELS = ["none", "class5", "class8", "class10", "class12", "iti", "diploma", "degree"];
@@ -97,11 +132,21 @@ export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState(0);
+  // ?page=N deep-links straight to a page (1-based), so the dashboard's
+  // "Add education" lands on the education page rather than dumping the
+  // candidate at the top of the form to click Next three times. Clamped, and
+  // only honoured up to the furthest page they have actually completed —
+  // enforced below once the profile loads, since each page saves on Next.
+  const requestedPage = (() => {
+    if (typeof window === "undefined") return 0;
+    const raw = Number(new URLSearchParams(window.location.search).get("page"));
+    return Number.isFinite(raw) && raw >= 1 && raw <= TOTAL ? raw - 1 : 0;
+  })();
+  const [step, setStep] = useState(requestedPage);
   // Furthest stage reached. The sidebar lets a candidate go BACK to a page
   // they have completed, never forward past one they have not — each page
   // saves on Next, so skipping ahead would leave earlier pages unsaved.
-  const [maxStepReached, setMaxStepReached] = useState(0);
+  const [maxStepReached, setMaxStepReached] = useState(requestedPage);
   const [saving, setSaving] = useState(false);
 
   // ── Page 1: about you ──────────────────────────────────────────────
@@ -148,6 +193,13 @@ export default function RegisterPage() {
   const { data: profRes } = useQuery<any>({ queryKey: ["/api/v1/professions"] });
   const { data: minePropRes } = useQuery<any>({ queryKey: ["/api/v1/professions/mine"] });
   const { data: langRes } = useQuery<any>({ queryKey: ["/api/v1/candidates/languages"] });
+  // The education ROW (board, institution, year, passed) lives in
+  // candidate_education, not on the profile — the profile carries only
+  // qualificationLevel. Without this fetch a returning candidate saw those four
+  // fields blank, and because the save path does an update-or-insert on the
+  // same row, pressing Next then PUT the blanks straight over their real
+  // answers. Silent data loss on an edit, which is the worst kind.
+  const { data: eduRes } = useQuery<any>({ queryKey: ["/api/v1/candidates/education"] });
   // Field configuration — HPSEDC turn fields on/off and required/optional from
   // the admin screen, no release. The server is the authority; this is the form
   // reading it. Defaults are permissive so a failed fetch shows the full form
@@ -193,6 +245,25 @@ export default function RegisterPage() {
     if (p.addressLine1 && p.addressLine1 !== p.permanentAddressLine1) setCorrSame(false);
     setEduLevel(p.qualificationLevel || "");
   }, [profileRes]);
+
+  // Restore the education row this page owns — matched the same way the save
+  // path finds it, by degree label, so the two cannot disagree about which row
+  // is "ours".
+  const prefilledEdu = useRef(false);
+  useEffect(() => {
+    const rows = eduRes?.data;
+    if (!rows || prefilledEdu.current) return;
+    prefilledEdu.current = true;
+    const known = EDU_LEVELS.filter((k) => k !== "none").map((k) => t(`reg.edu.${k}`, { lng: "en" }));
+    const mine = findOwnEducationRow(rows, known);
+    if (!mine) return;
+    setEduBoard(mine.board || "");
+    // savePage3 writes "—" when the candidate left this blank (the column is
+    // NOT NULL); restoring that literal would show a dash as if they typed it.
+    setEduInstitution(mine.institution && mine.institution !== "—" ? mine.institution : "");
+    setEduYear(mine.year ?? "");
+    setEduPassed(mine.isPassed !== false);
+  }, [eduRes, t]);
 
   const prefilledProfs = useRef(false);
   useEffect(() => {
@@ -510,7 +581,7 @@ export default function RegisterPage() {
       const known = EDU_LEVELS.filter((k) => k !== "none").map((k) => t(`reg.edu.${k}`, { lng: "en" }));
       const existing: any[] = (await apiRequest("GET", "/api/v1/candidates/education")
         .then((r) => r.json()).then((j) => j.data).catch(() => [])) || [];
-      const mine = existing.find((e: any) => known.includes(e.degree));
+      const mine = findOwnEducationRow(existing, known);
       if (mine) await apiRequest("PUT", `/api/v1/candidates/education/${mine.id}`, row);
       else await apiRequest("POST", "/api/v1/candidates/education", row);
     }

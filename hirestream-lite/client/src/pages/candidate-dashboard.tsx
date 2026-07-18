@@ -362,7 +362,7 @@ export default function CandidateDashboard() {
               // wrong track. Route to the ProfileWizard, a tabbed editor that
               // loads the existing profile so editing is edit, not re-onboard.
               // Tier-independent, so it's correct even when registrationTier is null.
-              <Button variant="outline" size="sm" onClick={() => setLocation("/profile")}
+              <Button variant="outline" size="sm" onClick={() => setLocation("/register")}
                 className="w-full rounded-lg text-xs font-semibold mt-2 border-slate-300 text-slate-700 hover:bg-slate-50">
                 <User className="w-3.5 h-3.5 mr-1.5" /> Edit Profile
               </Button>
@@ -2061,7 +2061,7 @@ function RecommendedView({ recommendations, savedJobIds, setActiveView }: { reco
           <Sparkles className="w-12 h-12 mx-auto mb-3 text-slate-300" />
           <p className="text-slate-500 font-semibold">No jobs matched yet</p>
           <p className="text-sm text-slate-400 mt-1 mb-4">Complete your profile to unlock personalized job matches.</p>
-          <Button size="sm" onClick={() => setLocation("/profile")} className="bg-amber-600 hover:bg-amber-700 text-white">
+          <Button size="sm" onClick={() => setLocation("/register")} className="bg-amber-600 hover:bg-amber-700 text-white">
             <User className="w-4 h-4 mr-1.5" /> Complete Profile
           </Button>
         </motion.div>
@@ -3082,9 +3082,9 @@ function JourneyStrip({ profile, completion, docs, education, experience, applic
 
   const allSteps = [
     { key: "register",   label: "Register",            icon: User,         done: hasProfile,    cta: null },
-    { key: "profile",    label: "Complete profile",    icon: CheckCircle,  done: profileFull,   cta: { label: "Complete", action: () => setLocation("/profile") } },
-    { key: "education",  label: "Add education",       icon: GraduationCap, done: hasEducation, cta: { label: "Add",      action: () => setLocation("/profile") } },
-    { key: "experience", label: "Add experience",      icon: Briefcase,    done: hasExperience, cta: { label: "Add",      action: () => setLocation("/profile") } },
+    { key: "profile",    label: "Complete profile",    icon: CheckCircle,  done: profileFull,   cta: { label: "Complete", action: () => setLocation("/register") } },
+    { key: "education",  label: "Add education",       icon: GraduationCap, done: hasEducation, cta: { label: "Add",      action: () => setLocation("/register?page=3") } },
+    { key: "experience", label: "Add experience",      icon: Briefcase,    done: hasExperience, cta: { label: "Add",      action: () => setLocation("/register?page=3") } },
     { key: "documents",  label: "Upload CV + passport", icon: FileText,    done: hasDocs,       cta: { label: "Upload",   action: () => setActiveView("documents") } },
     { key: "apply",      label: "Apply to a job",      icon: ClipboardList, done: hasApplied,   cta: { label: "Browse",   action: () => setActiveView("jobs") } },
     { key: "shortlisted", label: "Get shortlisted",    icon: Star,         done: !!shortlisted, cta: null },
