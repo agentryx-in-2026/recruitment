@@ -17,6 +17,28 @@
 
 const KEY = "hs_reg_test_mode";
 
+/**
+ * UAT hosts where the toggle is offered without anyone having to know the URL
+ * parameter. It still does not switch test mode ON by itself — it only makes the
+ * discreet "Test mode" toggle VISIBLE on the sign-in page, so a tester can turn
+ * it on with a click. Any host not in this list behaves exactly as before, which
+ * is how a production deployment stays clean.
+ */
+const UAT_HOSTS = ["hirestream-lite.agentryx.dev", "localhost", "127.0.0.1"];
+
+export function isTestModeOfferable(): boolean {
+  if (typeof window === "undefined") return false;
+  return UAT_HOSTS.some((h) => window.location.hostname === h || window.location.hostname.endsWith(`.${h}`));
+}
+
+/** Turn test mode on or off explicitly (the sign-in page toggle). */
+export function setTestMode(on: boolean) {
+  try {
+    if (on) sessionStorage.setItem(KEY, "1");
+    else sessionStorage.removeItem(KEY);
+  } catch { /* private mode */ }
+}
+
 export function isTestMode(): boolean {
   if (typeof window === "undefined") return false;
   const param = new URLSearchParams(window.location.search).get("test");
@@ -48,7 +70,7 @@ export const TEST_DATA = {
     motherName: "Test Mother",
     disabilityStatus: "no",
     disabilityType: "",
-    phone: "9876500011",
+    phone: "+91 9876500011",
     whatsappSame: true,
     whatsappNumber: "",
     email: "test.candidate@example.com",

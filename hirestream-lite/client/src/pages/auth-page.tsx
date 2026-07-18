@@ -21,6 +21,8 @@ import {
   ArrowLeft, Loader2, CheckSquare, Square, Sparkles, ChevronDown
 } from "lucide-react";
 import { DemoCastTabs, useDemoLogin, DemoResetButton } from "@/components/demo/demo-cast-ui";
+import { isTestMode, isTestModeOfferable, setTestMode } from "@/pages/register/test-mode";
+import { FlaskConical, UserPlus, Loader2 as Spinner } from "lucide-react";
 
 export default function AuthPage() {
   const { user } = useAuth();
@@ -115,6 +117,8 @@ export default function AuthPage() {
                 <QuickLoginPanel />
               </div>
             </div>
+
+            <TestAccountButton />
 
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100/80 p-1 rounded-xl">
@@ -585,5 +589,115 @@ function RegisterForm() {
         </p>
       </form>
     </Form>
+  );
+}
+
+/**
+ * "Create a test account" — UAT convenience, same gate as the form autofill.
+ *
+ * Testing the candidate journey needs a FRESH candidate almost every time: a
+ * profile that has already been through the flow is prefilled, has professions
+ * saved and has passed the checklist, so it cannot show you the first-run
+ * experience. Making a tester invent an email and a compliant password each time
+ * is friction that ends with them reusing one account and testing the wrong path.
+ *
+ * Gated behind `?test=1` exactly like the form autofill (see
+ * pages/register/test-mode.ts) — sessionStorage, no build flag, no server
+ * involvement, dies with the tab. It creates an ordinary candidate account with
+ * no elevated rights, so the worst case if it ever rendered wrongly is one more
+ * self-registration, which the portal already allows from the tab beside it.
+ */
+function TestAccountButton() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const [on, setOn] = useState(() => isTestMode());
+  // On a UAT host, offer a discreet toggle so nobody has to remember `?test=1`.
+  // Anywhere else the parameter remains the only way in, and this renders
+  // nothing at all.
+  if (!on) {
+    if (!isTestModeOfferable()) return null;
+    return (
+      <button type="button"
+        onClick={() => { setTestMode(true); setOn(true); }}
+        className="mb-4 mx-auto flex items-center gap-1.5 text-[12.5px] text-slate-400 hover:text-amber-700 transition-colors">
+        <FlaskConical className="w-3.5 h-3.5" /> Enable test mode
+      </button>
+    );
+  }
+
+  const create = async () => {
+    setBusy(true);
+    try {
+      // Walk demo1, demo2, … until one is free. The predictable sequence is the
+      // point: a tester can say "I saw it on demo7" and anyone can find it.
+      for (let n = 1; n <= 200; n++) {
+        const email = `demo${n}@demo.com`;
+        const res = await fetch("/api/v1/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            email,
+            // Meets the real password policy — upper, lower, digit, symbol, 8+.
+            password: "Demo@1234",
+            role: "candidate",
+            fullName: `Demo ${n}`,
+          }),
+        });
+        const body = await res.json().catch(() => ({}));
+
+        // A TAKEN email does not come back as an error. The endpoint answers
+        // 201 with a generic "if an account already exists, please sign in"
+        // and no user object — a deliberate account-enumeration defence, so it
+        // never confirms whether an address is registered. `res.ok` alone
+        // therefore reports success for an email that was NOT created, and the
+        // tester lands on the form with no session. The real signal is whether
+        // a user id came back.
+        const created = res.ok && Boolean(body?.data?.id);
+        if (created) {
+          toast({ title: `Signed in as ${email}`, description: "Password: Demo@1234" });
+          // A FULL page load, not a client-side route change: registration has
+          // just established a new session and the auth context is still holding
+          // the logged-out state, so a soft navigation lands on the form and is
+          // immediately bounced back to /auth. (wouter's setLocation also does
+          // not carry the query string reliably.)
+          window.location.assign("/register?test=1");
+          return;
+        }
+        const msg = String(body?.error?.message || body?.message || "");
+        // Taken (201-with-message, or an explicit conflict) → try the next
+        // number. Anything else is a genuine failure worth surfacing.
+        if (res.ok || res.status === 409 || /already|exists|taken/i.test(msg)) continue;
+        throw new Error(msg || `Registration failed (${res.status})`);
+      }
+      throw new Error("demo1–demo200 are all taken — clear some test accounts.");
+    } catch (e: any) {
+      toast({ title: e?.message || "Could not create a test account", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mb-5 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3">
+      <div className="flex items-center gap-2 mb-2">
+        <FlaskConical className="w-4 h-4 text-amber-700" />
+        <span className="text-[13px] font-bold text-amber-900 uppercase tracking-wide">Test mode</span>
+      </div>
+      <p className="text-[13.5px] text-amber-800 mb-3 leading-snug">
+        Creates the next free <code className="font-mono">demoN@demo.com</code> as a brand-new candidate
+        and drops you straight into the form.
+      </p>
+      <Button type="button" onClick={create} disabled={busy}
+        className="w-full h-11 rounded-lg bg-amber-600 hover:bg-amber-700 text-white gap-2">
+        {busy ? <Spinner className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+        Create a fresh test account
+      </Button>
+      <button type="button" onClick={() => { setTestMode(false); setOn(false); }}
+        className="mt-2 w-full text-[12.5px] text-amber-700/80 hover:text-amber-900">
+        Turn test mode off
+      </button>
+    </div>
   );
 }

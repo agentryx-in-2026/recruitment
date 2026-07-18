@@ -293,6 +293,45 @@ document list and then not asking for documents would be worse than no checklist
   filtered to what exists and capped at `max_professions`), so it keeps working
   after HPSEDC edit the catalogue.
 
+**v0.9.5 — TEST MODE (how to use it), persisted timer, phone country codes.**
+
+### How to test the candidate journey now
+
+1. Go to `/auth`. On a UAT host a discreet **"Enable test mode"** link shows —
+   click it (or use `?test=1` anywhere). Production hosts show nothing at all;
+   the allowlist is `UAT_HOSTS` in `pages/register/test-mode.ts`.
+2. **"Create a fresh test account"** makes the next free `demoN@demo.com`
+   (password `Demo@1234`), signs you in and drops you into the form. A brand-new
+   candidate every time, which is the only way to see the first-run experience.
+3. In the form, **every section has its own "Fill" button** — fill the ones you
+   do not care about, hand-test the one you do.
+
+**Gotcha that cost time:** `POST /auth/register` answers **201 with a generic
+message and no user object** when the email is taken — a deliberate
+account-enumeration defence, so it never confirms whether an address exists.
+`res.ok` is therefore TRUE for an account that was not created. Detect success by
+`body.data.id`, never by status. Also redirect with `window.location.assign`, not
+wouter's `setLocation`: the auth context still holds the logged-out state right
+after registering, so a soft navigation gets bounced straight back to `/auth`.
+
+### Timer
+
+`useFormTimer` — persisted in localStorage, so it survives reload and return
+(a per-mount `Date.now()` reset it every time, making the number evidence of
+nothing). It has an explicit **pause/resume**, and **auto-pauses when the tab is
+hidden**: someone who opens the form and goes to find their passport must not
+come back to "47:12", or the "about four minutes" promise is destroyed. A run
+that was never frozen (tab killed) is discarded rather than banked, so closed-tab
+time is never counted.
+
+### Phone
+
+`PhoneInput` — dial-code select + number, stored as one string (`+971 501234567`),
+which the existing `phoneRegex` already accepts, so no schema change. Gulf codes
+are listed first: a candidate applying for their NEXT placement is often already
+overseas. Validation counts the NATIONAL part only — counting the dial code would
+let `+971 501234` pass and reject a real Indian number.
+
 ### Still to do (UAT-05)
 - **Email verification (item 1)** — the field is collected, the verification is
   not built. Send the mail and gate the SUBMIT, not page 1 — hard-blocking at the

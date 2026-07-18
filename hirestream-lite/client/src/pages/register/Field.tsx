@@ -169,3 +169,89 @@ export function MicInput({
     </div>
   );
 }
+
+/**
+ * Phone number with a country dial code.
+ *
+ * A candidate is not necessarily in India when they apply. A large share of this
+ * portal's users are ALREADY working overseas and applying for their next
+ * placement — a welder in Dubai renewing, a nurse in Muscat moving employer. A
+ * bare 10-digit box quietly assumes they are at home, and a Gulf number simply
+ * would not fit it.
+ *
+ * Stored as one string, "+971 501234567", which the server's phoneRegex already
+ * accepts — so this is a UI change with no schema or validation change behind it.
+ * A legacy value with no code is read as +91 rather than being mangled.
+ */
+const DIAL_CODES: { code: string; flag: string; name: string }[] = [
+  { code: "+91", flag: "🇮🇳", name: "India" },
+  // The Gulf first — where this portal actually places people, and therefore
+  // where a candidate is most likely to be sitting when they apply again.
+  { code: "+971", flag: "🇦🇪", name: "UAE" },
+  { code: "+966", flag: "🇸🇦", name: "Saudi Arabia" },
+  { code: "+974", flag: "🇶🇦", name: "Qatar" },
+  { code: "+965", flag: "🇰🇼", name: "Kuwait" },
+  { code: "+968", flag: "🇴🇲", name: "Oman" },
+  { code: "+973", flag: "🇧🇭", name: "Bahrain" },
+  { code: "+44", flag: "🇬🇧", name: "United Kingdom" },
+  { code: "+353", flag: "🇮🇪", name: "Ireland" },
+  { code: "+49", flag: "🇩🇪", name: "Germany" },
+  { code: "+1", flag: "🇺🇸", name: "USA / Canada" },
+  { code: "+61", flag: "🇦🇺", name: "Australia" },
+  { code: "+64", flag: "🇳🇿", name: "New Zealand" },
+  { code: "+65", flag: "🇸🇬", name: "Singapore" },
+  { code: "+60", flag: "🇲🇾", name: "Malaysia" },
+  { code: "+81", flag: "🇯🇵", name: "Japan" },
+  { code: "+977", flag: "🇳🇵", name: "Nepal" },
+];
+
+/** Split "+971 501234567" into its code and national part. Longest code wins,
+ *  so +97 never shadows +971. */
+export function splitPhone(value: string | null | undefined): { code: string; number: string } {
+  const raw = String(value ?? "").trim();
+  if (!raw) return { code: "+91", number: "" };
+  if (raw.startsWith("+")) {
+    const match = [...DIAL_CODES]
+      .sort((a, b) => b.code.length - a.code.length)
+      .find((c) => raw.startsWith(c.code));
+    if (match) return { code: match.code, number: raw.slice(match.code.length).replace(/\D/g, "") };
+  }
+  // No code, or one we do not list — treat the digits as an Indian number rather
+  // than dropping them.
+  return { code: "+91", number: raw.replace(/\D/g, "") };
+}
+
+export function joinPhone(code: string, number: string): string {
+  const n = number.replace(/\D/g, "");
+  return n ? `${code} ${n}` : "";
+}
+
+export function PhoneInput({
+  value, onChange, disabled, autoComplete,
+}: { value: string; onChange: (v: string) => void; disabled?: boolean; autoComplete?: string }) {
+  const { code, number } = splitPhone(value);
+  return (
+    <div className="flex gap-2">
+      <select
+        value={code}
+        disabled={disabled}
+        onChange={(e) => onChange(joinPhone(e.target.value, number))}
+        aria-label="Country code"
+        className={`${inputCls} w-[7.5rem] shrink-0 pl-2.5 pr-1 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
+      >
+        {DIAL_CODES.map((c) => (
+          <option key={c.code + c.name} value={c.code}>{c.flag} {c.code}</option>
+        ))}
+      </select>
+      <Input
+        className={`${inputCls} flex-1 min-w-0`}
+        inputMode="tel"
+        autoComplete={autoComplete}
+        maxLength={15}
+        disabled={disabled}
+        value={number}
+        onChange={(e) => onChange(joinPhone(code, e.target.value))}
+      />
+    </div>
+  );
+}

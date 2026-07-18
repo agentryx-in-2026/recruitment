@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useFormTimer } from "./useFormTimer";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2, Landmark, ShieldCheck, AlertTriangle, PhoneCall, Clock, CheckCircle2, HelpCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Landmark, ShieldCheck, AlertTriangle, PhoneCall, Clock, CheckCircle2, HelpCircle, Pause, Play, Save, Wand2 } from "lucide-react";
 
 /**
  * UAT-05 registration shell — replaces simple-apply/QuestionShell.
@@ -64,9 +65,11 @@ export function Wide({ children, className = "" }: { children: React.ReactNode; 
  * tells them how far through the page they are.
  */
 export function Section({
-  n, title, hint, icon: Icon, children, className = "",
+  n, title, hint, icon: Icon, onAutofill, autofillLabel, children, className = "",
 }: {
   n?: number; title: string; hint?: string; icon?: React.ElementType;
+  /** Test mode only — fills just THIS section. */
+  onAutofill?: () => void; autofillLabel?: string;
   children: React.ReactNode; className?: string;
 }) {
   return (
@@ -85,13 +88,24 @@ export function Section({
             {Icon ? <Icon className="w-[18px] h-[18px]" /> : <span className="text-[15px] font-bold tabular-nums">{n}</span>}
           </span>
         )}
-        <div className="min-w-0 pt-0.5">
+        <div className="min-w-0 pt-0.5 flex-1">
           <h2 className="text-[17px] font-bold text-white tracking-tight leading-tight">
             {n !== undefined && Icon && <span className="text-blue-300/90 font-semibold tabular-nums mr-1.5">{n}.</span>}
             {title}
           </h2>
           {hint && <p className="text-[13.5px] text-slate-300/90 mt-1 leading-snug">{hint}</p>}
         </div>
+        {/* Per-SECTION autofill. Page-level filling was too blunt: a tester
+            checking the address rules still had to re-key identity and contact
+            to get there. Filling one section at a time lets them hand-test the
+            part they care about and skip the rest. */}
+        {onAutofill && (
+          <button type="button" onClick={onAutofill}
+            title={autofillLabel} aria-label={autofillLabel}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-500/90 hover:bg-amber-500 text-white text-[12.5px] font-semibold px-2.5 h-8 transition-colors">
+            <Wand2 className="w-3.5 h-3.5" /> {autofillLabel}
+          </button>
+        )}
       </div>
       <div className="px-5 sm:px-6 pt-5 pb-1 bg-slate-50/60">{children}</div>
     </section>
@@ -123,15 +137,10 @@ export function RegisterShell({
   const { t } = useTranslation();
   // "Time spent" is not a nag — it is evidence for the candidate that this form
   // is short. HPSEDC's whole complaint was that registration felt endless; a
-  // visible 4-minute clock is the counter-argument, and it is the one number a
-  // candidate can check against the promise on page 1.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const elapsed = startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
-  const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
+  // visible four-minute clock is the counter-argument, and it is the one number a
+  // candidate can check against the promise on page 1. It therefore has to
+  // SURVIVE leaving and coming back, or it is evidence of nothing.
+  const { label: mmss, paused: timerPaused, toggle: toggleTimer } = useFormTimer();
   // print:* on the chrome below — page 4 prints an A4 application form, and
   // everything in this shell is screen furniture that must not appear on it.
   // Marked here at the source rather than in ReviewPage's stylesheet: that one
@@ -185,13 +194,19 @@ export function RegisterShell({
             <div className="flex items-center justify-between gap-4 mb-4">
               <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">{t("reg.nav.stages")}</p>
               <div className="flex items-center gap-4">
-                {startedAt && (
-                  <div className="hidden sm:flex items-center gap-1.5 text-[13px] text-slate-500">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{t("reg.timeSpent")}</span>
-                    <span className="font-mono font-semibold text-slate-700 tabular-nums">{mmss}</span>
-                  </div>
-                )}
+                <div className={`hidden sm:flex items-center gap-1.5 text-[13px] rounded-lg px-2 py-1 transition-colors ${
+                  timerPaused ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200" : "text-slate-500"}`}>
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{timerPaused ? t("reg.timer.paused") : t("reg.timeSpent")}</span>
+                  <span className="font-mono font-semibold tabular-nums">{mmss}</span>
+                  <button type="button" onClick={toggleTimer}
+                    title={timerPaused ? t("reg.timer.resume") : t("reg.timer.pause")}
+                    aria-label={timerPaused ? t("reg.timer.resume") : t("reg.timer.pause")}
+                    className={`ml-0.5 w-7 h-7 rounded-md flex items-center justify-center transition-colors ${
+                      timerPaused ? "bg-amber-600 text-white hover:bg-amber-700" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"}`}>
+                    {timerPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
                 {overallProgress !== undefined && (
                   <div className="flex items-center gap-2">
                     <span className="hidden sm:inline text-[13px] text-slate-500">{t("reg.nav.overall")}</span>

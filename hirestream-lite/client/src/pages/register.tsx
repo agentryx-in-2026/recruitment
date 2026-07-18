@@ -40,11 +40,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HP_DISTRICTS, INDIAN_STATES } from "@/lib/reference-data";
 import { RegisterShell, FieldGrid, Wide, Section } from "./register/RegisterShell";
-import { FormGrid, Field, GridHeading, GridCheckbox, MicInput, inputCls } from "./register/Field";
+import { FormGrid, Field, GridHeading, GridCheckbox, MicInput, PhoneInput, inputCls } from "./register/Field";
 // Formatting, masking and the Verhoeff checksum live in ONE shared module so
 // client and server cannot disagree (HPSEDC 2026-07-07). The first cut of this
 // page re-implemented masking by hand and dropped the rest.
 import { formatAadhaar, stripAadhaar, maskAadhaar, isValidAadhaar } from "@shared/aadhaar";
+import { splitPhone } from "./register/Field";
 import { ProfessionAddonBlock, isAddonComplete, type AddonData } from "./register/profession-blocks";
 import { ReviewPage } from "./register/ReviewPage";
 import { ReadyChecklist } from "./register/ReadyChecklist";
@@ -206,7 +207,9 @@ export default function RegisterPage() {
   // The flow this replaced showed these inline; the rebuild dropped them and
   // left only a greyed-out Next, so a candidate with a bad Aadhaar had no way
   // to find out why they were stuck.
-  const digitsOnly = (x: string) => x.replace(/\D/g, "");
+  // Validate the NATIONAL part only — counting the dial code would let a
+  // 6-digit number pass as "+971 501234" and reject a real Indian one.
+  const digitsOnly = (x: string) => splitPhone(x).number;
   const aadhaarErr = !aadhaarNumber ? null
     : aadhaarNumber.length !== 12 ? t("reg.err.aadhaarLen")
     : !isValidAadhaar(aadhaarNumber) ? t("reg.err.aadhaarInvalid")
@@ -282,8 +285,8 @@ export default function RegisterPage() {
     setShowChecklist(false);
   };
 
-  // Wall-clock for "time spent". Set once on mount.
-  const startedAtRef = useRef<number>(Date.now());
+  // The clock lives in useFormTimer now — persisted, pausable, and auto-paused
+  // when the tab is hidden. A per-mount Date.now() reset it on every reload.
 
   // ── Test mode ──────────────────────────────────────────────────────
   // Fills only the page you are ON, so a tester can still hand-check one page
@@ -291,56 +294,83 @@ export default function RegisterPage() {
   // it is gated (?test=1, sessionStorage, never on for a real candidate).
   const testMode = useMemo(() => isTestMode(), []);
 
-  function autofillPage1() {
+  // Section-level fills. A tester checking the address rules should not have to
+  // re-key identity and contact just to reach them.
+  const fillIdentity = () => {
     const d = TEST_DATA.page1;
     setPassportNumber(d.passportNumber); setNoPassportYet(false);
     setPassportIssueDate(d.passportIssueDate); setPassportExpiry(d.passportExpiry);
     setPassportPlaceOfIssue(d.passportPlaceOfIssue); setEcrStatus(d.ecrStatus);
     setAadhaarNumber(d.aadhaarNumber);
+    toast({ title: t("reg.test.filledSection") });
+  };
+  const fillPersonal = () => {
+    const d = TEST_DATA.page1;
     setFullName(d.fullName); setDateOfBirth(d.dateOfBirth); setSex(d.sex);
     setFatherName(d.fatherName); setMotherName(d.motherName);
     setDisabilityStatus(d.disabilityStatus); setDisabilityType(d.disabilityType);
+    toast({ title: t("reg.test.filledSection") });
+  };
+  const fillContact = () => {
+    const d = TEST_DATA.page1;
     setPhone(d.phone); setWhatsappSame(d.whatsappSame); setWhatsappNumber(d.whatsappNumber);
-    setEmail(d.email); setHomeTown(d.homeTown);
+    setEmail(d.email);
+    toast({ title: t("reg.test.filledSection") });
+  };
+  const fillAddress = () => {
+    const d = TEST_DATA.page1;
+    setHomeTown(d.homeTown);
     setPAddr1(d.pAddr1); setPAddr2(d.pAddr2); setPDistrict(d.pDistrict);
     setPState(d.pState); setPPin(d.pPin); setCorrSame(d.corrSame);
-    toast({ title: t("reg.test.filled") });
-  }
+    toast({ title: t("reg.test.filledSection") });
+  };
 
-  function autofillPage2() {
+  const fillTrades = () => {
     const d = TEST_DATA.page2;
-    // Only pick trades the catalogue actually has, and respect the cap — the
-    // seed list is admin-editable, so hardcoding blindly would break the moment
-    // HPSEDC deactivate one.
+    // Only trades the catalogue actually has, capped — HPSEDC can deactivate
+    // any of them from the admin screen, and this must not break when they do.
     const available = d.professionKeys.filter((k) => professions.some((p) => p.professionKey === k));
     setPicked(available.slice(0, maxProfessions).map((k) => ({
       professionKey: k, experienceMonths: 0, specificSkills: [], addonData: {},
     })));
-    setLangs(d.languages.filter((l) => LANGS.includes(l.language)));
-    toast({ title: t("reg.test.filled") });
-  }
+    toast({ title: t("reg.test.filledSection") });
+  };
+  const fillLanguages = () => {
+    setLangs(TEST_DATA.page2.languages.filter((l) => LANGS.includes(l.language)));
+    toast({ title: t("reg.test.filledSection") });
+  };
 
-  function autofillPage3() {
+  const fillEducation = () => {
     const d = TEST_DATA.page3;
     setEduLevel(d.eduLevel); setEduBoard(d.eduBoard);
     setEduInstitution(d.eduInstitution); setEduYear(d.eduYear); setEduPassed(d.eduPassed);
+    toast({ title: t("reg.test.filledSection") });
+  };
+  /** Fill ONE trade's card — its add-on block, months and specific skills. */
+  const fillTradeCard = (key: string) => {
+    const d = TEST_DATA.page3;
     setPicked((prev) => prev.map((x) => {
-      const prof = profByKey[x.professionKey];
+      if (x.professionKey !== key) return x;
+      const prof = profByKey[key];
       return {
         ...x,
         experienceMonths: d.experienceMonths,
-        // First two options from HPSEDC's own list for this trade, so the data
-        // stays valid even after they edit the catalogue.
+        // Straight from HPSEDC's own list for this trade, so it survives edits.
         specificSkills: (prof?.skillsOptions || []).slice(0, 2),
         lastEmployerName: d.lastEmployerName,
         lastEmployerCountry: d.lastEmployerCountry,
-        addonData: prof?.hasAddonBlock ? (d.addon[x.professionKey] || x.addonData) : x.addonData,
+        addonData: prof?.hasAddonBlock ? (d.addon[key] || x.addonData) : x.addonData,
       };
     }));
-    toast({ title: t("reg.test.filled") });
-  }
+    toast({ title: t("reg.test.filledSection") });
+  };
 
-  const autofill = [autofillPage1, autofillPage2, autofillPage3][step];
+  /** Whole-page fill, kept for when a tester just wants to get past a page. */
+  const autofill = [
+    () => { fillIdentity(); fillPersonal(); fillContact(); fillAddress(); },
+    () => { fillTrades(); fillLanguages(); },
+    () => { fillEducation(); picked.forEach((x) => fillTradeCard(x.professionKey)); },
+  ][step];
 
   // ── Saves ──────────────────────────────────────────────────────────
   async function savePage1() {
@@ -493,7 +523,7 @@ export default function RegisterPage() {
   return (
     <RegisterShell
       step={step} totalSteps={TOTAL} stepLabels={stepLabels} stepIcons={stepIcons}
-      stepProgress={stepProgress} overallProgress={overallProgress} startedAt={startedAtRef.current}
+      stepProgress={stepProgress} overallProgress={overallProgress}
       maxStepReached={maxStepReached}
       onNavigate={(i) => { setStep(i); window.scrollTo({ top: 0, behavior: "smooth" }); }}
       title={titles[step]} help={helps[step]}
@@ -532,7 +562,7 @@ export default function RegisterPage() {
             <p className="text-[15px] text-blue-900 leading-snug">{t("reg.p1.keepDocs")}</p>
           </div>
 
-          <Section n={1} icon={BookUser} title={t("reg.p1.identity")} hint={t("reg.p1.identityHint")}>
+          <Section n={1} icon={BookUser} title={t("reg.p1.identity")} onAutofill={testMode ? fillIdentity : undefined} autofillLabel={t("reg.test.fillSection")} hint={t("reg.p1.identityHint")}>
             <FormGrid>
               <Field label={t("reg.p1.passportNo")} required={!noPassportYet} span={4}
                 error={passportNumber && !noPassportYet && passportNumber.trim().length < 6 ? t("reg.err.passportShort") : null}>
@@ -587,7 +617,7 @@ export default function RegisterPage() {
             </FormGrid>
           </Section>
 
-          <Section n={2} icon={User} title={t("reg.p1.personal")}>
+          <Section n={2} icon={User} title={t("reg.p1.personal")} onAutofill={testMode ? fillPersonal : undefined} autofillLabel={t("reg.test.fillSection")}>
             <FormGrid>
               <Field label={t("reg.p1.fullName")} required span={6} hint={t("reg.p1.fullNameHint")}>
                 <MicInput value={fullName} onChange={setFullName} maxLength={120} />
@@ -629,14 +659,17 @@ export default function RegisterPage() {
             </FormGrid>
           </Section>
 
-          <Section n={3} icon={Phone} title={t("reg.p1.contact")}>
+          <Section n={3} icon={Phone} title={t("reg.p1.contact")} onAutofill={testMode ? fillContact : undefined} autofillLabel={t("reg.test.fillSection")}>
             <FormGrid>
+              {/* Country code: a candidate applying for their NEXT placement is
+                  often already overseas, and a bare 10-digit box assumes they
+                  are at home. */}
               <Field label={t("reg.p1.mobile")} required span={4} error={phoneErr}>
-                <Input className={inputCls} inputMode="tel" maxLength={15} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <PhoneInput value={phone} onChange={setPhone} autoComplete="tel" />
               </Field>
               <Field label={t("reg.p1.whatsapp")} required span={4} error={whatsappErr}>
-                <Input className={inputCls} inputMode="tel" maxLength={15} disabled={whatsappSame}
-                  value={whatsappSame ? phone : whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
+                <PhoneInput value={whatsappSame ? phone : whatsappNumber}
+                  onChange={setWhatsappNumber} disabled={whatsappSame} />
               </Field>
               <Field label={t("reg.p1.email")} required span={4} error={emailErr}>
                 <Input className={inputCls} type="email" maxLength={120} value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -645,7 +678,7 @@ export default function RegisterPage() {
             </FormGrid>
           </Section>
 
-          <Section n={4} icon={MapPin} title={t("reg.p1.address")}>
+          <Section n={4} icon={MapPin} title={t("reg.p1.address")} onAutofill={testMode ? fillAddress : undefined} autofillLabel={t("reg.test.fillSection")}>
             <FormGrid>
               <Field label={t("reg.p1.homeTown")} required span={4}>
                 <MicInput value={homeTown} onChange={setHomeTown} maxLength={80} />
@@ -723,6 +756,7 @@ export default function RegisterPage() {
           professions={professions} maxProfessions={maxProfessions} labelOf={labelOf}
           picked={picked} setPicked={setPicked}
           langs={langs} setLangs={setLangs} otherLangText={otherLangText} setOtherLangText={setOtherLangText}
+          testMode={testMode} onFillTrades={fillTrades} onFillLanguages={fillLanguages}
         />
       )}
 
@@ -732,6 +766,7 @@ export default function RegisterPage() {
           eduLevel={eduLevel} setEduLevel={setEduLevel} eduBoard={eduBoard} setEduBoard={setEduBoard}
           eduInstitution={eduInstitution} setEduInstitution={setEduInstitution}
           eduYear={eduYear} setEduYear={setEduYear} eduPassed={eduPassed} setEduPassed={setEduPassed}
+          testMode={testMode} onFillEducation={fillEducation} onFillTradeCard={fillTradeCard}
         />
       )}
 
@@ -756,6 +791,7 @@ export default function RegisterPage() {
 // ── Page 2 ────────────────────────────────────────────────────────────
 function SkillsPage({
   professions, maxProfessions, labelOf, picked, setPicked, langs, setLangs, otherLangText, setOtherLangText,
+  testMode, onFillTrades, onFillLanguages,
 }: any) {
   const { t } = useTranslation();
   const isPicked = (k: string) => picked.some((p: PickedProfession) => p.professionKey === k);
@@ -775,7 +811,15 @@ function SkillsPage({
           have?" (item 14's wording) and the tiles are the answer to it —
           repeating the question as a sub-heading is just noise. */}
       <section className="mb-9">
-        <p className="text-sm text-slate-500 mb-4">{t("reg.p2.pickHint", { max: maxProfessions })}</p>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <p className="text-sm text-slate-500">{t("reg.p2.pickHint", { max: maxProfessions })}</p>
+          {testMode && onFillTrades && (
+            <button type="button" onClick={onFillTrades}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-500/90 hover:bg-amber-500 text-white text-[12.5px] font-semibold px-2.5 h-8">
+              <Wand2 className="w-3.5 h-3.5" /> {t("reg.test.fillSection")}
+            </button>
+          )}
+        </div>
         {/* Tiles: 2 across on a phone, up to 5 on desktop — the old shell could
             only ever show 2 because of the 576px cap. */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
@@ -804,7 +848,7 @@ function SkillsPage({
         )}
       </section>
 
-      <Section n={2} icon={Wrench} title={t("reg.p2.languages")} hint={t("reg.p2.languagesHint")}>
+      <Section n={2} icon={Wrench} title={t("reg.p2.languages")} onAutofill={testMode ? onFillLanguages : undefined} autofillLabel={t("reg.test.fillSection")} hint={t("reg.p2.languagesHint")}>
         <div className="space-y-2.5">
           {LANGS.map((lang) => {
             const row = langs.find((l: any) => l.language === lang);
@@ -871,6 +915,7 @@ function QualificationsPage({
   picked, setPicked, profByKey, labelOf, noteOf,
   eduLevel, setEduLevel, eduBoard, setEduBoard, eduInstitution, setEduInstitution,
   eduYear, setEduYear, eduPassed, setEduPassed,
+  testMode, onFillEducation, onFillTradeCard,
 }: any) {
   const { t } = useTranslation();
   const patch = (k: string, p: Partial<PickedProfession>) =>
@@ -878,7 +923,7 @@ function QualificationsPage({
 
   return (
     <>
-      <Section n={1} icon={GraduationCap} title={t("reg.p3.education")} hint={t("reg.p3.educationHint")}>
+      <Section n={1} icon={GraduationCap} title={t("reg.p3.education")} onAutofill={testMode ? onFillEducation : undefined} autofillLabel={t("reg.test.fillSection")} hint={t("reg.p3.educationHint")}>
         <FieldGrid>
           <div>
             <Label className="text-sm font-medium text-slate-700">{t("reg.p3.highest")} *</Label>
@@ -929,9 +974,15 @@ function QualificationsPage({
           <div key={x.professionKey} className="mb-7 rounded-2xl border-2 border-slate-200 bg-white p-5 lg:p-6">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="rounded-lg bg-blue-100 p-2"><Briefcase className="w-4 h-4 text-blue-700" /></div>
-              <h3 className="text-lg font-bold text-slate-900">
+              <h3 className="text-lg font-bold text-slate-900 flex-1">
                 {x.professionKey === "other" ? x.otherLabel : labelOf(prof)}
               </h3>
+              {testMode && onFillTradeCard && (
+                <button type="button" onClick={() => onFillTradeCard(x.professionKey)}
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-500/90 hover:bg-amber-500 text-white text-[12.5px] font-semibold px-2.5 h-8">
+                  <Wand2 className="w-3.5 h-3.5" /> {t("reg.test.fillSection")}
+                </button>
+              )}
             </div>
 
             {/* HPSEDC's own note, from the DB. This is the screen that makes the

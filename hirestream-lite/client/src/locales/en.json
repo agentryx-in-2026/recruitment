@@ -1490,7 +1490,14 @@
       "badge": "Test mode",
       "hint": "Autofill this page with sample data, then edit anything you want to check.",
       "fill": "Autofill this page",
-      "filled": "Page filled with test data"
+      "filled": "Page filled with test data",
+      "fillSection": "Fill",
+      "filledSection": "Section filled"
+    },
+    "timer": {
+      "pause": "Pause the timer",
+      "resume": "Resume",
+      "paused": "Paused"
     }
   },
   "docs2": {
