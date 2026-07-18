@@ -1378,7 +1378,9 @@
       "specificSkills": "What specifically can you do?",
       "specificSkillsHint": "Optional — but this is what gets you matched to the right job.",
       "lastEmployer": "Last employer (optional)",
-      "lastEmployerCountry": "Country (optional)"
+      "lastEmployerCountry": "Country (optional)",
+      "less6": "Six months less",
+      "more6": "Six months more"
     },
     "p4": {
       "tab": "Review",
@@ -1443,6 +1445,36 @@
       "itiName": "ITI / institution name",
       "certBody": "Certificate body",
       "tradeTest": "Have you passed a trade test?"
+    },
+    "err": {
+      "aadhaarLen": "Aadhaar must be exactly 12 digits.",
+      "aadhaarInvalid": "That Aadhaar number is not valid. Please check each digit.",
+      "phone": "Enter a 10-digit mobile number.",
+      "email": "Enter a valid email address.",
+      "pin": "PIN code must be 6 digits.",
+      "passportShort": "Passport number looks too short.",
+      "passportExpired": "This passport has already expired.",
+      "issueFuture": "Date of issue cannot be in the future.",
+      "dobFuture": "Date of birth cannot be in the future."
+    },
+    "timeSpent": "Time spent",
+    "ready": {
+      "title": "Before you start",
+      "sub": "Have these in front of you and this takes about four minutes.",
+      "noUploadTitle": "Nothing to upload today",
+      "noUploadBody": "You only send certificates if HPSEDC shortlist you for a real job. Don't pay for any document yet.",
+      "haveReady": "Keep these ready",
+      "passportTitle": "Your passport",
+      "passportBody": "Number, expiry date, place of issue. Don't have one yet? You can still apply.",
+      "aadhaarTitle": "Your Aadhaar card",
+      "aadhaarBody": "The 12-digit number. Used only to confirm who you are.",
+      "educationTitle": "What you studied",
+      "educationBody": "Your highest class or degree, the school or ITI, and the year you passed.",
+      "workTitle": "Your work history",
+      "workBody": "Roughly how many months you have done each job, and your last employer's name.",
+      "tip": "Filling this in one sitting is quickest — but your answers are saved on every page, so you can stop and come back.",
+      "start": "I have these — start",
+      "later": "Skip, I'll manage"
     }
   },
   "docs2": {

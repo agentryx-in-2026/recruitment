@@ -218,6 +218,37 @@ picker and leaves existing candidates' trades and documents intact.
   untouched — it MUST stay, because document staging depends on
   shortlisted/selected (item 9). Dead `application-tracker.tsx` deleted too.
 
+**v0.8.0 — form layout + REGRESSIONS THE REBUILD INTRODUCED.**
+
+⚠️ **Read this before rebuilding anything else.** Rebuilding `/register` from the
+spec instead of PORTING the old flows silently dropped fixes that had been made
+deliberately, each with an audit reference. The shared modules were all still
+there — the new page just never imported them:
+
+| Lost | Restored in v0.8.0 |
+|---|---|
+| `@shared/aadhaar` — format/mask/Verhoeff (HPSEDC 2026-07-07) | `formatAadhaar` + `stripAadhaar` on input, `maskAadhaar` on review |
+| Inline per-field validation (bad checksum, expired passport) | `Field`'s error slot; 9 `reg.err.*` messages, en + hi |
+| Voice input `MicField` — 10 uses in the old pro flow | `MicInput` on every free-text field |
+| audit C12 — check `res.ok` on language writes | diff-based save, errors no longer swallowed |
+| audit Batch 3 — aria-label on icon-only buttons | experience steppers + months input |
+
+**The review page had also re-implemented Aadhaar masking by hand** — a second
+source of truth for a UIDAI/DPDP rule, which is the exact defect class this
+session spent its time removing elsewhere. It now calls `maskAadhaar()`.
+
+**Layout** (`register/Field.tsx`): one `Field` owning label/hint/error, a
+12-column grid so a PIN code is 3 columns and an address is 8, and numbered dark
+section bands. Note `inputCls` needs `md:text-[15px]` — `ui/input` ends its class
+list with `md:text-sm`, which silently shrank every field back to 14px at
+desktop widths.
+
+**Borrowed from the HP Tourism eServices homestay form** (same team, screenshots
+in the UAT-05 thread): a pre-flight "Before you start" checklist, per-stage
+progress with its own %, an overall %, and a time-spent clock. Ours lists
+INFORMATION rather than documents, because stage 1 is upload-free — promising a
+document list and then not asking for documents would be worse than no checklist.
+
 ### Still to do (UAT-05)
 - **Email verification (item 1)** — the field is collected, the verification is
   not built. Send the mail and gate the SUBMIT, not page 1 — hard-blocking at the

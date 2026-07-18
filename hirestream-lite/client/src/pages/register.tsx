@@ -40,9 +40,16 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HP_DISTRICTS, INDIAN_STATES } from "@/lib/reference-data";
 import { RegisterShell, FieldGrid, Wide, Section } from "./register/RegisterShell";
+import { FormGrid, Field, GridHeading, GridCheckbox, MicInput, inputCls } from "./register/Field";
+// Formatting, masking and the Verhoeff checksum live in ONE shared module so
+// client and server cannot disagree (HPSEDC 2026-07-07). The first cut of this
+// page re-implemented masking by hand and dropped the rest.
+import { formatAadhaar, stripAadhaar, maskAadhaar, isValidAadhaar } from "@shared/aadhaar";
 import { ProfessionAddonBlock, isAddonComplete, type AddonData } from "./register/profession-blocks";
 import { ReviewPage } from "./register/ReviewPage";
-import { Check, Plus, Minus, Info, Briefcase } from "lucide-react";
+import { ReadyChecklist } from "./register/ReadyChecklist";
+import { Check, Plus, Minus, Info, Briefcase, BookUser, User, Phone, MapPin,
+         Wrench, GraduationCap, ClipboardCheck } from "lucide-react";
 
 const TOTAL = 4;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -183,19 +190,88 @@ export default function RegisterPage() {
     setLangs(rows.map((r: any) => ({ language: r.language, proficiency: r.proficiency })));
   }, [langRes]);
 
+  // ── Per-field validation messages ──────────────────────────────────
+  // The flow this replaced showed these inline; the rebuild dropped them and
+  // left only a greyed-out Next, so a candidate with a bad Aadhaar had no way
+  // to find out why they were stuck.
+  const digitsOnly = (x: string) => x.replace(/\D/g, "");
+  const aadhaarErr = !aadhaarNumber ? null
+    : aadhaarNumber.length !== 12 ? t("reg.err.aadhaarLen")
+    : !isValidAadhaar(aadhaarNumber) ? t("reg.err.aadhaarInvalid")
+    : null;
+  const phoneErr = phone && digitsOnly(phone).length < 10 ? t("reg.err.phone") : null;
+  const whatsappErr = !whatsappSame && whatsappNumber && digitsOnly(whatsappNumber).length < 10 ? t("reg.err.phone") : null;
+  const emailErr = email && !/\S+@\S+\.\S+/.test(email) ? t("reg.err.email") : null;
+
   // ── Validation ─────────────────────────────────────────────────────
   // Client-side, and only gates the Next button — the server is the authority.
   const digits = (s: string) => s.replace(/\D/g, "");
   const passportOk = noPassportYet || (passportNumber.trim().length >= 6 && !!passportExpiry);
   const addrOk = pAddr1.trim() && pDistrict && pState && pPin.length === 6;
   const corrOk = corrSame || (cAddr1.trim() && cDistrict && cState && cPin.length === 6);
+  // An INVALID Aadhaar blocks Next as well as an empty one — the field is
+  // optional, but a wrong number must not reach the server (which rejects it
+  // anyway, at submit time, long after the candidate has moved on).
   const p1Ok = passportOk && fullName.trim().length >= 2 && dateOfBirth && sex
     && fatherName.trim() && motherName.trim() && disabilityStatus
     && (disabilityStatus !== "yes" || disabilityType.trim())
     && digits(phone).length >= 10 && (whatsappSame || digits(whatsappNumber).length >= 10)
-    && /\S+@\S+\.\S+/.test(email) && homeTown.trim() && addrOk && corrOk;
+    && /\S+@\S+\.\S+/.test(email) && homeTown.trim() && addrOk && corrOk
+    && !aadhaarErr && !(passportExpiry && passportExpiry < today());
   const p2Ok = picked.length > 0 && picked.every((x) => x.professionKey !== "other" || x.otherLabel?.trim()) && langs.length > 0;
   const p3Ok = eduLevel && picked.every((x) => isAddonComplete(x.professionKey, x.addonData) && x.experienceMonths >= 0);
+
+  // ── Progress, per page and overall ─────────────────────────────────
+  //
+  // Per-STAGE progress is the number that actually helps: "page 1 is 57% done"
+  // tells a candidate how much work is left in front of them right now, which
+  // "step 1 of 4" never did. Counted over the fields that page genuinely
+  // requires — optional fields must not drag a finished page below 100%.
+  const pct = (vals: any[]) => {
+    const done = vals.filter((v) => (typeof v === "string" ? v.trim() : v)).length;
+    return vals.length === 0 ? 0 : Math.round((done / vals.length) * 100);
+  };
+  const p1Fields = [
+    noPassportYet || passportNumber, noPassportYet || passportExpiry,
+    fullName, dateOfBirth, sex, fatherName, motherName, disabilityStatus,
+    disabilityStatus !== "yes" || disabilityType,
+    phone, whatsappSame || whatsappNumber, email,
+    homeTown, pAddr1, pDistrict, pState, pPin.length === 6,
+    corrSame || (cAddr1 && cDistrict && cState && cPin.length === 6),
+  ];
+  const p2Fields = [picked.length > 0, langs.length > 0];
+  const p3Fields = [
+    eduLevel,
+    ...picked.map((x) => isAddonComplete(x.professionKey, x.addonData)),
+    ...picked.map((x) => x.experienceMonths > 0),
+  ];
+  const stepProgress = [pct(p1Fields), pct(p2Fields), pct(p3Fields), step === TOTAL - 1 ? 100 : 0];
+  // Weighted by how much work each page actually is, not a flat average — page 1
+  // is ~18 fields and page 2 is two choices, so a flat mean would jump to 25%
+  // for one tap and badly overstate progress.
+  const overallProgress = Math.round(
+    (stepProgress[0] * 0.5) + (stepProgress[1] * 0.15) + (stepProgress[2] * 0.25) + (stepProgress[3] * 0.10));
+
+  // The pre-flight checklist, shown once per candidate on a fresh form. Skipped
+  // for anyone resuming — they have already seen it and already have their
+  // papers out.
+  const [showChecklist, setShowChecklist] = useState(false);
+  const checklistDecided = useRef(false);
+  useEffect(() => {
+    const p = profileRes?.data;
+    if (!p || checklistDecided.current) return;
+    checklistDecided.current = true;
+    const started = Boolean(p.fullName && p.fullName !== "Unknown" && p.phone);
+    const seen = typeof window !== "undefined" && localStorage.getItem("hs_reg_checklist_seen") === "1";
+    if (!started && !seen) setShowChecklist(true);
+  }, [profileRes]);
+  const dismissChecklist = () => {
+    try { localStorage.setItem("hs_reg_checklist_seen", "1"); } catch { /* private mode */ }
+    setShowChecklist(false);
+  };
+
+  // Wall-clock for "time spent". Set once on mount.
+  const startedAtRef = useRef<number>(Date.now());
 
   // ── Saves ──────────────────────────────────────────────────────────
   async function savePage1() {
@@ -206,7 +282,7 @@ export default function RegisterPage() {
       passportExpiry: noPassportYet ? null : passportExpiry || null,
       passportPlaceOfIssue: noPassportYet ? null : passportPlaceOfIssue.trim() || null,
       ecrStatus: ecrStatus || null,
-      aadhaarNumber: aadhaarNumber ? digits(aadhaarNumber) : null,
+      aadhaarNumber: aadhaarNumber || null,   // already raw 12 digits (stripAadhaar on input)
       fullName: fullName.trim(), dateOfBirth, sex,
       fatherName: fatherName.trim(), motherName: motherName.trim(),
       disabilityStatus, disabilityType: disabilityStatus === "yes" ? disabilityType.trim() : null,
@@ -246,9 +322,23 @@ export default function RegisterPage() {
     await apiRequest("PATCH", "/api/v1/candidates/profile", {
       skills: picked.map((x) => (x.professionKey === "other" ? x.otherLabel : profByKey[x.professionKey]?.label) || x.professionKey),
     });
+    // Languages: DIFF, not delete-all-then-insert-all.
+    //
+    // Two things were wrong with the old approach here. It swallowed delete
+    // failures with `.catch(() => {})` — undoing audit fix C12, whose whole
+    // point was that "a silent failure left the chip missing and Next disabled
+    // with no message". And it churned every row on every save, so a network
+    // blip between the deletes and the inserts could leave a candidate with NO
+    // languages at all. There is no PUT on this resource, so a proficiency
+    // change is a delete + add of that one row.
     const existing = (langRes?.data || []) as any[];
-    for (const row of existing) await apiRequest("DELETE", `/api/v1/candidates/languages/${row.id}`).catch(() => {});
-    for (const l of langs) await apiRequest("POST", "/api/v1/candidates/languages", l);
+    const sameName = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+    const toRemove = existing.filter((e) =>
+      !langs.some((l) => sameName(l.language, e.language) && l.proficiency === e.proficiency));
+    const toAdd = langs.filter((l) =>
+      !existing.some((e) => sameName(l.language, e.language) && l.proficiency === e.proficiency));
+    for (const row of toRemove) await apiRequest("DELETE", `/api/v1/candidates/languages/${row.id}`);
+    for (const l of toAdd) await apiRequest("POST", "/api/v1/candidates/languages", l);
     queryClient.invalidateQueries({ queryKey: ["/api/v1/professions/mine"] });
     queryClient.invalidateQueries({ queryKey: ["/api/v1/candidates/languages"] });
     queryClient.invalidateQueries({ queryKey: ["/api/v1/candidates/profile"] });
@@ -326,233 +416,220 @@ export default function RegisterPage() {
   }
 
   const stepLabels = [t("reg.p1.tab"), t("reg.p2.tab"), t("reg.p3.tab"), t("reg.p4.tab")];
+  const stepIcons = [User, Wrench, GraduationCap, ClipboardCheck];
   const titles = [t("reg.p1.title"), t("reg.p2.title"), t("reg.p3.title"), t("reg.p4.title")];
   const helps = [t("reg.p1.help"), t("reg.p2.help"), t("reg.p3.help"), t("reg.p4.help")];
   const okFor = [p1Ok, p2Ok, p3Ok, true];
 
   return (
     <RegisterShell
-      step={step} totalSteps={TOTAL} stepLabels={stepLabels}
+      step={step} totalSteps={TOTAL} stepLabels={stepLabels} stepIcons={stepIcons}
+      stepProgress={stepProgress} overallProgress={overallProgress} startedAt={startedAtRef.current}
       title={titles[step]} help={helps[step]}
       onBack={step > 0 ? () => { setStep(step - 1); window.scrollTo({ top: 0 }); } : undefined}
       onNext={step < TOTAL - 1 ? next : submit}
       nextLabel={step === TOTAL - 1 ? t("reg.submit") : undefined}
       nextDisabled={!okFor[step]} loading={saving}
     >
+      {showChecklist && (
+        <ReadyChecklist onStart={dismissChecklist} onDismiss={dismissChecklist} />
+      )}
+
       {step === 0 && (
         <>
           {/* One instruction makes ~18 fields tolerable: everything on this page
               is printed on a document already in their hand. */}
-          <div className="mb-7 flex items-start gap-2.5 rounded-xl bg-blue-50 border border-blue-100 p-4">
+          <div className="mb-8 flex items-start gap-3 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3.5">
             <Info className="w-5 h-5 text-blue-700 shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-900">{t("reg.p1.keepDocs")}</p>
+            <p className="text-[15px] text-blue-900 leading-snug">{t("reg.p1.keepDocs")}</p>
           </div>
 
-          <Section title={t("reg.p1.identity")} hint={t("reg.p1.identityHint")}>
-            <FieldGrid>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.passportNo")} {!noPassportYet && "*"}</Label>
-                <Input className="h-11 mt-1.5" maxLength={20} disabled={noPassportYet}
+          <Section n={1} icon={BookUser} title={t("reg.p1.identity")} hint={t("reg.p1.identityHint")}>
+            <FormGrid>
+              <Field label={t("reg.p1.passportNo")} required={!noPassportYet} span={4}
+                error={passportNumber && !noPassportYet && passportNumber.trim().length < 6 ? t("reg.err.passportShort") : null}>
+                <Input className={inputCls} maxLength={20} disabled={noPassportYet}
                   value={passportNumber} onChange={(e) => setPassportNumber(e.target.value.toUpperCase())} />
-                <label className="flex items-center gap-2 mt-2.5 cursor-pointer">
-                  <Checkbox checked={noPassportYet} onCheckedChange={(v) => setNoPassportYet(!!v)} />
-                  <span className="text-sm text-slate-600">{t("reg.p1.noPassport")}</span>
-                </label>
-                {noPassportYet && <p className="text-xs text-amber-700 mt-2">{t("reg.p1.noPassportHint")}</p>}
-              </div>
+              </Field>
               {!noPassportYet && (
-                <>
-                  <div>
-                    <Label className="text-sm font-medium text-slate-700">{t("reg.p1.passportExpiry")} *</Label>
-                    <Input className="h-11 mt-1.5" type="date" min={today()} value={passportExpiry} onChange={(e) => setPassportExpiry(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-slate-700">{t("reg.p1.passportIssue")}</Label>
-                    <Input className="h-11 mt-1.5" type="date" max={today()} value={passportIssueDate} onChange={(e) => setPassportIssueDate(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-slate-700">{t("reg.p1.passportPlace")}</Label>
-                    <Input className="h-11 mt-1.5" maxLength={80} value={passportPlaceOfIssue} onChange={(e) => setPassportPlaceOfIssue(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-slate-700">{t("reg.p1.ecr")}</Label>
-                    <Select value={ecrStatus} onValueChange={setEcrStatus}>
-                      <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ecnr">{t("reg.p1.ecnr")}</SelectItem>
-                        <SelectItem value="ecr">{t("reg.p1.ecrYes")}</SelectItem>
-                        <SelectItem value="unknown">{t("reg.p1.ecrUnknown")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-slate-500 mt-1.5">{t("reg.p1.ecrHint")}</p>
-                  </div>
-                </>
+                <Field label={t("reg.p1.passportExpiry")} required span={4}
+                  error={passportExpiry && passportExpiry < today() ? t("reg.err.passportExpired") : null}>
+                  <Input className={inputCls} type="date" value={passportExpiry} onChange={(e) => setPassportExpiry(e.target.value)} />
+                </Field>
               )}
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.aadhaar")}</Label>
-                <Input className="h-11 mt-1.5" inputMode="numeric" maxLength={14}
-                  value={aadhaarNumber} onChange={(e) => setAadhaarNumber(e.target.value)} />
-                <p className="text-xs text-slate-500 mt-1.5">{t("reg.p1.aadhaarHint")}</p>
-              </div>
-            </FieldGrid>
+              {!noPassportYet && (
+                <Field label={t("reg.p1.passportIssue")} span={4}
+                  error={passportIssueDate && passportIssueDate > today() ? t("reg.err.issueFuture") : null}>
+                  <Input className={inputCls} type="date" max={today()} value={passportIssueDate} onChange={(e) => setPassportIssueDate(e.target.value)} />
+                </Field>
+              )}
+              <GridCheckbox checked={noPassportYet} onChange={setNoPassportYet} label={t("reg.p1.noPassport")} />
+              {noPassportYet && (
+                <div className="col-span-12 -mt-2 pb-4">
+                  <p className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{t("reg.p1.noPassportHint")}</p>
+                </div>
+              )}
+              {!noPassportYet && (
+                <Field label={t("reg.p1.passportPlace")} span={4}>
+                  <Input className={inputCls} maxLength={80} value={passportPlaceOfIssue} onChange={(e) => setPassportPlaceOfIssue(e.target.value)} />
+                </Field>
+              )}
+              {!noPassportYet && (
+                <Field label={t("reg.p1.ecr")} span={4} hint={t("reg.p1.ecrHint")}>
+                  <Select value={ecrStatus} onValueChange={setEcrStatus}>
+                    <SelectTrigger className={inputCls}><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ecnr">{t("reg.p1.ecnr")}</SelectItem>
+                      <SelectItem value="ecr">{t("reg.p1.ecrYes")}</SelectItem>
+                      <SelectItem value="unknown">{t("reg.p1.ecrUnknown")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
+              {/* Aadhaar — formatted, checksum-validated, masked on review.
+                  Uses @shared/aadhaar so client and server agree; the rebuild
+                  briefly hand-rolled all three and lost the live feedback. */}
+              <Field label={t("reg.p1.aadhaar")} span={4}
+                hint={aadhaarErr ? undefined : t("reg.p1.aadhaarHint")} error={aadhaarErr}>
+                <Input className={`${inputCls} tracking-[0.2em] font-mono`} inputMode="numeric" maxLength={14}
+                  placeholder="1234 5678 9012"
+                  value={formatAadhaar(aadhaarNumber)}
+                  onChange={(e) => setAadhaarNumber(stripAadhaar(e.target.value))} />
+              </Field>
+            </FormGrid>
           </Section>
 
-          <Section title={t("reg.p1.personal")}>
-            <FieldGrid>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.fullName")} *</Label>
-                <Input className="h-11 mt-1.5" maxLength={120} value={fullName} onChange={(e) => setFullName(e.target.value)} />
-                <p className="text-xs text-slate-500 mt-1.5">{t("reg.p1.fullNameHint")}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.dob")} *</Label>
-                <Input className="h-11 mt-1.5" type="date" max={today()} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.gender")} *</Label>
+          <Section n={2} icon={User} title={t("reg.p1.personal")}>
+            <FormGrid>
+              <Field label={t("reg.p1.fullName")} required span={6} hint={t("reg.p1.fullNameHint")}>
+                <MicInput value={fullName} onChange={setFullName} maxLength={120} />
+              </Field>
+              <Field label={t("reg.p1.dob")} required span={3}
+                error={dateOfBirth && dateOfBirth > today() ? t("reg.err.dobFuture") : null}>
+                <Input className={inputCls} type="date" max={today()} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+              </Field>
+              <Field label={t("reg.p1.gender")} required span={3}>
                 <Select value={sex} onValueChange={setSex}>
-                  <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger className={inputCls}><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="male">{t("reg.p1.male")}</SelectItem>
                     <SelectItem value="female">{t("reg.p1.female")}</SelectItem>
                     <SelectItem value="other">{t("common.other")}</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.father")} *</Label>
-                <Input className="h-11 mt-1.5" maxLength={120} value={fatherName} onChange={(e) => setFatherName(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.mother")} *</Label>
-                <Input className="h-11 mt-1.5" maxLength={120} value={motherName} onChange={(e) => setMotherName(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.disability")} *</Label>
+              </Field>
+              <Field label={t("reg.p1.father")} required span={6}>
+                <MicInput value={fatherName} onChange={setFatherName} maxLength={120} />
+              </Field>
+              <Field label={t("reg.p1.mother")} required span={6}>
+                <MicInput value={motherName} onChange={setMotherName} maxLength={120} />
+              </Field>
+              <Field label={t("reg.p1.disability")} required span={3}>
                 <Select value={disabilityStatus} onValueChange={setDisabilityStatus}>
-                  <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger className={inputCls}><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="no">{t("common.no")}</SelectItem>
                     <SelectItem value="yes">{t("common.yes")}</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </Field>
               {disabilityStatus === "yes" && (
-                <div>
-                  <Label className="text-sm font-medium text-slate-700">{t("reg.p1.disabilityType")} *</Label>
-                  <Input className="h-11 mt-1.5" maxLength={200} value={disabilityType} onChange={(e) => setDisabilityType(e.target.value)} />
-                </div>
+                <Field label={t("reg.p1.disabilityType")} required span={5}>
+                  <MicInput value={disabilityType} onChange={setDisabilityType} maxLength={200} />
+                </Field>
               )}
-            </FieldGrid>
+            </FormGrid>
           </Section>
 
-          <Section title={t("reg.p1.contact")}>
-            <FieldGrid>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.mobile")} *</Label>
-                <Input className="h-11 mt-1.5" inputMode="tel" maxLength={15} value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.whatsapp")} *</Label>
-                <Input className="h-11 mt-1.5" inputMode="tel" maxLength={15} disabled={whatsappSame}
+          <Section n={3} icon={Phone} title={t("reg.p1.contact")}>
+            <FormGrid>
+              <Field label={t("reg.p1.mobile")} required span={4} error={phoneErr}>
+                <Input className={inputCls} inputMode="tel" maxLength={15} value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </Field>
+              <Field label={t("reg.p1.whatsapp")} required span={4} error={whatsappErr}>
+                <Input className={inputCls} inputMode="tel" maxLength={15} disabled={whatsappSame}
                   value={whatsappSame ? phone : whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
-                <label className="flex items-center gap-2 mt-2.5 cursor-pointer">
-                  <Checkbox checked={whatsappSame} onCheckedChange={(v) => setWhatsappSame(!!v)} />
-                  <span className="text-sm text-slate-600">{t("reg.p1.sameAsMobile")}</span>
-                </label>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.email")} *</Label>
-                <Input className="h-11 mt-1.5" type="email" maxLength={120} value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-            </FieldGrid>
+              </Field>
+              <Field label={t("reg.p1.email")} required span={4} error={emailErr}>
+                <Input className={inputCls} type="email" maxLength={120} value={email} onChange={(e) => setEmail(e.target.value)} />
+              </Field>
+              <GridCheckbox checked={whatsappSame} onChange={setWhatsappSame} label={t("reg.p1.sameAsMobile")} />
+            </FormGrid>
           </Section>
 
-          <Section title={t("reg.p1.address")}>
-            <FieldGrid>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.homeTown")} *</Label>
-                <Input className="h-11 mt-1.5" maxLength={80} value={homeTown} onChange={(e) => setHomeTown(e.target.value)} />
-              </div>
-              <Wide><p className="text-sm font-semibold text-slate-700 mt-2">{t("reg.p1.permanent")}</p></Wide>
-              <Wide>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.line1")} *</Label>
-                <Input className="h-11 mt-1.5" maxLength={200} value={pAddr1} onChange={(e) => setPAddr1(e.target.value)} />
-              </Wide>
-              <Wide>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.line2")}</Label>
-                <Input className="h-11 mt-1.5" maxLength={200} value={pAddr2} onChange={(e) => setPAddr2(e.target.value)} />
-              </Wide>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.state")} *</Label>
+          <Section n={4} icon={MapPin} title={t("reg.p1.address")}>
+            <FormGrid>
+              <Field label={t("reg.p1.homeTown")} required span={4}>
+                <MicInput value={homeTown} onChange={setHomeTown} maxLength={80} />
+              </Field>
+
+              <GridHeading>{t("reg.p1.permanent")}</GridHeading>
+              <Field label={t("reg.p1.line1")} required span={8}>
+                <MicInput value={pAddr1} onChange={setPAddr1} maxLength={200} />
+              </Field>
+              <Field label={t("reg.p1.line2")} span={4}>
+                <Input className={inputCls} maxLength={200} value={pAddr2} onChange={(e) => setPAddr2(e.target.value)} />
+              </Field>
+              <Field label={t("reg.p1.state")} required span={4}>
                 <Select value={pState} onValueChange={(v) => { setPState(v); setPDistrict(""); }}>
-                  <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger className={inputCls}><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{INDIAN_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.district")} *</Label>
+              </Field>
+              <Field label={t("reg.p1.district")} required span={4}>
                 {pState === "Himachal Pradesh" ? (
                   <Select value={pDistrict} onValueChange={setPDistrict}>
-                    <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectTrigger className={inputCls}><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{HP_DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                   </Select>
                 ) : (
-                  <Input className="h-11 mt-1.5" maxLength={80} value={pDistrict} onChange={(e) => setPDistrict(e.target.value)} />
+                  <Input className={inputCls} maxLength={80} value={pDistrict} onChange={(e) => setPDistrict(e.target.value)} />
                 )}
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p1.pin")} *</Label>
-                <Input className="h-11 mt-1.5" inputMode="numeric" maxLength={6} value={pPin}
+              </Field>
+              <Field label={t("reg.p1.pin")} required span={3}
+                error={pPin && pPin.length !== 6 ? t("reg.err.pin") : null}>
+                <Input className={inputCls} inputMode="numeric" maxLength={6} value={pPin}
                   onChange={(e) => setPPin(e.target.value.replace(/\D/g, ""))} />
-              </div>
-              <Wide>
-                <label className="flex items-center gap-2 mt-3 cursor-pointer">
-                  <Checkbox checked={corrSame} onCheckedChange={(v) => setCorrSame(!!v)} />
-                  <span className="text-sm font-medium text-slate-700">{t("reg.p1.corrSame")}</span>
-                </label>
-              </Wide>
+              </Field>
+
+              <GridCheckbox checked={corrSame} onChange={setCorrSame} label={t("reg.p1.corrSame")} />
+
               {!corrSame && (
                 <>
-                  <Wide><p className="text-sm font-semibold text-slate-700 mt-2">{t("reg.p1.correspondence")}</p></Wide>
-                  <Wide>
-                    <Label className="text-sm font-medium text-slate-700">{t("reg.p1.line1")} *</Label>
-                    <Input className="h-11 mt-1.5" maxLength={200} value={cAddr1} onChange={(e) => setCAddr1(e.target.value)} />
-                  </Wide>
-                  <Wide>
-                    <Label className="text-sm font-medium text-slate-700">{t("reg.p1.line2")}</Label>
-                    <Input className="h-11 mt-1.5" maxLength={200} value={cAddr2} onChange={(e) => setCAddr2(e.target.value)} />
-                  </Wide>
-                  <div>
-                    <Label className="text-sm font-medium text-slate-700">{t("reg.p1.state")} *</Label>
+                  <GridHeading>{t("reg.p1.correspondence")}</GridHeading>
+                  <Field label={t("reg.p1.line1")} required span={8}>
+                    <MicInput value={cAddr1} onChange={setCAddr1} maxLength={200} />
+                  </Field>
+                  <Field label={t("reg.p1.line2")} span={4}>
+                    <Input className={inputCls} maxLength={200} value={cAddr2} onChange={(e) => setCAddr2(e.target.value)} />
+                  </Field>
+                  <Field label={t("reg.p1.state")} required span={4}>
                     <Select value={cState} onValueChange={(v) => { setCState(v); setCDistrict(""); }}>
-                      <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectTrigger className={inputCls}><SelectValue placeholder="—" /></SelectTrigger>
                       <SelectContent>{INDIAN_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-slate-700">{t("reg.p1.district")} *</Label>
+                  </Field>
+                  <Field label={t("reg.p1.district")} required span={4}>
                     {cState === "Himachal Pradesh" ? (
                       <Select value={cDistrict} onValueChange={setCDistrict}>
-                        <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectTrigger className={inputCls}><SelectValue placeholder="—" /></SelectTrigger>
                         <SelectContent>{HP_DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                       </Select>
                     ) : (
-                      <Input className="h-11 mt-1.5" maxLength={80} value={cDistrict} onChange={(e) => setCDistrict(e.target.value)} />
+                      <Input className={inputCls} maxLength={80} value={cDistrict} onChange={(e) => setCDistrict(e.target.value)} />
                     )}
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-slate-700">{t("reg.p1.pin")} *</Label>
-                    <Input className="h-11 mt-1.5" inputMode="numeric" maxLength={6} value={cPin}
+                  </Field>
+                  <Field label={t("reg.p1.pin")} required span={3}
+                    error={cPin && cPin.length !== 6 ? t("reg.err.pin") : null}>
+                    <Input className={inputCls} inputMode="numeric" maxLength={6} value={cPin}
                       onChange={(e) => setCPin(e.target.value.replace(/\D/g, ""))} />
-                  </div>
+                  </Field>
                 </>
               )}
-            </FieldGrid>
+            </FormGrid>
           </Section>
         </>
       )}
-
       {step === 1 && (
         <SkillsPage
           professions={professions} maxProfessions={maxProfessions} labelOf={labelOf}
@@ -639,7 +716,7 @@ function SkillsPage({
         )}
       </section>
 
-      <Section title={t("reg.p2.languages")} hint={t("reg.p2.languagesHint")}>
+      <Section n={2} icon={Wrench} title={t("reg.p2.languages")} hint={t("reg.p2.languagesHint")}>
         <div className="space-y-2.5">
           {LANGS.map((lang) => {
             const row = langs.find((l: any) => l.language === lang);
@@ -713,7 +790,7 @@ function QualificationsPage({
 
   return (
     <>
-      <Section title={t("reg.p3.education")} hint={t("reg.p3.educationHint")}>
+      <Section n={1} icon={GraduationCap} title={t("reg.p3.education")} hint={t("reg.p3.educationHint")}>
         <FieldGrid>
           <div>
             <Label className="text-sm font-medium text-slate-700">{t("reg.p3.highest")} *</Label>
@@ -792,13 +869,18 @@ function QualificationsPage({
               <Wide>
                 <Label className="text-sm font-medium text-slate-700">{t("reg.p3.months")} *</Label>
                 <div className="flex items-center gap-3 mt-1.5">
+                  {/* audit 2026-07-06 (Batch 3): icon-only controls need an
+                      aria-label or a screen reader announces just "button". */}
                   <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0"
+                    aria-label={t("reg.p3.less6")}
                     onClick={() => patch(x.professionKey, { experienceMonths: Math.max(0, x.experienceMonths - 6) })}>
                     <Minus className="w-4 h-4" />
                   </Button>
                   <Input className="h-11 w-24 text-center" type="number" min={0} max={600} value={x.experienceMonths}
+                    aria-label={t("reg.p3.months")}
                     onChange={(e) => patch(x.professionKey, { experienceMonths: Math.min(600, Math.max(0, Number(e.target.value) || 0)) })} />
                   <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0"
+                    aria-label={t("reg.p3.more6")}
                     onClick={() => patch(x.professionKey, { experienceMonths: Math.min(600, x.experienceMonths + 6) })}>
                     <Plus className="w-4 h-4" />
                   </Button>

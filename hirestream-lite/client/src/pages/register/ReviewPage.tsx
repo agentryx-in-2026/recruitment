@@ -16,6 +16,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Printer, Pencil } from "lucide-react";
+import { maskAadhaar } from "@shared/aadhaar";
 import type { PickedProfession, Profession } from "../register";
 
 interface Props {
@@ -137,7 +138,9 @@ export function ReviewPage({ onEdit, profile: p, picked, langs, profByKey, label
           {!p.noPassportYet && p.ecrStatus && <Row label={t("reg.p1.ecr")} value={p.ecrStatus.toUpperCase()} />}
           {/* Masked on screen AND on paper: a printed form gets carried around,
               photocopied and left on desks. */}
-          <Row label={t("reg.p1.aadhaar")} value={p.aadhaarNumber ? `XXXX XXXX ${p.aadhaarNumber.slice(-4)}` : ""} />
+          {/* maskAadhaar(), not a hand-rolled slice: masking is a UIDAI/DPDP rule
+              and there must be exactly one implementation of it. */}
+          <Row label={t("reg.p1.aadhaar")} value={maskAadhaar(p.aadhaarNumber) || ""} />
           <Row label={t("reg.p1.disability")}
             value={p.disabilityStatus === "yes" ? `${t("common.yes")} — ${p.disabilityType}` : p.disabilityStatus === "no" ? t("common.no") : ""} />
         </SectionCard>
