@@ -15,6 +15,7 @@ import {
   candidates, candidateEducation, candidateExperience, documents,
   candidateReferences, placements, applications, interviews, jobs,
   countryInfo, auditLog,
+  complianceFieldsSchema,
 } from "@shared/schema";
 import { computeReadiness, readinessSummary, pickPrimaryPlacement } from "../services/deployment.service";
 import { eq, and, desc } from "drizzle-orm";
@@ -108,9 +109,18 @@ router.patch("/compliance", async (req, res, next) => {
       "pdoCompleted", "pdoDate",
       "pbbyInsuranceStatus", "pbbyPolicyNumber",
     ];
-    const set: any = {};
-    for (const k of allowed) if (k in (req.body ?? {})) set[k] = req.body[k];
-    if (Object.keys(set).length === 0) return res.status(400).json({ success: false, message: "No valid fields" });
+    // Audit 2026-07-18: this used to copy req.body[k] straight through, so
+    // ecrStatus:"banana", ieltsBand:342 and a 2 MB languageProficiency blob all
+    // reached Postgres — the exact class of bug updateCandidateSchema was
+    // hardened against, reintroduced by a sibling route writing the same table.
+    const picked: any = {};
+    for (const k of allowed) if (k in (req.body ?? {})) picked[k] = req.body[k];
+    if (Object.keys(picked).length === 0) return res.status(400).json({ success: false, message: "No valid fields" });
+    const parsed = complianceFieldsSchema.safeParse(picked);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message ?? "Invalid input", details: parsed.error.flatten() });
+    }
+    const set: any = parsed.data;
 
     // readiness 2026-07-16: "not_required" is a WAIVER — HPSEDC's decision, not
     // the candidate's. It now scores as done in the readiness engine, so letting
@@ -118,13 +128,38 @@ router.patch("/compliance", async (req, res, next) => {
     // to "Compliance Cleared". Candidates may still report submitted/pending.
     // (These columns are declared agent-managed in shared/schema.ts; the wider
     // question of candidates self-reporting medical/PDO is flagged separately.)
-    for (const fld of ["pccStatus", "pbbyInsuranceStatus"] as const) {
-      if (set[fld] === "not_required") {
+    // Audit 2026-07-18, resolved 2026-07-18: a candidate could set
+    // medicalStatus:"fit", pdoCompleted:true and pbbyInsuranceStatus:"enrolled"
+    // — the values the readiness engine scores as DONE — and walk themselves to
+    // "Compliance Cleared" on their own say-so. Medical fitness and pre-
+    // departure orientation are regulatory checks; a self-certified one is not
+    // a check at all.
+    //
+    // The rule now: candidates may REPORT progress ("I've submitted it", "it's
+    // pending"), staff CONFIRM completion. That keeps the self-service value —
+    // an agency no longer has to chase someone to learn a PCC was filed — while
+    // the value that actually clears a gate stays with the people accountable
+    // for it. "not_required" is a waiver and remains HPSEDC's alone.
+    const CANDIDATE_REPORTABLE: Record<string, string[]> = {
+      pccStatus: ["pending", "submitted"],
+      medicalStatus: ["pending"],
+      pbbyInsuranceStatus: ["pending"],
+    };
+    for (const [fld, allowedValues] of Object.entries(CANDIDATE_REPORTABLE)) {
+      if (set[fld] != null && !allowedValues.includes(set[fld])) {
         return res.status(403).json({
           success: false,
-          message: "Only HPSEDC can mark this as not required. Please contact your agency.",
+          message: "Only HPSEDC or your agency can confirm this. You can mark it as pending or submitted, and they will verify it.",
         });
       }
+    }
+    // pdoCompleted is a staff confirmation, not a self-report — there is no
+    // "partly attended" value for it, so the candidate simply cannot set it.
+    if ("pdoCompleted" in set || "pdoDate" in set) {
+      return res.status(403).json({
+        success: false,
+        message: "Pre-departure orientation is recorded by HPSEDC after you attend.",
+      });
     }
 
     // HTIS BUG-006 — passport expiry must be today or future. Same rule on the

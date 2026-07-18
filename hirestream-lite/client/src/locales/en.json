@@ -1453,7 +1453,8 @@
       "passportShort": "Passport number looks too short.",
       "passportExpired": "This passport has already expired.",
       "issueFuture": "Date of issue cannot be in the future.",
-      "dobFuture": "Date of birth cannot be in the future."
+      "dobFuture": "Date of birth cannot be in the future.",
+      "dobMinAge": "You must be at least 18 years old to register for overseas employment."
     },
     "timeSpent": "Time spent",
     "ready": {

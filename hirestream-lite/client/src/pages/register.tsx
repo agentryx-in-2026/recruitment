@@ -54,6 +54,12 @@ import { Check, Plus, Minus, Info, Briefcase, BookUser, User, Phone, MapPin,
          Wrench, GraduationCap, ClipboardCheck, FlaskConical, Wand2 } from "lucide-react";
 
 const TOTAL = 4;
+// 18 is the statutory minimum emigration age. The `max` attribute stops the
+// picker offering an under-age date at all; the inline error covers typed input.
+const maxDobForAdult = () => {
+  const n = new Date();
+  return new Date(n.getFullYear() - 18, n.getMonth(), n.getDate()).toISOString().slice(0, 10);
+};
 const today = () => new Date().toISOString().slice(0, 10);
 
 export interface Profession {
@@ -652,8 +658,9 @@ export default function RegisterPage() {
                 <MicInput value={fullName} onChange={setFullName} maxLength={120} />
               </Field>
               <Field label={t("reg.p1.dob")} required span={3}
-                error={dateOfBirth && dateOfBirth > today() ? t("reg.err.dobFuture") : null}>
-                <Input className={inputCls} type="date" max={today()} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+                error={dateOfBirth && dateOfBirth > today() ? t("reg.err.dobFuture")
+                     : dateOfBirth && dateOfBirth > maxDobForAdult() ? t("reg.err.dobMinAge") : null}>
+                <Input className={inputCls} type="date" max={maxDobForAdult()} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
               </Field>
               <Field label={t("reg.p1.gender")} required span={3}>
                 <Select value={sex} onValueChange={setSex}>

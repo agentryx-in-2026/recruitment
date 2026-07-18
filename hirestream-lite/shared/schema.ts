@@ -937,6 +937,47 @@ export const insertCandidateSchema = createInsertSchema(candidates).omit({
   preferredCountries: z.array(z.string().trim().max(60)).max(20).optional().nullable(),
 });
 
+/**
+ * Compliance fields — the ONE schema both compliance PATCH routes must use.
+ *
+ * Audit 2026-07-18: `updateCandidateSchema` was hardened to reject `ecrStatus:
+ * "banana"` and an out-of-range IELTS band, and then two sibling routes wrote
+ * the very same columns with a raw `set[k] = req.body[k]` loop and no checks at
+ * all — candidate `PATCH /me/compliance` and staff
+ * `PATCH /candidates/:id/compliance`. Empty strings reached `ecr_status`,
+ * `pcc_status` and `medical_status` in production through that door.
+ *
+ * That is the sibling-endpoint failure mode again: the schema was fixed, the
+ * routes sharing its table were not. Keeping the vocabulary here — rather than
+ * inline in either route — is what stops the two from drifting apart a third
+ * time.
+ *
+ * Empty string is coerced to null throughout: "" is how an HTML form clears a
+ * select, and storing it makes a column that reads as set but matches no enum.
+ */
+const emptyToNull = <T extends z.ZodTypeAny>(inner: T) =>
+  z.preprocess((v) => (v === "" ? null : v), inner);
+
+export const complianceFieldsSchema = z.object({
+  passportNumber: z.string().trim().max(20).optional().nullable(),
+  passportExpiry: z.string().optional().nullable(),
+  ecrStatus: emptyToNull(z.enum(["ecr", "ecnr", "unknown"]).optional().nullable()),
+  pccStatus: emptyToNull(z.enum(["submitted", "pending", "not_required"]).optional().nullable()),
+  pccExpiry: z.string().optional().nullable(),
+  medicalStatus: emptyToNull(z.enum(["fit", "pending", "unfit"]).optional().nullable()),
+  medicalDate: z.string().optional().nullable(),
+  ieltsBand: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v === null || v === undefined || v === "" ? null : String(v)))
+    .refine((v) => v === null || (Number(v) >= 0 && Number(v) <= 9), { message: "IELTS band must be between 0 and 9." }),
+  // jsonb with no shape is a 2 MB blob the DB will happily store. Bounded to a
+  // language -> level map, which is all any caller actually sends.
+  languageProficiency: z.record(z.string().trim().max(40), z.string().trim().max(40)).optional().nullable(),
+  pdoCompleted: z.boolean().optional().nullable(),
+  pdoDate: z.string().optional().nullable(),
+  pbbyInsuranceStatus: emptyToNull(z.enum(["enrolled", "pending", "not_required"]).optional().nullable()),
+  pbbyPolicyNumber: z.string().trim().max(60).optional().nullable(),
+}).partial();
+
 // HTIS BUG-008 — employer "Create Date" (hiring deadline on the requisition
 // form) accepted past dates. Enforced here so both the agent job-poster and
 // the employer job-creation-form get the check.
@@ -1129,10 +1170,20 @@ export const updateCandidateSchema = createInsertSchema(candidates).omit({
   noPassportYet: z.boolean().optional().nullable(),
   // HP-4c: DOB must be a real past date (and not absurdly old). Server-checked
   // so a hand-crafted PATCH can't set a future/garbage birth date.
+  // Audit 2026-07-18: this accepted any date after 1940, so a six-year-old
+  // registered cleanly. This is an Emigration Act portal — 18 is the statutory
+  // minimum emigration age, and a portal that records a minor as an overseas
+  // work applicant has created a child-trafficking data trail, not a typo.
+  // Upper bound stays generous (a 70-year-old may legitimately hold a profile).
   dateOfBirth: z.union([
-    z.string().refine((v) => !v || (new Date(v) < new Date() && new Date(v) > new Date("1940-01-01")), {
-      message: "Enter a valid date of birth.",
-    }),
+    z.string().refine((v) => {
+      if (!v) return true;
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return false;
+      const now = new Date();
+      const eighteenth = new Date(d.getFullYear() + 18, d.getMonth(), d.getDate());
+      return d > new Date("1940-01-01") && d < now && eighteenth <= now;
+    }, { message: "Applicants must be at least 18 years old to register for overseas employment." }),
     z.null(),
   ]).optional(),
   // Aadhaar is optional (skippable) but, when given, must be 12 digits AND pass

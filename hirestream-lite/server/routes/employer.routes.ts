@@ -5,6 +5,7 @@
  */
 
 import { Router } from "express";
+import { z } from "zod";
 import path from "path";
 import fs from "fs/promises";
 import { protect } from "../middleware/auth.middleware";
@@ -447,9 +448,28 @@ router.patch("/requisitions/:id", async (req, res, next) => {
     if (!job || (user.role === "employer" && job.employerId !== user.id)) {
       return res.status(403).json({ success: false });
     }
-    const { targetHires, hiringDeadline, priority, employerNotes } = req.body ?? {};
+    // Audit 2026-07-18: this path applied NO bounds — `targetHires: -5` and
+    // `1e9` stored, `"banana"` became NaN and 500'd in Postgres, `priority`
+    // took any string, and a past `hiringDeadline` was accepted, silently
+    // undoing the HTIS BUG-008 fix that only ever guarded the CREATE path. The
+    // agent-side job PUT was hardened for exactly this on 2026-07-18; this
+    // employer-side sibling writes the same columns and was missed.
+    const parsed = z.object({
+      targetHires: z.coerce.number().int("Number of hires must be a whole number.")
+        .min(1, "At least one hire.").max(500, "More than 500 hires needs a new requisition.").optional(),
+      hiringDeadline: z.string().trim().max(40)
+        .refine((v) => !v || new Date(v) >= new Date(new Date().toDateString()),
+          { message: "Hiring deadline must be today or a future date." })
+        .optional().nullable(),
+      priority: z.enum(["standard", "urgent", "critical"]).optional(),
+      employerNotes: z.string().trim().max(2000, "Notes are limited to 2000 characters.").optional().nullable(),
+    }).strict().safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message ?? "Invalid input", details: parsed.error.flatten() });
+    }
+    const { targetHires, hiringDeadline, priority, employerNotes } = parsed.data;
     const set: any = {};
-    if (targetHires !== undefined) set.targetHires = Number(targetHires);
+    if (targetHires !== undefined) set.targetHires = targetHires;
     if (hiringDeadline !== undefined) set.hiringDeadline = hiringDeadline || null;
     if (priority !== undefined) set.priority = priority;
     if (employerNotes !== undefined) set.employerNotes = employerNotes;

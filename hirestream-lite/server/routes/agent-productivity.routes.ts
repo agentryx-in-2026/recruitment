@@ -18,6 +18,7 @@ import {
   applicationNotes, applications, interviews, jobs, candidates,
   savedSegments, placements, users, recruitmentAgents, auditLog,
   grievances, employers, countryInfo,
+  complianceFieldsSchema,
 } from "@shared/schema";
 import { eq, and, desc, isNull, or, sql, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -1092,9 +1093,17 @@ router.patch("/candidates/:id/compliance", async (req, res, next) => {
       "pdoCompleted", "pdoDate",
       "pbbyInsuranceStatus", "pbbyPolicyNumber",
     ];
-    const set: any = {};
-    for (const k of allowed) if (k in (req.body ?? {})) set[k] = req.body[k];
-    if (Object.keys(set).length === 0) return res.status(400).json({ success: false, message: "No valid fields" });
+    // Audit 2026-07-18: same raw-passthrough gap as the candidate sibling — the
+    // enums and the IELTS range were unenforced on this path. Both routes now
+    // share one schema so they cannot drift apart again.
+    const picked: any = {};
+    for (const k of allowed) if (k in (req.body ?? {})) picked[k] = req.body[k];
+    if (Object.keys(picked).length === 0) return res.status(400).json({ success: false, message: "No valid fields" });
+    const parsed = complianceFieldsSchema.safeParse(picked);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, message: parsed.error.issues[0]?.message ?? "Invalid input", details: parsed.error.flatten() });
+    }
+    const set: any = parsed.data;
 
     // audit 2026-07-06 (S3): validate expiry dates like the candidate self-service
     // path does — reject non-parseable dates rather than corrupting the field.
@@ -1102,6 +1111,17 @@ router.patch("/candidates/:id/compliance", async (req, res, next) => {
       if (dateField in set && set[dateField] != null && set[dateField] !== "") {
         const d = new Date(set[dateField]);
         if (isNaN(d.getTime())) return res.status(400).json({ success: false, message: `Invalid date for ${dateField}` });
+      }
+    }
+
+    // Audit 2026-07-18: this path checked expiry dates only for PARSEABILITY,
+    // so staff could back-date a passport or PCC expiry into the past while the
+    // candidate-facing sibling rejected exactly that. An expired document
+    // recorded as current is worse than a missing one — it reads as cleared.
+    const todayStaff = new Date(new Date().toDateString());
+    for (const fld of ["passportExpiry", "pccExpiry"] as const) {
+      if (set[fld] && new Date(set[fld]) < todayStaff) {
+        return res.status(400).json({ success: false, message: `${fld === "passportExpiry" ? "Passport" : "PCC"} expiry must be today or a future date.` });
       }
     }
 

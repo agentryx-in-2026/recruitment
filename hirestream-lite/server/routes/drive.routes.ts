@@ -687,6 +687,16 @@ router.post("/placements", protect, async (req, res, next) => {
     const validityDays: number = await (await import("../services/settings.service")).getSetting("placement.offer_validity_days");
     const offerExpiresAt = validityDays > 0 ? new Date(Date.now() + validityDays * 86400_000) : null;
 
+    // Audit 2026-07-18: placements took free-text country while jobs validate
+    // against the admin-curated country_info list — which is why the table
+    // already holds both "UAE" and "United Arab Emirates". Two spellings of one
+    // country splits every per-country report and welfare count in half.
+    const { validateCountry: validatePlacementCountry } = await import("../services/country-validator.service");
+    const countryCheck = validatePlacementCountry(country);
+    if (!countryCheck.ok) {
+      return res.status(400).json({ success: false, message: countryCheck.message });
+    }
+
     const result = await db.insert(placements).values({
       applicationId,
       country,
