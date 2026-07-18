@@ -146,10 +146,11 @@ export const COUNTRY_VERIFY_DOCS: Record<string, string[]> = {
  * union ran over every profession they hold. A mason vacancy does not care that
  * you are also a nurse.
  *
- * `profession_requirements.jobCategoryKey` is the bridge to `jobs.category` —
- * this is what that column is for. Many professions map to one category
- * (mason/carpenter/painter → construction_worker), so this is a filter, not a
- * lookup.
+ * `profession_requirements.jobCategoryKeys` is the bridge to `jobs.category`.
+ * It is a LIST because the relationship is many-to-many: mason, carpenter and
+ * painter all map to construction_worker, and a welder maps to construction_worker,
+ * factory_worker AND technician. It was a single key until an audit found the
+ * document rules firing on 4 of 20 live vacancies because of it.
  *
  * A job with NO category matches nothing, so the candidate is asked for the base
  * + country set only. That under-asks rather than over-asks, deliberately:
@@ -160,11 +161,11 @@ export const COUNTRY_VERIFY_DOCS: Record<string, string[]> = {
  */
 export function relevantProfessions(
   professionKeys: string[],
-  professionReqs: Record<string, { jobCategoryKey?: string | null }>,
+  professionReqs: Record<string, { jobCategoryKeys?: string[] | null }>,
   jobCategory?: string | null,
 ): string[] {
   if (!jobCategory) return [];
-  return professionKeys.filter((pk) => professionReqs[pk]?.jobCategoryKey === jobCategory);
+  return professionKeys.filter((pk) => (professionReqs[pk]?.jobCategoryKeys || []).includes(jobCategory));
 }
 
 export interface RequiredDocs {

@@ -92,7 +92,10 @@ function NurseBlock(p: BlockProps) {
         <Select value={p.value.councilName || ""} onValueChange={(v) => p.onChange({ councilName: v })}>
           <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="HP Nursing Registration Council">HP Nursing Registration Council</SelectItem>
+            {/* The statutory body is the Himachal Pradesh NURSES Registration Council
+                (HPNRC) — the same class of error as HPBSE/HPBOSE. A nurse holding an
+                HPNRC certificate would not recognise the old wording. */}
+            <SelectItem value="HP Nurses Registration Council (HPNRC)">HP Nurses Registration Council (HPNRC)</SelectItem>
             <SelectItem value="Indian Nursing Council">Indian Nursing Council</SelectItem>
             <SelectItem value="Other State Nursing Council">{t("reg.blk.otherStateCouncil")}</SelectItem>
           </SelectContent>

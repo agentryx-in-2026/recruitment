@@ -491,8 +491,28 @@ router.put("/:id", protect, async (req, res, next) => {
     const becomingActive = job.status === "draft" && !isDraft;
     if (becomingActive) insertJobSchema.parse({ ...job, ...updateData });
 
+    // Audit 2026-07-18: EDIT used to spread the raw body straight into .set(),
+    // so every bound the CREATE path enforces was absent on update — an owner
+    // could PATCH status:"banana", a negative targetHires, or a 2MB title onto a
+    // live job. A bad `visibility`/`status` also breaks the hot
+    // (visibility, status) index the public listing filters on.
+    //
+    // Validate the same shape create does, and re-force the columns the client
+    // must never choose: ownership is set at create, and status is driven by the
+    // draft/publish flow below, not by the body.
+    const parsedUpdate = insertJobSchema.partial().safeParse(updateData);
+    if (!parsedUpdate.success) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 400, message: parsedUpdate.error.issues[0]?.message ?? "Invalid job data", details: parsedUpdate.error.flatten() },
+      });
+    }
+    const safeUpdate: any = { ...parsedUpdate.data };
+    delete safeUpdate.status;
+    delete safeUpdate.visibility;
+
     const result = await db.update(jobs).set({
-      ...updateData,
+      ...safeUpdate,
       ...(isDraft ? { status: "draft" } : (becomingActive ? { status: "active" } : {})),
     }).where(eq(jobs.id, req.params.id)).returning();
 

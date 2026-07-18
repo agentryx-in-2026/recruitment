@@ -498,7 +498,7 @@ export default function CandidateDashboard() {
               {activeView === "recommended" && <RecommendedView recommendations={recommendations} savedJobIds={savedJobIds} setActiveView={setActiveView} />}
               {activeView === "saved" && <SavedJobsView savedJobs={savedJobsList} appliedJobIds={appliedJobIds} setActiveView={setActiveView} />}
               {activeView === "drives" && <DrivesView />}
-              {activeView === "documents" && <DocumentsView docs={docs} profile={profile} intent={intent} />}
+              {activeView === "documents" && <DocumentsView docs={docs} profile={profile} intent={intent} docsNeeded={docsNeeded} />}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -2134,7 +2134,7 @@ function RecommendedView({ recommendations, savedJobIds, setActiveView }: { reco
 
 // ── DOCUMENTS VIEW ──────────────────────────────────────────────────
 
-function DocumentsView({ docs, profile, intent }: { docs: any[]; profile: any; intent?: string | null }) {
+function DocumentsView({ docs, profile, intent, docsNeeded }: { docs: any[]; profile: any; intent?: string | null; docsNeeded?: boolean }) {
   const { toast } = useToast();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -2295,10 +2295,19 @@ function DocumentsView({ docs, profile, intent }: { docs: any[]; profile: any; i
         </div>
       )}
 
-      {/* ── Pre-Departure Compliance self-service ──────────────────── */}
-      <div ref={complianceRef}>
-        <CandidateCompliancePanel profile={profile} />
-      </div>
+      {/* ── Pre-Departure Compliance self-service ──────────────────────
+          UAT-05 item 9: PCC and Medical Fitness "should remain hidden initially
+          and become visible only after the candidate is shortlisted/selected".
+          The obligations API enforces that, but this panel rendered its PCC and
+          medical fields unconditionally to every candidate — so the advanced
+          dashboard was still asking all 20,000 for the perishable certificates
+          the whole design defers. Gate it on the candidate actually having a
+          live obligation. */}
+      {docsNeeded && (
+        <div ref={complianceRef}>
+          <CandidateCompliancePanel profile={profile} />
+        </div>
+      )}
 
       {/* ── Profile PDF export ──────────────────────────────────────── */}
       <motion.div variants={fadeUp} className="mt-4 bg-gradient-to-r from-slate-50 to-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between gap-4">

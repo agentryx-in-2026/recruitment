@@ -802,8 +802,6 @@
       "Hindi": "Hindi",
       "English": "English",
       "Punjabi": "Punjabi",
-      "Pahari": "Pahari",
-      "Nepali": "Nepali",
       "Urdu": "Urdu",
       "Arabic": "Arabic"
     },
@@ -1356,7 +1354,7 @@
       "pick": "What skills do you have?",
       "pickHint": "Pick up to {{max}}. Choose what you can do — not what you'd like to try.",
       "capReached": "You can pick up to {{max}} trades.",
-      "otherLabel": "What work do you do?",
+      "otherLabel": "What is your work called?",
       "languages": "Languages",
       "languagesHint": "Which languages do you speak, and how well?",
       "otherLangPh": "Another language",
@@ -1449,7 +1447,7 @@
     "err": {
       "aadhaarLen": "Aadhaar must be exactly 12 digits.",
       "aadhaarInvalid": "That Aadhaar number is not valid. Please check each digit.",
-      "phone": "Enter a 10-digit mobile number.",
+      "phone": "Enter your full mobile number, without the country code.",
       "email": "Enter a valid email address.",
       "pin": "PIN code must be 6 digits.",
       "passportShort": "Passport number looks too short.",

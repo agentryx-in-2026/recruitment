@@ -222,8 +222,15 @@ export default function RegisterPage() {
     : aadhaarNumber.length !== 12 ? t("reg.err.aadhaarLen")
     : !isValidAadhaar(aadhaarNumber) ? t("reg.err.aadhaarInvalid")
     : null;
-  const phoneErr = phone && digitsOnly(phone).length < 10 ? t("reg.err.phone") : null;
-  const whatsappErr = !whatsappSame && whatsappNumber && digitsOnly(whatsappNumber).length < 10 ? t("reg.err.phone") : null;
+  // National-number length varies by country: India is 10, but UAE/Saudi/Qatar/
+  // Oman mobiles are 8-9. Demanding 10 rejected every Gulf number — i.e. the
+  // dial-code feature shipped in v0.9.5 refused the exact users it was added
+  // for, and the Next gate disagreed with the inline error on the same value.
+  // 7 is the shortest national mobile in any country we list.
+  const MIN_NATIONAL = 7;
+  const phoneShort = (v: string) => Boolean(v) && digitsOnly(v).length < MIN_NATIONAL;
+  const phoneErr = phoneShort(phone) ? t("reg.err.phone") : null;
+  const whatsappErr = !whatsappSame && phoneShort(whatsappNumber) ? t("reg.err.phone") : null;
   const emailErr = email && !/\S+@\S+\.\S+/.test(email) ? t("reg.err.email") : null;
 
   // ── Validation ─────────────────────────────────────────────────────
@@ -246,8 +253,8 @@ export default function RegisterPage() {
     && (!on("disability") || disabilityStatus !== "yes" || disabilityType.trim())
     && need("passportIssueDate", passportIssueDate) && need("passportPlaceOfIssue", passportPlaceOfIssue)
     && need("ecrStatus", ecrStatus) && need("aadhaarNumber", aadhaarNumber)
-    && digits(phone).length >= 10
-    && (!on("whatsappNumber") || !req("whatsappNumber") || whatsappSame || digits(whatsappNumber).length >= 10)
+    && digits(phone).length >= MIN_NATIONAL && !phoneErr
+    && (!on("whatsappNumber") || !req("whatsappNumber") || whatsappSame || (digits(whatsappNumber).length >= MIN_NATIONAL && !whatsappErr))
     && /\S+@\S+\.\S+/.test(email) && need("homeTown", homeTown) && addrOk && corrOk
     && !aadhaarErr && !(passportExpiry && passportExpiry < today());
   const p2Ok = picked.length > 0 && picked.every((x) => x.professionKey !== "other" || x.otherLabel?.trim()) && langs.length > 0;

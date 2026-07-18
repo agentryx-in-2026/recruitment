@@ -261,16 +261,16 @@ async function seed() {
   addEdu("aman_kapoor", [{ degree: "ITI — Plumber", institution: "ITI Hamirpur", year: 2015, pct: "72.9" }, { degree: "10th", institution: "Govt. School, Hamirpur", year: 2013, pct: "64.5" }]);
   addEdu("sahil_verma", [{ degree: "ITI — Electrician", institution: "ITI Kangra", year: 2016, pct: "75.6" }, { degree: "12th", institution: "Govt. School, Kangra", year: 2014, pct: "69.8" }]);
 
-  addExp("arjun_thakur", [{ company: "Shapoorji Pallonji", role: "Shuttering Carpenter", years: 4, description: "Formwork on high-rise residential towers." }, { company: "Local Contractor, Shimla", role: "Construction Worker", years: 3 }]);
+  addExp("arjun_thakur", [{ company: "Nirman Constructions Pvt Ltd", role: "Shuttering Carpenter", years: 4, description: "Formwork on high-rise residential towers." }, { company: "Local Contractor, Shimla", role: "Construction Worker", years: 3 }]);
   addExp("priya_verma", [{ company: "IGMC Shimla", role: "Staff Nurse — ICU", years: 3 }, { company: "Fortis Kangra", role: "Junior Nurse", years: 2 }]);
   addExp("rohit_sharma", [{ company: "The Oberoi Cecil, Shimla", role: "Front Office Executive", years: 5 }, { company: "Hotel Holiday Home", role: "Guest Service Associate", years: 3 }]);
   addExp("neha_chauhan", [{ company: "Radisson Blu, Shimla", role: "Housekeeping Attendant", years: 4 }]);
   addExp("karan_rana", [{ company: "HRTC", role: "Heavy Vehicle Driver", years: 6 }, { company: "Private Transport, Una", role: "Driver", years: 3 }]);
   addExp("meera_iyer", [{ company: "Solan Care Home", role: "Geriatric Caregiver", years: 3 }]);
   addExp("vikram_negi", [{ company: "L&T Heavy Engineering", role: "Welder (TIG/MIG)", years: 6 }, { company: "Local Fabrication, Kullu", role: "Welder", years: 4 }]);
-  addExp("ananya_bhatt", [{ company: "HCL Technologies", role: "IT Support Engineer", years: 4 }]);
-  addExp("aman_kapoor", [{ company: "Mahindra Lifespaces", role: "Plumber", years: 6 }]);
-  addExp("sahil_verma", [{ company: "Tata Projects", role: "Electrician", years: 5 }]);
+  addExp("ananya_bhatt", [{ company: "Sunrise IT Services Pvt Ltd", role: "IT Support Engineer", years: 4 }]);
+  addExp("aman_kapoor", [{ company: "Greenfield Builders Pvt Ltd", role: "Plumber", years: 6 }]);
+  addExp("sahil_verma", [{ company: "Apex Infra Projects Pvt Ltd", role: "Electrician", years: 5 }]);
   await db.insert(candidateEducation).values(edu);
   await db.insert(candidateExperience).values(exp);
   console.log(`Education: ${edu.length} · Experience: ${exp.length}`);

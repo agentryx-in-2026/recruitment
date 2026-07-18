@@ -42,8 +42,8 @@ import { logger } from "../config/logger.config";
 
 export interface ProfessionSeed {
   professionKey: string;
-  /** Bridge to jobs.category — coarser vocabulary, many professions to one. */
-  jobCategoryKey: string;
+  /** Bridge to jobs.category. A LIST: one trade is filed under several. */
+  jobCategoryKeys: string[];
   label: string;
   labelHi: string;
   displayOrder: number;
@@ -77,7 +77,7 @@ export interface ProfessionSeed {
 export const HPSEDC_NAMED_PROFESSIONS: ProfessionSeed[] = [
   {
     professionKey: "nurse",
-    jobCategoryKey: "healthcare",
+    jobCategoryKeys: ["healthcare"],
     label: "Nurse",
     labelHi: "नर्स",
     displayOrder: 10,
@@ -91,7 +91,7 @@ export const HPSEDC_NAMED_PROFESSIONS: ProfessionSeed[] = [
   },
   {
     professionKey: "caregiver",
-    jobCategoryKey: "caregiver",
+    jobCategoryKeys: ["caregiver", "healthcare"],
     label: "Caregiver",
     labelHi: "देखभालकर्ता",
     displayOrder: 20,
@@ -105,7 +105,7 @@ export const HPSEDC_NAMED_PROFESSIONS: ProfessionSeed[] = [
   },
   {
     professionKey: "driver",
-    jobCategoryKey: "driver",
+    jobCategoryKeys: ["driver", "warehouse_worker"],
     label: "Driver",
     labelHi: "ड्राइवर",
     displayOrder: 30,
@@ -122,7 +122,7 @@ export const HPSEDC_NAMED_PROFESSIONS: ProfessionSeed[] = [
   },
   {
     professionKey: "electrician",
-    jobCategoryKey: "electrician",
+    jobCategoryKeys: ["electrician", "technician", "construction_worker"],
     label: "Electrician",
     labelHi: "इलेक्ट्रीशियन",
     displayOrder: 40,
@@ -136,7 +136,7 @@ export const HPSEDC_NAMED_PROFESSIONS: ProfessionSeed[] = [
   },
   {
     professionKey: "welder",
-    jobCategoryKey: "technician",
+    jobCategoryKeys: ["technician", "factory_worker", "construction_worker"],
     label: "Welder",
     labelHi: "वेल्डर",
     displayOrder: 50,
@@ -166,37 +166,37 @@ export const HPSEDC_NAMED_PROFESSIONS: ProfessionSeed[] = [
  * spec's open questions. HPSEDC can add/remove from the admin screen.
  */
 export const ADDITIONAL_PROFESSIONS: ProfessionSeed[] = [
-  { professionKey: "mason", jobCategoryKey: "construction_worker", label: "Mason", labelHi: "राजमिस्त्री", displayOrder: 60, hasAddonBlock: false,
+  { professionKey: "mason", jobCategoryKeys: ["construction_worker"], label: "Mason", labelHi: "राजमिस्त्री", displayOrder: 60, hasAddonBlock: false,
     skillsOptions: ["Block work", "Plastering", "Tiling", "Shuttering", "Stone work"] },
-  { professionKey: "carpenter", jobCategoryKey: "construction_worker", label: "Carpenter", labelHi: "बढ़ई", displayOrder: 70, hasAddonBlock: false,
+  { professionKey: "carpenter", jobCategoryKeys: ["construction_worker"], label: "Carpenter", labelHi: "बढ़ई", displayOrder: 70, hasAddonBlock: false,
     skillsOptions: ["Shuttering", "Furniture", "Finishing", "Formwork"] },
-  { professionKey: "plumber", jobCategoryKey: "plumber", label: "Plumber", labelHi: "प्लंबर", displayOrder: 80, hasAddonBlock: false,
+  { professionKey: "plumber", jobCategoryKeys: ["plumber", "construction_worker"], label: "Plumber", labelHi: "प्लंबर", displayOrder: 80, hasAddonBlock: false,
     skillsOptions: ["Pipe fitting", "Sanitary", "Drainage", "PPR / PVC"] },
-  { professionKey: "painter", jobCategoryKey: "construction_worker", label: "Painter", labelHi: "पेंटर", displayOrder: 90, hasAddonBlock: false,
+  { professionKey: "painter", jobCategoryKeys: ["construction_worker"], label: "Painter", labelHi: "पेंटर", displayOrder: 90, hasAddonBlock: false,
     skillsOptions: ["Interior", "Exterior", "Spray painting", "Industrial coating"] },
-  { professionKey: "ac_technician", jobCategoryKey: "technician", label: "AC & Refrigeration Technician", labelHi: "एसी और रेफ्रिजरेशन टेक्नीशियन", displayOrder: 100, hasAddonBlock: false,
+  { professionKey: "ac_technician", jobCategoryKeys: ["technician", "construction_worker"], label: "AC & Refrigeration Technician", labelHi: "एसी और रेफ्रिजरेशन टेक्नीशियन", displayOrder: 100, hasAddonBlock: false,
     skillsOptions: ["Split AC", "Central AC", "Chiller", "Ducting", "Refrigeration"] },
-  { professionKey: "mechanic", jobCategoryKey: "technician", label: "Mechanic / Fitter", labelHi: "मैकेनिक / फिटर", displayOrder: 110, hasAddonBlock: false,
+  { professionKey: "mechanic", jobCategoryKeys: ["technician", "factory_worker"], label: "Mechanic / Fitter", labelHi: "मैकेनिक / फिटर", displayOrder: 110, hasAddonBlock: false,
     skillsOptions: ["Diesel", "Petrol", "Heavy vehicle", "Pipe fitting"] },
-  { professionKey: "cook", jobCategoryKey: "hospitality_staff", label: "Cook", labelHi: "रसोइया", displayOrder: 120, hasAddonBlock: false,
+  { professionKey: "cook", jobCategoryKeys: ["hospitality_staff"], label: "Cook", labelHi: "रसोइया", displayOrder: 120, hasAddonBlock: false,
     skillsOptions: ["Indian", "Continental", "Arabic", "Chinese", "Tandoor", "Bakery"] },
-  { professionKey: "waiter", jobCategoryKey: "hospitality_staff", label: "Waiter / Steward", labelHi: "वेटर / स्टीवर्ड", displayOrder: 130, hasAddonBlock: false,
+  { professionKey: "waiter", jobCategoryKeys: ["hospitality_staff"], label: "Waiter / Steward", labelHi: "वेटर / स्टीवर्ड", displayOrder: 130, hasAddonBlock: false,
     skillsOptions: ["Fine dining", "Banquet", "Bar", "Barista"] },
-  { professionKey: "housekeeping", jobCategoryKey: "hospitality_staff", label: "Housekeeping / Cleaner", labelHi: "हाउसकीपिंग / सफाईकर्मी", displayOrder: 140, hasAddonBlock: false,
+  { professionKey: "housekeeping", jobCategoryKeys: ["hospitality_staff"], label: "Housekeeping / Cleaner", labelHi: "हाउसकीपिंग / सफाईकर्मी", displayOrder: 140, hasAddonBlock: false,
     skillsOptions: ["Hotel", "Hospital", "Industrial", "Laundry"] },
-  { professionKey: "security_guard", jobCategoryKey: "other", label: "Security Guard", labelHi: "सुरक्षा गार्ड", displayOrder: 150, hasAddonBlock: false,
+  { professionKey: "security_guard", jobCategoryKeys: ["other"], label: "Security Guard", labelHi: "सुरक्षा गार्ड", displayOrder: 150, hasAddonBlock: false,
     skillsOptions: ["CCTV", "Access control", "Fire safety", "Patrolling"] },
-  { professionKey: "tailor", jobCategoryKey: "factory_worker", label: "Tailor", labelHi: "दर्जी", displayOrder: 160, hasAddonBlock: false,
+  { professionKey: "tailor", jobCategoryKeys: ["factory_worker"], label: "Tailor", labelHi: "दर्जी", displayOrder: 160, hasAddonBlock: false,
     skillsOptions: ["Gents", "Ladies", "Alteration", "Embroidery"] },
-  { professionKey: "farm_worker", jobCategoryKey: "other", label: "Farm Worker", labelHi: "खेत मजदूर", displayOrder: 170, hasAddonBlock: false,
+  { professionKey: "farm_worker", jobCategoryKeys: ["other"], label: "Farm Worker", labelHi: "खेत मजदूर", displayOrder: 170, hasAddonBlock: false,
     skillsOptions: ["Greenhouse", "Dairy", "Orchard", "Farm machinery"] },
-  { professionKey: "helper", jobCategoryKey: "helper", label: "Helper / General Labour", labelHi: "हेल्पर / मजदूर", displayOrder: 180, hasAddonBlock: false,
+  { professionKey: "helper", jobCategoryKeys: ["helper", "construction_worker", "warehouse_worker", "factory_worker"], label: "Helper / General Labour", labelHi: "हेल्पर / मजदूर", displayOrder: 180, hasAddonBlock: false,
     skillsOptions: [] },
   // The escape hatch. Always last, always present. A candidate who cannot find
   // their trade must still be able to register — but every "Other" is a row we
   // cannot match, so its rate is worth watching: a rising one means the picker
   // is missing a real HP trade and should gain a tile.
-  { professionKey: "other", jobCategoryKey: "other", label: "Other", labelHi: "अन्य", displayOrder: 999, hasAddonBlock: false,
+  { professionKey: "other", jobCategoryKeys: ["other"], label: "Other", labelHi: "अन्य", displayOrder: 999, hasAddonBlock: false,
     skillsOptions: [] },
 ];
 
@@ -233,7 +233,7 @@ export async function seedProfessions(): Promise<void> {
     await db.insert(professionRequirements).values(
       missing.map((p) => ({
         professionKey: p.professionKey,
-        jobCategoryKey: p.jobCategoryKey,
+        jobCategoryKeys: p.jobCategoryKeys,
         label: p.label,
         labelHi: p.labelHi,
         displayOrder: p.displayOrder,

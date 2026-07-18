@@ -12,7 +12,7 @@
  * "changes to the application" the requirement exists to avoid.
  *
  * ── What is editable, and what is not ───────────────────────────────────────
- * Editable: label(+hi), jobCategoryKey, displayOrder, qualifications,
+ * Editable: label(+hi), jobCategoryKeys, displayOrder, qualifications,
  * skillsEnabled, skillsOptions, requiredDocs, optionalDocs, candidateNote(+hi),
  * active. That is the DATA — HPSEDC's eligibility policy, which is theirs.
  *

@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 
 interface Prof {
-  professionKey: string; label: string; labelHi?: string | null; jobCategoryKey?: string | null;
+  professionKey: string; label: string; labelHi?: string | null; jobCategoryKeys?: string[] | null;
   displayOrder?: number | null; hasAddonBlock?: boolean | null;
   qualifications?: string[] | null; skillsEnabled?: boolean | null; skillsOptions?: string[] | null;
   requiredDocs?: string[] | null; optionalDocs?: string[] | null;
@@ -145,7 +145,7 @@ export default function ProfessionsPanel() {
   const startEdit = (p: Prof) => { setCreating(false); setEditing(p.professionKey); setDraft({ ...p }); };
   const startCreate = () => {
     setCreating(true); setEditing("__new__");
-    setDraft({ professionKey: "", label: "", labelHi: "", jobCategoryKey: "other", displayOrder: 500,
+    setDraft({ professionKey: "", label: "", labelHi: "", jobCategoryKeys: ["other"], displayOrder: 500,
       qualifications: [], skillsEnabled: true, skillsOptions: [], requiredDocs: [], optionalDocs: [],
       candidateNote: "", candidateNoteHi: "", active: true });
   };
@@ -251,12 +251,12 @@ function ProfEditor({ draft, setDraft, docTypes, onCancel, onSave, saving, isNew
           <p className="text-[11px] text-slate-400 mt-1">Shown to candidates using the portal in Hindi.</p>
         </div>
         <div>
-          <Label className="text-xs font-semibold text-slate-600">Job category</Label>
-          <Input className="h-9 mt-1 font-mono text-sm" value={draft.jobCategoryKey || ""} onChange={(e) => set({ jobCategoryKey: e.target.value })} />
+          <Label className="text-xs font-semibold text-slate-600">Job categories</Label>
+          <Input className="h-9 mt-1 font-mono text-sm" value={(draft.jobCategoryKeys || []).join(", ")} onChange={(e) => set({ jobCategoryKeys: e.target.value.split(",").map((x: string) => x.trim()).filter(Boolean) })} />
           {/* This is the load-bearing field most likely to be set wrong: it is
               what stops a mason vacancy asking a nurse-and-mason candidate for a
               Nursing Council registration. */}
-          <p className="text-[11px] text-slate-400 mt-1">Which job category this trade answers. Only jobs in this category ask for the documents below.</p>
+          <p className="text-[11px] text-slate-400 mt-1">Which job categories this trade answers, comma-separated. Only jobs in these categories ask for the documents below — a trade filed under several (a welder is construction, factory AND technician) needs all of them listed, or its documents are silently never requested.</p>
         </div>
         <div>
           <Label className="text-xs font-semibold text-slate-600">Order in the list</Label>

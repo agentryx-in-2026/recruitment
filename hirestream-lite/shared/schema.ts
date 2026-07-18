@@ -513,13 +513,19 @@ export const professionRequirements = pgTable("profession_requirements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   // Stable machine key — "nurse", "driver". Never renamed; `label` is what moves.
   professionKey: text("profession_key").notNull().unique(),
-  // Bridge to jobs.category (server/services/job-categories.seed.ts), which is
-  // a COARSER vocabulary — it has construction_worker but not mason/carpenter/
+  // Bridge to jobs.category (server/services/job-categories.seed.ts), which is a
+  // COARSER vocabulary — it has construction_worker but not mason/carpenter/
   // painter, and healthcare but not nurse. Professions are what a candidate IS;
-  // categories are how a vacancy is filed. Many-to-one, and this column is the
-  // mapping. Without it the profession list would be a fourth disagreeing
-  // vocabulary alongside the three the document model already has.
-  jobCategoryKey: text("job_category_key"),
+  // categories are how a vacancy is FILED.
+  //
+  // Audit 2026-07-18: this was a single key, and that was the wrong shape. One
+  // trade is legitimately posted under several categories — a welder appears as
+  // construction_worker, factory_worker AND technician depending on the
+  // employer — so a single mapping silently matched almost nothing. The
+  // profession-document rules for item 21 were firing on 4 of 20 live vacancies,
+  // and a shortlisted welder was never asked for their ITI certificate. It
+  // under-asked in silence, which is the worst way for a rule to fail.
+  jobCategoryKeys: text("job_category_keys").array(),
   label: text("label").notNull(),
   // Hindi label. The portal is bilingual and admin-authored rows cannot go
   // through i18n JSON, so the translation has to live with the row.
@@ -916,6 +922,16 @@ export const insertCandidateSchema = createInsertSchema(candidates).omit({
   fullName: z.string().trim().min(1).max(120),
   email: z.string().trim().max(120),
   sex: z.enum(["male", "female", "other"]).optional().nullable(),
+  // ecrStatus decides whether PoE emigration clearance applies to this
+  // candidate — "banana" was previously accepted and stored, which silently
+  // drops them out of the compliance path rather than failing loudly.
+  ecrStatus: z.enum(["ecr", "ecnr", "unknown"]).optional().nullable(),
+  registrationTier: z.enum(["assisted", "standard", "professional"]).optional().nullable(),
+  // The band scale is 0–9 in half steps. It is a decimal column, so a bad value
+  // reached Postgres and 500'd rather than being rejected as a 400.
+  ieltsBand: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v === null || v === undefined || v === "" ? null : String(v)))
+    .refine((v) => v === null || (Number(v) >= 0 && Number(v) <= 9), { message: "IELTS band must be between 0 and 9." }),
   location: z.string().trim().max(150).optional().nullable(),
   skills: z.array(z.string().trim().max(60)).max(50).optional().nullable(),
   preferredCountries: z.array(z.string().trim().max(60)).max(20).optional().nullable(),
@@ -1004,12 +1020,37 @@ export const updateCandidateSchema = createInsertSchema(candidates).omit({
   id: true,
   userId: true,
   createdAt: true,
-  // v0.4.31: ecrStatus moved out of the omit list — the wizard's Identity
-  // & Travel section now captures it directly. pccStatus, medicalStatus,
-  // pdoCompleted, pbbyInsuranceStatus stay omitted as they're agent-managed.
+  // ── STAFF-MANAGED AND SYSTEM COLUMNS — never writable by the candidate ────
+  //
+  // This is the PATCH body a candidate sends about themselves, so anything here
+  // is self-declared. Audit 2026-07-18 found several columns that are not
+  // self-declarable at all reaching it:
+  //
+  //  · rejectedCountries — visa/country REFUSALS recorded by staff (UAT-03 item
+  //    13). Jobs in those countries are hidden from the candidate. Leaving it
+  //    writable let a candidate clear their own refusals and see the very
+  //    destinations they had been refused for, which defeats the feature
+  //    outright. Verified reachable before this fix.
+  //  · pccStatus/pccExpiry, medicalStatus/medicalDate, pdoCompleted/pdoDate,
+  //    pbbyInsuranceStatus — the deployment-readiness inputs. The status halves
+  //    were already omitted as "agent-managed"; their DATE twins were not, so
+  //    the same guarantee had a hole in it. A candidate could post
+  //    pccExpiry=2099 and score themselves compliant.
+  //  · profileComplete — a self-declared "I am done" flag.
+  //  · expiryAlertsSent — compliance-cron bookkeeping. Writing junk here
+  //    suppresses the candidate's own document-expiry warnings.
+  //
+  // Each of these has, or needs, a staff-side route. Omitting them here does not
+  // remove the capability; it removes it from the WRONG actor.
+  rejectedCountries: true,
+  profileComplete: true,
+  expiryAlertsSent: true,
   pccStatus: true,
+  pccExpiry: true,
   medicalStatus: true,
+  medicalDate: true,
   pdoCompleted: true,
+  pdoDate: true,
   pbbyInsuranceStatus: true,
 }).partial().extend({
   // Overrides for field-level validation. The auto-generated schema from
@@ -1028,17 +1069,21 @@ export const updateCandidateSchema = createInsertSchema(candidates).omit({
   experience: z.number().int().min(0, { message: "Experience cannot be negative." }).max(60, { message: "Experience looks too high — please check." }).optional().nullable(),
   // HP-4b (UAT-03 Item 10): experience in months. Bounded 0..720 (60 years).
   experienceMonths: z.number().int().min(0, { message: "Experience cannot be negative." }).max(720, { message: "Experience looks too high — please check." }).optional().nullable(),
-  // v0.4.36.1: `ielts_band` is a Postgres decimal → drizzle-zod infers
-  // z.string(), but the wizard sends a NUMBER. That mismatch 400'd the
-  // Personal-Info save (and, with no client onError handler, did it
-  // silently). Coerce number-or-string → string so either input works.
-  ieltsBand: z.union([z.string(), z.number()]).optional().nullable()
-    .transform((v) => (v === null || v === undefined || v === "" ? null : String(v))),
   // Length guardrails — block arbitrarily long input (DB bloat / abuse). Generous
   // limits; well above any real value. Drizzle only type-checks these otherwise.
   fullName: z.string().trim().max(120).optional().nullable(),
   email: z.string().trim().max(120).optional().nullable(),
   sex: z.enum(["male", "female", "other"]).optional().nullable(),
+  // ecrStatus decides whether PoE emigration clearance applies to this
+  // candidate — "banana" was previously accepted and stored, which silently
+  // drops them out of the compliance path rather than failing loudly.
+  ecrStatus: z.enum(["ecr", "ecnr", "unknown"]).optional().nullable(),
+  registrationTier: z.enum(["assisted", "standard", "professional"]).optional().nullable(),
+  // The band scale is 0–9 in half steps. It is a decimal column, so a bad value
+  // reached Postgres and 500'd rather than being rejected as a 400.
+  ieltsBand: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v === null || v === undefined || v === "" ? null : String(v)))
+    .refine((v) => v === null || (Number(v) >= 0 && Number(v) <= 9), { message: "IELTS band must be between 0 and 9." }),
   location: z.string().trim().max(150).optional().nullable(),
   fatherName: z.string().trim().max(120).optional().nullable(),
   motherName: z.string().trim().max(120).optional().nullable(),
@@ -1050,13 +1095,15 @@ export const updateCandidateSchema = createInsertSchema(candidates).omit({
   // UAT-05 Item 13 — district + state on BOTH addresses, same shape.
   district: z.string().trim().max(80).optional().nullable(),
   state: z.string().trim().max(80).optional().nullable(),
-  pinCode: z.string().trim().max(10).optional().nullable(),
+  // The 6-digit rule was enforced only in React, so "ABCDEFGHIJ" reached the
+  // column. Empty string still clears.
+  pinCode: z.union([z.literal(""), z.string().trim().regex(/^\d{6}$/, { message: "PIN code must be 6 digits." })]).optional().nullable(),
   permanentAddressLine1: z.string().trim().max(200).optional().nullable(),
   permanentAddressLine2: z.string().trim().max(200).optional().nullable(),
   permanentCity: z.string().trim().max(80).optional().nullable(),
   permanentDistrict: z.string().trim().max(80).optional().nullable(),
   permanentState: z.string().trim().max(80).optional().nullable(),
-  permanentPinCode: z.string().trim().max(10).optional().nullable(),
+  permanentPinCode: z.union([z.literal(""), z.string().trim().regex(/^\d{6}$/, { message: "PIN code must be 6 digits." })]).optional().nullable(),
   // UAT-05 Item 5 — WhatsApp. Same shape rule as the candidate's own phone;
   // empty string clears (the "same as mobile" tick sends the mobile, not "").
   whatsappNumber: z.union([
@@ -1196,10 +1243,20 @@ export const insertCandidateProfessionSchema = createInsertSchema(candidateProfe
   specificSkills: z.array(z.string().trim().max(60)).max(20).optional().nullable(),
   lastEmployerName: z.string().trim().max(120).optional().nullable(),
   lastEmployerCountry: z.string().trim().max(60).optional().nullable(),
-  // Shape is validated per-profession at the route against the code-defined
-  // block spec — drizzle-zod types this as `unknown`, which would let any JSON
-  // through. Bounded here only to stop an arbitrarily large blob.
-  addonData: z.record(z.unknown()).optional().nullable(),
+  // Per-profession answers (a nurse's council number, a driver's licence class).
+  //
+  // The previous comment here claimed the route validated the shape against the
+  // code-defined block spec. It did not — nothing did, and "Bounded here" was
+  // also false: `z.record(z.unknown())` accepts any JSON of any size. A client
+  // could store {"year": -5, "courseMonths": 9999} or a 2MB blob.
+  //
+  // A full per-profession shape check belongs with the block definitions; what
+  // is enforced HERE is the part that is profession-independent and stops the
+  // damage: a small key count, primitive values only, and bounded strings.
+  addonData: z.record(
+    z.union([z.string().max(200), z.number().finite(), z.boolean(), z.null()]),
+  ).refine((o) => Object.keys(o).length <= 25, { message: "Too many fields for one trade." })
+   .optional().nullable(),
 });
 
 // UAT-05 Item 21 — admin-editable profession config. No `addonFields` here:
@@ -1213,6 +1270,7 @@ export const upsertProfessionRequirementSchema = createInsertSchema(professionRe
     .regex(/^[a-z0-9_]+$/, { message: "Key must be lowercase letters, numbers and underscores only." }),
   label: z.string().trim().min(1).max(80),
   labelHi: z.string().trim().max(80).optional().nullable(),
+  jobCategoryKeys: z.array(z.string().trim().max(60)).max(12).optional().nullable(),
   qualifications: z.array(z.string().trim().max(120)).max(30).optional().nullable(),
   skillsOptions: z.array(z.string().trim().max(60)).max(40).optional().nullable(),
   requiredDocs: z.array(z.string().trim().max(60)).max(20).optional().nullable(),
