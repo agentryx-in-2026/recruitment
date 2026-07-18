@@ -70,31 +70,30 @@ export function Section({
   children: React.ReactNode; className?: string;
 }) {
   return (
-    <section className={`mb-5 rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden ${className}`}>
-      {/* A LIGHT header, not a dark band.
-          The first pass at this copied the tourism form's dark slate bar, which
-          groups well but reads heavy — and "it looks heavy" was the original
-          complaint about this form. A white header with a blue number chip and a
-          hairline rule groups just as clearly at a fraction of the visual weight,
-          and it sits inside the portal's own blue identity rather than importing
-          another product's. The chip carries an icon as well as the number: this
-          form is for candidates who may read slowly, and a passport glyph is
-          faster to parse than the word "Identity". */}
-      <div className="flex items-start gap-3.5 px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100">
+    /* Three surfaces, deliberately, because two was flat:
+         header  — deep slate, white type. Carries the structure.
+         body    — a faint slate wash, NOT white.
+         fields  — white, so they lift off the wash and read as "fill me in".
+       The all-white version had white cards on a white page holding white
+       inputs: nothing had an edge, so the eye had nothing to hold on to and the
+       form read as one undifferentiated sheet. A form should look like it has
+       somewhere to write. */
+    <section className={`mb-5 rounded-2xl border border-slate-200/70 bg-white overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.06),0_8px_24px_-16px_rgba(15,23,42,0.12)] ${className}`}>
+      <div className="flex items-start gap-3.5 px-5 sm:px-6 py-4 bg-gradient-to-r from-slate-800 via-slate-800 to-slate-700">
         {(n !== undefined || Icon) && (
-          <span className="shrink-0 w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center ring-1 ring-blue-100">
+          <span className="shrink-0 w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center ring-1 ring-white/15 backdrop-blur-sm">
             {Icon ? <Icon className="w-[18px] h-[18px]" /> : <span className="text-[15px] font-bold tabular-nums">{n}</span>}
           </span>
         )}
         <div className="min-w-0 pt-0.5">
-          <h2 className="text-[17px] font-bold text-slate-900 tracking-tight leading-tight">
-            {n !== undefined && Icon && <span className="text-slate-400 font-semibold tabular-nums mr-1.5">{n}.</span>}
+          <h2 className="text-[17px] font-bold text-white tracking-tight leading-tight">
+            {n !== undefined && Icon && <span className="text-blue-300/90 font-semibold tabular-nums mr-1.5">{n}.</span>}
             {title}
           </h2>
-          {hint && <p className="text-[13.5px] text-slate-500 mt-1 leading-snug">{hint}</p>}
+          {hint && <p className="text-[13.5px] text-slate-300/90 mt-1 leading-snug">{hint}</p>}
         </div>
       </div>
-      <div className="px-5 sm:px-6 pt-5 pb-1">{children}</div>
+      <div className="px-5 sm:px-6 pt-5 pb-1 bg-slate-50/60">{children}</div>
     </section>
   );
 }
@@ -175,65 +174,80 @@ export function RegisterShell({
             Pattern taken from the HP Tourism homestay form. The previous version
             showed only which page you were on, which tells a candidate nothing
             about how much work is left inside it. */}
-        <div className="mb-6 print:hidden lg:hidden">
-          {(overallProgress !== undefined || startedAt) && (
-            <div className="flex items-center justify-end gap-4 mb-3">
-              {overallProgress !== undefined && (
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className={`w-4 h-4 ${overallProgress >= 100 ? "text-emerald-600" : "text-slate-400"}`} />
-                  <div className="w-24 h-1.5 rounded-full bg-slate-200 overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-700 transition-all duration-500"
-                      style={{ width: `${overallProgress}%` }} />
+        <div className="mb-7 print:hidden">
+          {/* THE STEPPER BELONGS AT THE TOP.
+              It was briefly moved into the sidebar and that was wrong: this is
+              the first thing a candidate looks for, it wants the full width to
+              breathe, and on a form the horizontal run of stages reads as a
+              journey in a way a vertical list does not. The sidebar keeps
+              navigation and help; progress lives here. */}
+          <div className="rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)] px-5 py-4">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider">{t("reg.nav.stages")}</p>
+              <div className="flex items-center gap-4">
+                {startedAt && (
+                  <div className="hidden sm:flex items-center gap-1.5 text-[13px] text-slate-500">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{t("reg.timeSpent")}</span>
+                    <span className="font-mono font-semibold text-slate-700 tabular-nums">{mmss}</span>
                   </div>
-                  <span className="text-[13px] font-bold text-slate-700 tabular-nums w-9">{overallProgress}%</span>
-                </div>
-              )}
-              {startedAt && (
-                <div className="hidden sm:flex items-center gap-1.5 text-[13px] text-slate-500">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{t("reg.timeSpent")}</span>
-                  <span className="font-mono font-semibold text-slate-700 tabular-nums">{mmss}</span>
-                </div>
-              )}
+                )}
+                {overallProgress !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <span className="hidden sm:inline text-[13px] text-slate-500">{t("reg.nav.overall")}</span>
+                    <div className="w-20 sm:w-28 h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-700 transition-all duration-500"
+                        style={{ width: `${overallProgress}%` }} />
+                    </div>
+                    <span className="text-[15px] font-bold text-slate-900 tabular-nums w-10 text-right">{overallProgress}%</span>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
 
-          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${totalSteps}, minmax(0, 1fr))` }}
-            aria-label={`Step ${step + 1} of ${totalSteps}`}>
-            {Array.from({ length: totalSteps }).map((_, i) => {
-              const pct = stepProgress?.[i] ?? (i < step ? 100 : 0);
-              const state = i === step ? "current" : i < step ? "done" : "todo";
-              const StepIcon = stepIcons?.[i];
-              return (
-                <div key={i}>
-                  <div className="hidden sm:flex items-center gap-1.5 mb-1.5">
-                    {StepIcon && (
-                      <StepIcon className={`w-3.5 h-3.5 shrink-0 ${
-                        state === "current" ? "text-blue-600" : state === "done" ? "text-emerald-600" : "text-slate-400"}`} />
-                    )}
-                    <span className={`text-[13px] font-semibold truncate ${
-                      state === "current" ? "text-blue-700" : state === "done" ? "text-emerald-700" : "text-slate-400"}`}>
-                      {stepLabels?.[i]}
-                    </span>
-                    {stepProgress && (
-                      <span className={`text-[11px] tabular-nums shrink-0 ${
-                        pct >= 100 ? "text-emerald-600 font-semibold" : state === "current" ? "text-blue-600" : "text-slate-400"}`}>
-                        {pct}%
+            <div className="grid gap-2.5 sm:gap-3" style={{ gridTemplateColumns: `repeat(${totalSteps}, minmax(0, 1fr))` }}
+              aria-label={`Step ${step + 1} of ${totalSteps}`}>
+              {Array.from({ length: totalSteps }).map((_, i) => {
+                const pct = stepProgress?.[i] ?? (i < step ? 100 : 0);
+                const state = i === step ? "current" : i < step ? "done" : "todo";
+                const StepIcon = stepIcons?.[i];
+                const reachable = i <= (maxStepReached ?? step);
+                const done = pct >= 100 && state !== "current";
+                return (
+                  <button key={i} type="button" disabled={!reachable || !onNavigate}
+                    onClick={() => reachable && onNavigate?.(i)}
+                    aria-current={state === "current" ? "step" : undefined}
+                    className={`text-left group ${reachable && onNavigate ? "cursor-pointer" : "cursor-default"}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                        done ? "bg-emerald-100 text-emerald-700"
+                          : state === "current" ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30"
+                          : "bg-slate-100 text-slate-400"}`}>
+                        {done ? <CheckCircle2 className="w-4 h-4" />
+                          : StepIcon ? <StepIcon className="w-4 h-4" />
+                          : <span className="text-[12px] font-bold">{i + 1}</span>}
                       </span>
-                    )}
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-500 ${
-                      pct >= 100 ? "bg-emerald-500" : state === "current" ? "bg-gradient-to-r from-blue-600 to-blue-700" : "bg-slate-300"}`}
-                      style={{ width: `${Math.max(pct, state === "todo" ? 0 : 4)}%` }} />
-                  </div>
-                </div>
-              );
-            })}
+                      <span className="min-w-0 flex-1">
+                        <span className={`block text-[13.5px] font-bold truncate leading-tight ${
+                          state === "current" ? "text-slate-900" : done ? "text-slate-700" : "text-slate-400"}`}>
+                          {stepLabels?.[i]}
+                        </span>
+                        <span className={`block text-[11.5px] tabular-nums leading-tight ${
+                          done ? "text-emerald-600 font-semibold" : state === "current" ? "text-blue-600 font-semibold" : "text-slate-400"}`}>
+                          {pct}% {t("reg.nav.complete")}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-500 ${
+                        done ? "bg-emerald-500" : state === "current" ? "bg-gradient-to-r from-blue-500 to-blue-700" : "bg-slate-200"}`}
+                        style={{ width: `${pct}%` }} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <p className="sm:hidden text-xs text-slate-500 mt-2">
-            {t("reg.stepOf", { step: step + 1, total: totalSteps })} · {stepLabels?.[step]} · {stepProgress?.[step] ?? 0}%
-          </p>
         </div>
 
         <motion.div key={step} variants={fadeUp} initial="initial" animate="animate" className="flex-1 flex flex-col">
@@ -320,30 +334,14 @@ function FormSidebar({
     <aside className="hidden lg:block w-[264px] shrink-0 print:hidden">
       <div className="sticky top-6 space-y-4">
 
-        {/* Overall progress + clock */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <div className="flex items-baseline justify-between mb-2">
-            <span className="text-[13px] font-semibold text-slate-500">{t("reg.nav.overall")}</span>
-            <span className="text-[20px] font-bold text-slate-900 tabular-nums leading-none">{overallProgress ?? 0}%</span>
-          </div>
-          <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-700 transition-all duration-500"
-              style={{ width: `${overallProgress ?? 0}%` }} />
-          </div>
-          {showTimer && (
-            <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 text-[13px] text-slate-500">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{t("reg.timeSpent")}</span>
-              <span className="ml-auto font-mono font-semibold text-slate-700 tabular-nums">{mmss}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Stages */}
+        {/* Progress lives at the TOP of the page, not here — this panel is for
+            getting somewhere, not for reading numbers. What is left is the two
+            things a candidate stuck mid-form actually reaches for: a way back to
+            a page they already did, and a human. */}
         <nav className="rounded-2xl border border-slate-200/80 bg-white p-2 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
-          aria-label={t("reg.nav.stages")}>
+          aria-label={t("reg.nav.jump")}>
           <p className="px-3 pt-2 pb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            {t("reg.nav.stages")}
+            {t("reg.nav.jump")}
           </p>
           {Array.from({ length: totalSteps }).map((_, i) => {
             const pct = stepProgress?.[i] ?? 0;
@@ -352,38 +350,24 @@ function FormSidebar({
             const Icon = stepIcons?.[i];
             const done = pct >= 100 && !current;
             return (
-              <button
-                key={i}
-                type="button"
-                disabled={!reachable || !onNavigate}
+              <button key={i} type="button" disabled={!reachable || !onNavigate}
                 onClick={() => reachable && onNavigate?.(i)}
                 aria-current={current ? "step" : undefined}
-                className={`w-full text-left rounded-xl px-3 py-2.5 mb-0.5 transition-colors ${
+                className={`w-full text-left rounded-xl px-3 py-2.5 mb-0.5 flex items-center gap-2.5 transition-colors ${
                   current ? "bg-blue-50 ring-1 ring-blue-100"
                     : reachable ? "hover:bg-slate-50 cursor-pointer"
-                    : "opacity-45 cursor-not-allowed"}`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
-                    done ? "bg-emerald-100 text-emerald-700"
-                      : current ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-500"}`}>
-                    {done ? <CheckCircle2 className="w-4 h-4" /> : Icon ? <Icon className="w-4 h-4" /> : <span className="text-xs font-bold">{i + 1}</span>}
-                  </span>
-                  <span className={`text-[14px] font-semibold truncate flex-1 ${
-                    current ? "text-blue-800" : done ? "text-slate-700" : "text-slate-600"}`}>
-                    {stepLabels?.[i]}
-                  </span>
-                  <span className={`text-[12px] tabular-nums shrink-0 ${
-                    done ? "text-emerald-600 font-semibold" : current ? "text-blue-700 font-semibold" : "text-slate-400"}`}>
-                    {pct}%
-                  </span>
-                </div>
-                <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2 ml-9">
-                  <div className={`h-full rounded-full transition-all duration-500 ${
-                    done ? "bg-emerald-500" : current ? "bg-blue-600" : "bg-slate-300"}`}
-                    style={{ width: `${pct}%` }} />
-                </div>
+                    : "opacity-40 cursor-not-allowed"}`}>
+                <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
+                  done ? "bg-emerald-100 text-emerald-700"
+                    : current ? "bg-blue-600 text-white"
+                    : "bg-slate-100 text-slate-400"}`}>
+                  {done ? <CheckCircle2 className="w-4 h-4" /> : Icon ? <Icon className="w-4 h-4" /> : <span className="text-xs font-bold">{i + 1}</span>}
+                </span>
+                <span className={`text-[14px] font-semibold truncate flex-1 ${
+                  current ? "text-blue-800" : done ? "text-slate-700" : "text-slate-500"}`}>
+                  {stepLabels?.[i]}
+                </span>
+                {done && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
               </button>
             );
           })}

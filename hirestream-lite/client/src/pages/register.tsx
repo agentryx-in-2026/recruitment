@@ -48,8 +48,9 @@ import { formatAadhaar, stripAadhaar, maskAadhaar, isValidAadhaar } from "@share
 import { ProfessionAddonBlock, isAddonComplete, type AddonData } from "./register/profession-blocks";
 import { ReviewPage } from "./register/ReviewPage";
 import { ReadyChecklist } from "./register/ReadyChecklist";
+import { isTestMode, TEST_DATA } from "./register/test-mode";
 import { Check, Plus, Minus, Info, Briefcase, BookUser, User, Phone, MapPin,
-         Wrench, GraduationCap, ClipboardCheck } from "lucide-react";
+         Wrench, GraduationCap, ClipboardCheck, FlaskConical, Wand2 } from "lucide-react";
 
 const TOTAL = 4;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -284,6 +285,63 @@ export default function RegisterPage() {
   // Wall-clock for "time spent". Set once on mount.
   const startedAtRef = useRef<number>(Date.now());
 
+  // ── Test mode ──────────────────────────────────────────────────────
+  // Fills only the page you are ON, so a tester can still hand-check one page
+  // while skipping the setup for the others. See register/test-mode.ts for how
+  // it is gated (?test=1, sessionStorage, never on for a real candidate).
+  const testMode = useMemo(() => isTestMode(), []);
+
+  function autofillPage1() {
+    const d = TEST_DATA.page1;
+    setPassportNumber(d.passportNumber); setNoPassportYet(false);
+    setPassportIssueDate(d.passportIssueDate); setPassportExpiry(d.passportExpiry);
+    setPassportPlaceOfIssue(d.passportPlaceOfIssue); setEcrStatus(d.ecrStatus);
+    setAadhaarNumber(d.aadhaarNumber);
+    setFullName(d.fullName); setDateOfBirth(d.dateOfBirth); setSex(d.sex);
+    setFatherName(d.fatherName); setMotherName(d.motherName);
+    setDisabilityStatus(d.disabilityStatus); setDisabilityType(d.disabilityType);
+    setPhone(d.phone); setWhatsappSame(d.whatsappSame); setWhatsappNumber(d.whatsappNumber);
+    setEmail(d.email); setHomeTown(d.homeTown);
+    setPAddr1(d.pAddr1); setPAddr2(d.pAddr2); setPDistrict(d.pDistrict);
+    setPState(d.pState); setPPin(d.pPin); setCorrSame(d.corrSame);
+    toast({ title: t("reg.test.filled") });
+  }
+
+  function autofillPage2() {
+    const d = TEST_DATA.page2;
+    // Only pick trades the catalogue actually has, and respect the cap — the
+    // seed list is admin-editable, so hardcoding blindly would break the moment
+    // HPSEDC deactivate one.
+    const available = d.professionKeys.filter((k) => professions.some((p) => p.professionKey === k));
+    setPicked(available.slice(0, maxProfessions).map((k) => ({
+      professionKey: k, experienceMonths: 0, specificSkills: [], addonData: {},
+    })));
+    setLangs(d.languages.filter((l) => LANGS.includes(l.language)));
+    toast({ title: t("reg.test.filled") });
+  }
+
+  function autofillPage3() {
+    const d = TEST_DATA.page3;
+    setEduLevel(d.eduLevel); setEduBoard(d.eduBoard);
+    setEduInstitution(d.eduInstitution); setEduYear(d.eduYear); setEduPassed(d.eduPassed);
+    setPicked((prev) => prev.map((x) => {
+      const prof = profByKey[x.professionKey];
+      return {
+        ...x,
+        experienceMonths: d.experienceMonths,
+        // First two options from HPSEDC's own list for this trade, so the data
+        // stays valid even after they edit the catalogue.
+        specificSkills: (prof?.skillsOptions || []).slice(0, 2),
+        lastEmployerName: d.lastEmployerName,
+        lastEmployerCountry: d.lastEmployerCountry,
+        addonData: prof?.hasAddonBlock ? (d.addon[x.professionKey] || x.addonData) : x.addonData,
+      };
+    }));
+    toast({ title: t("reg.test.filled") });
+  }
+
+  const autofill = [autofillPage1, autofillPage2, autofillPage3][step];
+
   // ── Saves ──────────────────────────────────────────────────────────
   async function savePage1() {
     await apiRequest("PATCH", "/api/v1/candidates/profile", {
@@ -446,6 +504,23 @@ export default function RegisterPage() {
     >
       {showChecklist && (
         <ReadyChecklist onStart={dismissChecklist} onDismiss={dismissChecklist} />
+      )}
+
+      {/* Test mode. Loud amber on purpose — if this ever renders somewhere it
+          should not, it must be impossible to mistake for part of the form. */}
+      {testMode && (
+        <div className="mb-5 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 flex flex-wrap items-center gap-3 print:hidden">
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-amber-900 uppercase tracking-wide">
+            <FlaskConical className="w-4 h-4" /> {t("reg.test.badge")}
+          </span>
+          <span className="text-[14px] text-amber-800 flex-1 min-w-[12rem]">{t("reg.test.hint")}</span>
+          {autofill && (
+            <Button type="button" size="sm" onClick={autofill}
+              className="h-9 rounded-lg bg-amber-600 hover:bg-amber-700 text-white gap-1.5 shrink-0">
+              <Wand2 className="w-4 h-4" /> {t("reg.test.fill")}
+            </Button>
+          )}
+        </div>
       )}
 
       {step === 0 && (

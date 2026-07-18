@@ -1482,7 +1482,15 @@
       "help": "Help",
       "callback": "Request a callback",
       "faq": "Questions & answers",
-      "saved": "Your answers are saved each time you move to the next page."
+      "saved": "Your answers are saved each time you move to the next page.",
+      "jump": "Go to",
+      "complete": "done"
+    },
+    "test": {
+      "badge": "Test mode",
+      "hint": "Autofill this page with sample data, then edit anything you want to check.",
+      "fill": "Autofill this page",
+      "filled": "Page filled with test data"
     }
   },
   "docs2": {

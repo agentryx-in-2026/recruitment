@@ -47,7 +47,7 @@ export function Field({
   return (
     <div className={`${SPAN[span]} ${className} pb-4`}>
       {label && (
-        <label className="block text-[15px] font-semibold text-slate-800 mb-1.5 leading-snug">
+        <label className="block text-[14.5px] font-semibold text-slate-700 mb-1.5 leading-snug">
           {label}{required && <span className="text-blue-600 ml-0.5">*</span>}
         </label>
       )}
@@ -94,7 +94,14 @@ export const inputCls =
   // `md:text-[15px]` is not redundant: ui/input ends its class list with
   // `md:text-sm`, which wins at >=768px and silently shrank every field on this
   // form back to 14px. The desktop override has to be explicit.
-  "h-12 text-[15px] md:text-[15px] rounded-lg border-slate-300 bg-white focus-visible:ring-2 focus-visible:ring-blue-500/25 focus-visible:border-blue-400";
+  //
+  // WHITE on the section's tinted body, with a real border and a soft inner
+  // shadow — an input has to look like a slot you put something into. Flat white
+  // on flat white read as decoration, not as a control.
+  "h-12 text-[15px] md:text-[15px] rounded-lg border-slate-300/90 bg-white " +
+  "shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)] " +
+  "hover:border-slate-400/80 " +
+  "focus-visible:ring-[3px] focus-visible:ring-blue-500/15 focus-visible:border-blue-500 transition-colors";
 
 /**
  * Text field with voice input (Web Speech API), restored from the flow this one

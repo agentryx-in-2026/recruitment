@@ -270,6 +270,29 @@ document list and then not asking for documents would be worse than no checklist
   two must never drift; two flows keeping their own language lists is part of
   why the tiers were removed.
 
+**v0.9.0 — progress back at the top, real depth, and TEST MODE.**
+
+- **The stepper belongs at the TOP.** v0.8.3 moved it into the sidebar and that
+  was a regression — it is the first thing a candidate looks for, it needs the
+  full width, and a horizontal run of stages reads as a journey where a vertical
+  list does not. Restored as a card: four stages with icon / label / own % / own
+  bar, plus overall % and the time clock on the right. The sidebar keeps
+  "GO TO" jump-navigation and help, and no longer duplicates any number.
+- **Depth.** The form was white cards on a white page holding white inputs —
+  nothing had an edge, so it read as one sheet. Now three surfaces: a deep slate
+  gradient section header (structure), a faint slate body wash, and WHITE fields
+  with an inner shadow so they lift off it and look like somewhere to write.
+- **TEST MODE — `/register?test=1`.** Per-page "Autofill this page" so a tester
+  is not retyping 18 fields to reach page 3. Gated by a URL param persisted in
+  sessionStorage: no build flag, no setting, no server involvement, dies with the
+  tab. Verified the bar does NOT render for a normal candidate.
+  The sample Aadhaar (234567890124) is **Verhoeff-valid on purpose** — random
+  digits would be rejected by the very validation the autofill exists to help
+  test, and the tester would think autofill was broken. Autofill also reads the
+  LIVE profession catalogue (skills come from `skillsOptions`, trades are
+  filtered to what exists and capped at `max_professions`), so it keeps working
+  after HPSEDC edit the catalogue.
+
 ### Still to do (UAT-05)
 - **Email verification (item 1)** — the field is collected, the verification is
   not built. Send the mail and gate the SUBMIT, not page 1 — hard-blocking at the
