@@ -9,6 +9,7 @@ import candidateRouter from "./routes/candidate.routes";
 import professionRouter from "./routes/profession.routes";
 import adminRouter from "./routes/admin.routes";
 import adminProfessionsRouter from "./routes/admin-professions.routes";
+import { publicRouter as regFieldsPublic, adminRouter as regFieldsAdmin } from "./routes/registration-fields.routes";
 import superadminRouter from "./routes/superadmin.routes";
 import superadminOpsRouter from "./routes/superadmin-ops.routes";
 import superadminOpsSystemRouter from "./routes/superadmin-ops-system.routes";
@@ -145,6 +146,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // UAT-05 item 21 — HPSEDC edit eligibility without a release. Mounted BEFORE
   // adminRouter: that router has catch-all-ish paths, and the smoke harness
   // exists to catch exactly this route-shadow class of bug.
+  app.use("/api/v1/registration-fields", regFieldsPublic);
+  app.use("/api/v1/admin/registration-fields", regFieldsAdmin);
   app.use("/api/v1/admin/professions", adminProfessionsRouter);
   app.use("/api/v1/admin", adminRouter);
   app.use("/api/v1/superadmin", superadminRouter);

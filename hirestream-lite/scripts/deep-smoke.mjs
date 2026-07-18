@@ -77,6 +77,12 @@ const ROLE_ALLOWLIST = {
     /^\/version$/,                      // server/index.ts:118 — portal identity banner
     /^\/config\/public$/,               // public-config.routes.ts:9
     /^\/professions$/,                  // profession.routes.ts:43 — profession catalogue
+    /^\/registration-fields$/,          // registration-fields.routes.ts — which form
+                                        // fields are on/required. Public for the same
+                                        // reason as the catalogue above: the form must
+                                        // render before a session exists. Carries only
+                                        // {enabled,required} booleans — HPSEDC's published
+                                        // form policy, no personal data.
     /^\/jobs$/,                         // job.routes.ts:202 — public job listing
     /^\/agencies$/,                     // agency.routes.ts:389 — public agency listing
     /^\/agencies\/leaderboard\/top$/,   // agency.routes.ts:459

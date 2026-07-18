@@ -332,6 +332,37 @@ are listed first: a candidate applying for their NEXT placement is often already
 overseas. Validation counts the NATIONAL part only — counting the dial code would
 let `+971 501234` pass and reject a real Indian number.
 
+**v1.0.0 — the form is configurable. Admin → Form Fields.**
+
+"Can we have an input configuration panel per page where we enable or disable
+fields, as they keep changing their mind?" — yes, and it is the same contract as
+item 21: HPSEDC own the policy, we own the shape.
+
+`registration_fields` (16 rows) + `GET /api/v1/registration-fields` (public — the
+form renders before login) + admin CRUD + **Admin Console → OPERATIONS → Form
+Fields**. Each row has Shown/Hidden and Must-fill/Optional. Live, no release.
+
+**Guard rails, enforced on the SERVER not just greyed in the UI:**
+- Full name, DOB, gender, mobile, email, permanent address, PIN are **not on the
+  screen at all**. A portal that cannot identify or contact an applicant does not
+  work, and a config panel that lets an admin break the product is a worse
+  product.
+- `lockedEnabled` rows (passport expiry) refuse to be turned off.
+- A hidden field is forced `required = false` — otherwise a candidate would be
+  blocked by something they are never shown. The form mirrors this: `need()`
+  treats a hidden or optional field as satisfied.
+
+**Two entries are OPTIONS, not fields** — `ecrUnknownOption` and
+`noPassportOption`. Modelling one choice inside a dropdown as its own row is far
+simpler than a generic options editor and is exactly the granularity asked for
+("remove the ECNR third option"). **`ecrUnknownOption` ships DISABLED**, so the
+"I'm not sure" choice is gone by default and can be switched back on.
+
+Passport **expiry was already mandatory** — no change needed. And
+`registration.passport_mandatory`, a setting added in v0.3.0, was **never
+consumed by anything**; `noPassportOption` now does that job properly, from a
+screen rather than a settings key.
+
 ### Still to do (UAT-05)
 - **Email verification (item 1)** — the field is collected, the verification is
   not built. Send the mail and gate the SUBMIT, not page 1 — hard-blocking at the

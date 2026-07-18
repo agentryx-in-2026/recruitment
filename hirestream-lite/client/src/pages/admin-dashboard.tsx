@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import ProfessionsPanel from "@/pages/admin/ProfessionsPanel";
+import RegistrationFieldsPanel from "@/pages/admin/RegistrationFieldsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import React, { useState } from "react";
@@ -13,7 +14,7 @@ import {
   CheckCircle, Clock, FileText, FileSpreadsheet, MessageSquare, MessagesSquare, Send, GraduationCap,
   Loader2, Mail, Phone, Fingerprint, KeyRound, FolderLock, PlugZap, XCircle, Globe, LifeBuoy,
   Printer, Cpu, Network, Layers, Sigma, GitBranch, ScrollText,
-  Server, Database, Smartphone, Lock, HardDrive, Boxes, Plug, FileCheck, Square, Plane,
+  Server, Database, Smartphone, Lock, HardDrive, Boxes, Plug, FileCheck, Square, Plane, SlidersHorizontal
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -152,6 +153,8 @@ export default function AdminDashboard() {
       { key: "matching", label: "Matching Engine", icon: Cpu },
       // UAT-05 item 21: HPSEDC edit profession eligibility without a release.
       { key: "professions", label: "Professions", icon: Briefcase },
+      // HPSEDC choose what the application form asks for, no release.
+      { key: "reg_fields", label: "Form Fields", icon: SlidersHorizontal },
       // readiness 2026-07-07: fleet-wide pre-departure readiness (ring/stage/CSV)
       { key: "deployment_readiness", label: t("readiness.admin.navLabel"), icon: Plane },
       { key: "welfare", label: "Welfare SLA", icon: GraduationCap },
@@ -605,6 +608,10 @@ export default function AdminDashboard() {
         {/* ── Professions & eligibility (UAT-05 item 21) ── */}
         <TabsContent value="professions">
           <ProfessionsPanel />
+        </TabsContent>
+
+        <TabsContent value="reg_fields">
+          <RegistrationFieldsPanel />
         </TabsContent>
 
         {/* ── System Config Tab ─────────────────────────── */}

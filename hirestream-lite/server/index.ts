@@ -173,6 +173,7 @@ import { seedCountryInfo } from "./services/country-info.seed";
 import { seedSystemConfig } from "./services/system-config.service";
 import { seedDefaultAgency } from "./services/default-agency.seed";
 import { seedProfessions } from "./services/professions.seed";
+import { seedRegistrationFields } from "./services/registration-fields.seed";
 import { loadValidCountries } from "./services/country-validator.service";
 
 (async () => {
@@ -185,6 +186,7 @@ import { loadValidCountries } from "./services/country-validator.service";
   // UAT-05 Item 21. Inserts missing rows only — an HPSEDC-edited profession is
   // never overwritten by a redeploy (see professions.seed.ts).
   await seedProfessions().catch((e) => logger.warn(`Professions seed skipped: ${e?.message}`));
+  await seedRegistrationFields().catch((e) => logger.warn(`Registration fields seed skipped: ${e?.message}`));
   await loadValidCountries().catch((e) => logger.warn(`Country validator load skipped: ${e?.message}`));
   if (env.NODE_ENV !== "test") {
     startJobLifecycleCron();

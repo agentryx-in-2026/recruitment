@@ -582,6 +582,42 @@ export const candidateProfessions = pgTable("candidate_professions", {
   uniqueIndex("candidate_professions_candidate_key_idx").on(t.candidateId, t.professionKey),
 ]);
 
+// ── Registration field configuration ────────────────────────────────
+// "Can we make it so we can enable or disable fields, as they keep changing
+//  their mind?" — the same shape as profession_requirements (item 21): HPSEDC
+// own the POLICY, we own the form's structure.
+//
+// A row per field the portal is willing to let them change. Note what is NOT
+// here: full name, date of birth, gender, mobile, email, permanent address. A
+// portal that cannot identify or contact an applicant is not a portal, so those
+// are not offered — a config panel that lets an admin break the product is a
+// worse product. `lockedEnabled` / `lockedRequired` express that in data, so the
+// admin screen can show them greyed with a reason rather than pretending.
+export const registrationFields = pgTable("registration_fields", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  /** Stable key the form checks — e.g. "passportIssueDate". Never renamed. */
+  fieldKey: text("field_key").notNull().unique(),
+  page: integer("page").notNull(),                 // 1..4
+  sectionKey: text("section_key").notNull(),       // identity | personal | contact | address | education
+  labelEn: text("label_en").notNull(),
+  labelHi: text("label_hi"),
+  /** What turning it off actually means, in the admin's words. */
+  description: text("description"),
+  enabled: boolean("enabled").notNull().default(true),
+  required: boolean("required").notNull().default(false),
+  lockedEnabled: boolean("locked_enabled").notNull().default(false),
+  lockedRequired: boolean("locked_required").notNull().default(false),
+  displayOrder: integer("display_order").default(0),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const upsertRegistrationFieldSchema = createInsertSchema(registrationFields).omit({
+  id: true, fieldKey: true, page: true, sectionKey: true,
+  lockedEnabled: true, lockedRequired: true, updatedAt: true,
+}).partial();
+
+export type RegistrationField = typeof registrationFields.$inferSelect;
+
 // ── Candidate Languages ─────────────────────────────────────────────
 // HP-4a (UAT-03 Item 12): for blue-collar overseas placement, spoken-language
 // proficiency (Hindi / English / Malayalam / Arabic / …) matters more than

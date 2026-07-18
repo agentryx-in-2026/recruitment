@@ -142,6 +142,14 @@ export default function RegisterPage() {
   const { data: profRes } = useQuery<any>({ queryKey: ["/api/v1/professions"] });
   const { data: minePropRes } = useQuery<any>({ queryKey: ["/api/v1/professions/mine"] });
   const { data: langRes } = useQuery<any>({ queryKey: ["/api/v1/candidates/languages"] });
+  // Field configuration — HPSEDC turn fields on/off and required/optional from
+  // the admin screen, no release. The server is the authority; this is the form
+  // reading it. Defaults are permissive so a failed fetch shows the full form
+  // rather than a mysteriously empty one.
+  const { data: fieldCfgRes } = useQuery<any>({ queryKey: ["/api/v1/registration-fields"] });
+  const fieldCfg: Record<string, { enabled: boolean; required: boolean }> = fieldCfgRes?.data?.fields || {};
+  const on = (k: string) => fieldCfg[k]?.enabled !== false;
+  const req = (k: string) => fieldCfg[k]?.required === true;
 
   const professions: Profession[] = profRes?.data?.professions || [];
   const maxProfessions: number = profRes?.data?.maxProfessions ?? 3;
@@ -221,17 +229,26 @@ export default function RegisterPage() {
   // ── Validation ─────────────────────────────────────────────────────
   // Client-side, and only gates the Next button — the server is the authority.
   const digits = (s: string) => s.replace(/\D/g, "");
-  const passportOk = noPassportYet || (passportNumber.trim().length >= 6 && !!passportExpiry);
+  // A hidden field can never block Next, and an optional one can never be
+  // missing — otherwise turning a field off in the admin screen would strand
+  // every candidate on a page with no visible reason.
+  const need = (key: string, value: any) => !on(key) || !req(key) || Boolean(typeof value === "string" ? value.trim() : value);
+  const passportOk = (on("noPassportOption") && noPassportYet)
+    || (passportNumber.trim().length >= 6 && !!passportExpiry);
   const addrOk = pAddr1.trim() && pDistrict && pState && pPin.length === 6;
-  const corrOk = corrSame || (cAddr1.trim() && cDistrict && cState && cPin.length === 6);
+  const corrOk = !on("correspondenceAddress") || corrSame || (cAddr1.trim() && cDistrict && cState && cPin.length === 6);
   // An INVALID Aadhaar blocks Next as well as an empty one — the field is
   // optional, but a wrong number must not reach the server (which rejects it
   // anyway, at submit time, long after the candidate has moved on).
   const p1Ok = passportOk && fullName.trim().length >= 2 && dateOfBirth && sex
-    && fatherName.trim() && motherName.trim() && disabilityStatus
-    && (disabilityStatus !== "yes" || disabilityType.trim())
-    && digits(phone).length >= 10 && (whatsappSame || digits(whatsappNumber).length >= 10)
-    && /\S+@\S+\.\S+/.test(email) && homeTown.trim() && addrOk && corrOk
+    && need("fatherName", fatherName) && need("motherName", motherName)
+    && need("disability", disabilityStatus)
+    && (!on("disability") || disabilityStatus !== "yes" || disabilityType.trim())
+    && need("passportIssueDate", passportIssueDate) && need("passportPlaceOfIssue", passportPlaceOfIssue)
+    && need("ecrStatus", ecrStatus) && need("aadhaarNumber", aadhaarNumber)
+    && digits(phone).length >= 10
+    && (!on("whatsappNumber") || !req("whatsappNumber") || whatsappSame || digits(whatsappNumber).length >= 10)
+    && /\S+@\S+\.\S+/.test(email) && need("homeTown", homeTown) && addrOk && corrOk
     && !aadhaarErr && !(passportExpiry && passportExpiry < today());
   const p2Ok = picked.length > 0 && picked.every((x) => x.professionKey !== "other" || x.otherLabel?.trim()) && langs.length > 0;
   const p3Ok = eduLevel && picked.every((x) => isAddonComplete(x.professionKey, x.addonData) && x.experienceMonths >= 0);
@@ -575,31 +592,34 @@ export default function RegisterPage() {
                   <Input className={inputCls} type="date" value={passportExpiry} onChange={(e) => setPassportExpiry(e.target.value)} />
                 </Field>
               )}
-              {!noPassportYet && (
-                <Field label={t("reg.p1.passportIssue")} span={4}
+              {!noPassportYet && on("passportIssueDate") && (
+                <Field label={t("reg.p1.passportIssue")} required={req("passportIssueDate")} span={4}
                   error={passportIssueDate && passportIssueDate > today() ? t("reg.err.issueFuture") : null}>
                   <Input className={inputCls} type="date" max={today()} value={passportIssueDate} onChange={(e) => setPassportIssueDate(e.target.value)} />
                 </Field>
               )}
-              <GridCheckbox checked={noPassportYet} onChange={setNoPassportYet} label={t("reg.p1.noPassport")} />
+              {on("noPassportOption") && (
+                <GridCheckbox checked={noPassportYet} onChange={setNoPassportYet} label={t("reg.p1.noPassport")} />
+              )}
               {noPassportYet && (
                 <div className="col-span-12 -mt-2 pb-4">
                   <p className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{t("reg.p1.noPassportHint")}</p>
                 </div>
               )}
-              {!noPassportYet && (
-                <Field label={t("reg.p1.passportPlace")} span={4}>
+              {!noPassportYet && on("passportPlaceOfIssue") && (
+                <Field label={t("reg.p1.passportPlace")} required={req("passportPlaceOfIssue")} span={4}>
                   <Input className={inputCls} maxLength={80} value={passportPlaceOfIssue} onChange={(e) => setPassportPlaceOfIssue(e.target.value)} />
                 </Field>
               )}
-              {!noPassportYet && (
-                <Field label={t("reg.p1.ecr")} span={4} hint={t("reg.p1.ecrHint")}>
+              {!noPassportYet && on("ecrStatus") && (
+                <Field label={t("reg.p1.ecr")} required={req("ecrStatus")} span={4} hint={t("reg.p1.ecrHint")}>
                   <Select value={ecrStatus} onValueChange={setEcrStatus}>
                     <SelectTrigger className={inputCls}><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ecnr">{t("reg.p1.ecnr")}</SelectItem>
                       <SelectItem value="ecr">{t("reg.p1.ecrYes")}</SelectItem>
-                      <SelectItem value="unknown">{t("reg.p1.ecrUnknown")}</SelectItem>
+                      {/* The third option is HPSEDC's call — off by default. */}
+                      {on("ecrUnknownOption") && <SelectItem value="unknown">{t("reg.p1.ecrUnknown")}</SelectItem>}
                     </SelectContent>
                   </Select>
                 </Field>
@@ -607,13 +627,15 @@ export default function RegisterPage() {
               {/* Aadhaar — formatted, checksum-validated, masked on review.
                   Uses @shared/aadhaar so client and server agree; the rebuild
                   briefly hand-rolled all three and lost the live feedback. */}
-              <Field label={t("reg.p1.aadhaar")} span={4}
+              {on("aadhaarNumber") && (
+              <Field label={t("reg.p1.aadhaar")} required={req("aadhaarNumber")} span={4}
                 hint={aadhaarErr ? undefined : t("reg.p1.aadhaarHint")} error={aadhaarErr}>
                 <Input className={`${inputCls} tracking-[0.2em] font-mono`} inputMode="numeric" maxLength={14}
                   placeholder="1234 5678 9012"
                   value={formatAadhaar(aadhaarNumber)}
                   onChange={(e) => setAadhaarNumber(stripAadhaar(e.target.value))} />
               </Field>
+              )}
             </FormGrid>
           </Section>
 
@@ -636,13 +658,18 @@ export default function RegisterPage() {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label={t("reg.p1.father")} required span={6}>
-                <MicInput value={fatherName} onChange={setFatherName} maxLength={120} />
-              </Field>
-              <Field label={t("reg.p1.mother")} required span={6}>
-                <MicInput value={motherName} onChange={setMotherName} maxLength={120} />
-              </Field>
-              <Field label={t("reg.p1.disability")} required span={3}>
+              {on("fatherName") && (
+                <Field label={t("reg.p1.father")} required={req("fatherName")} span={6}>
+                  <MicInput value={fatherName} onChange={setFatherName} maxLength={120} />
+                </Field>
+              )}
+              {on("motherName") && (
+                <Field label={t("reg.p1.mother")} required={req("motherName")} span={6}>
+                  <MicInput value={motherName} onChange={setMotherName} maxLength={120} />
+                </Field>
+              )}
+              {on("disability") && (
+              <Field label={t("reg.p1.disability")} required={req("disability")} span={3}>
                 <Select value={disabilityStatus} onValueChange={setDisabilityStatus}>
                   <SelectTrigger className={inputCls}><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
@@ -651,7 +678,8 @@ export default function RegisterPage() {
                   </SelectContent>
                 </Select>
               </Field>
-              {disabilityStatus === "yes" && (
+              )}
+              {on("disability") && disabilityStatus === "yes" && (
                 <Field label={t("reg.p1.disabilityType")} required span={5}>
                   <MicInput value={disabilityType} onChange={setDisabilityType} maxLength={200} />
                 </Field>
@@ -667,22 +695,28 @@ export default function RegisterPage() {
               <Field label={t("reg.p1.mobile")} required span={4} error={phoneErr}>
                 <PhoneInput value={phone} onChange={setPhone} autoComplete="tel" />
               </Field>
-              <Field label={t("reg.p1.whatsapp")} required span={4} error={whatsappErr}>
-                <PhoneInput value={whatsappSame ? phone : whatsappNumber}
-                  onChange={setWhatsappNumber} disabled={whatsappSame} />
-              </Field>
+              {on("whatsappNumber") && (
+                <Field label={t("reg.p1.whatsapp")} required={req("whatsappNumber")} span={4} error={whatsappErr}>
+                  <PhoneInput value={whatsappSame ? phone : whatsappNumber}
+                    onChange={setWhatsappNumber} disabled={whatsappSame} />
+                </Field>
+              )}
               <Field label={t("reg.p1.email")} required span={4} error={emailErr}>
                 <Input className={inputCls} type="email" maxLength={120} value={email} onChange={(e) => setEmail(e.target.value)} />
               </Field>
-              <GridCheckbox checked={whatsappSame} onChange={setWhatsappSame} label={t("reg.p1.sameAsMobile")} />
+              {on("whatsappNumber") && (
+                <GridCheckbox checked={whatsappSame} onChange={setWhatsappSame} label={t("reg.p1.sameAsMobile")} />
+              )}
             </FormGrid>
           </Section>
 
           <Section n={4} icon={MapPin} title={t("reg.p1.address")} onAutofill={testMode ? fillAddress : undefined} autofillLabel={t("reg.test.fillSection")}>
             <FormGrid>
-              <Field label={t("reg.p1.homeTown")} required span={4}>
-                <MicInput value={homeTown} onChange={setHomeTown} maxLength={80} />
-              </Field>
+              {on("homeTown") && (
+                <Field label={t("reg.p1.homeTown")} required={req("homeTown")} span={4}>
+                  <MicInput value={homeTown} onChange={setHomeTown} maxLength={80} />
+                </Field>
+              )}
 
               <GridHeading>{t("reg.p1.permanent")}</GridHeading>
               <Field label={t("reg.p1.line1")} required span={8}>
@@ -713,9 +747,11 @@ export default function RegisterPage() {
                   onChange={(e) => setPPin(e.target.value.replace(/\D/g, ""))} />
               </Field>
 
-              <GridCheckbox checked={corrSame} onChange={setCorrSame} label={t("reg.p1.corrSame")} />
+              {on("correspondenceAddress") && (
+                <GridCheckbox checked={corrSame} onChange={setCorrSame} label={t("reg.p1.corrSame")} />
+              )}
 
-              {!corrSame && (
+              {on("correspondenceAddress") && !corrSame && (
                 <>
                   <GridHeading>{t("reg.p1.correspondence")}</GridHeading>
                   <Field label={t("reg.p1.line1")} required span={8}>
@@ -767,6 +803,7 @@ export default function RegisterPage() {
           eduInstitution={eduInstitution} setEduInstitution={setEduInstitution}
           eduYear={eduYear} setEduYear={setEduYear} eduPassed={eduPassed} setEduPassed={setEduPassed}
           testMode={testMode} onFillEducation={fillEducation} onFillTradeCard={fillTradeCard}
+          on={on}
         />
       )}
 
@@ -915,7 +952,7 @@ function QualificationsPage({
   picked, setPicked, profByKey, labelOf, noteOf,
   eduLevel, setEduLevel, eduBoard, setEduBoard, eduInstitution, setEduInstitution,
   eduYear, setEduYear, eduPassed, setEduPassed,
-  testMode, onFillEducation, onFillTradeCard,
+  testMode, onFillEducation, onFillTradeCard, on,
 }: any) {
   const { t } = useTranslation();
   const patch = (k: string, p: Partial<PickedProfession>) =>
@@ -934,6 +971,7 @@ function QualificationsPage({
           </div>
           {eduLevel && eduLevel !== "none" && (
             <>
+              {on("eduBoard") && (
               <div>
                 {/* UAT-05 item 17: the HP board is HPBOSE — Himachal Pradesh Board of
                     School Education is HPBOSE; the old placeholder had it wrong
@@ -944,15 +982,20 @@ function QualificationsPage({
                   <SelectContent>{BOARDS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              )}
+              {on("eduInstitution") && (
               <div>
                 <Label className="text-sm font-medium text-slate-700">{t("reg.p3.institution")}</Label>
                 <Input className="h-11 mt-1.5" maxLength={120} value={eduInstitution} onChange={(e) => setEduInstitution(e.target.value)} />
               </div>
+              )}
+              {on("eduYear") && (
               <div>
                 <Label className="text-sm font-medium text-slate-700">{t("reg.p3.year")}</Label>
                 <Input className="h-11 mt-1.5" type="number" min={1950} max={new Date().getFullYear()}
                   value={eduYear} onChange={(e) => setEduYear(e.target.value ? Number(e.target.value) : "")} />
               </div>
+              )}
               <Wide>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox checked={eduPassed} onCheckedChange={(v) => setEduPassed(!!v)} />
