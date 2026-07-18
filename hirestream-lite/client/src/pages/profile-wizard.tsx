@@ -1204,7 +1204,7 @@ const PROFICIENCY_LEVELS = [
 // listable language. Kept in step with /register's list (client/src/pages/
 // register.tsx LANGS); these two MUST agree, and the last time two flows kept
 // their own language lists they drifted, which is part of why the tiers are gone.
-const COMMON_LANGUAGES = ["Hindi", "English", "Punjabi", "Nepali", "Urdu", "Arabic", "Malayalam"];
+const COMMON_LANGUAGES = ["Hindi", "English", "Urdu", "Arabic"];
 
 function LanguagesSection() {
   const queryClient = useQueryClient();

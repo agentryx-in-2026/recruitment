@@ -249,6 +249,27 @@ progress with its own %, an overall %, and a time-spent clock. Ours lists
 INFORMATION rather than documents, because stage 1 is upload-free — promising a
 document list and then not asking for documents would be worse than no checklist.
 
+**v0.8.3 — in-form sidebar navigation + portal colour.**
+
+- **`FormSidebar`** (lg+ only) fills what was ~700px of dead page on a desktop:
+  overall % + time-spent, the four stages with per-stage progress, and help
+  (callback / FAQ / report fraud) reachable at the moment a candidate is stuck —
+  which is the moment they would otherwise close the tab. Viewport use went 55% →
+  67%. The horizontal stepper is now `lg:hidden`, i.e. mobile only.
+- **Stage navigation is BACKWARD-ONLY.** `maxStepReached` gates it: each page
+  saves on Next, so a forward jump would leave earlier pages unsaved and later
+  ones prefilled from nothing. Verified in-browser that stage 3 is disabled from
+  page 1 and stage 1 is reachable from page 2.
+- **Background** is a faint blue wash (`#f6f9fe → #fbfcfe → #f4f7fd`) instead of
+  flat white. On pure white the white form cards had no edge to sit against,
+  which is what made the page read as one slab.
+- **Languages trimmed to Hindi / English / Urdu / Arabic** + the "Other language"
+  free-text. Arabic stays because it is the DESTINATION language — a candidate
+  who speaks it is materially more employable in the Gulf. Changed in BOTH
+  `register.tsx` (`LANGS`) and `profile-wizard.tsx` (`COMMON_LANGUAGES`) — these
+  two must never drift; two flows keeping their own language lists is part of
+  why the tiers were removed.
+
 ### Still to do (UAT-05)
 - **Email verification (item 1)** — the field is collected, the verification is
   not built. Send the mail and gate the SUBMIT, not page 1 — hard-blocking at the

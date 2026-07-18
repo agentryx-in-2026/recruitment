@@ -1475,6 +1475,14 @@
       "tip": "Filling this in one sitting is quickest — but your answers are saved on every page, so you can stop and come back.",
       "start": "I have these — start",
       "later": "Skip, I'll manage"
+    },
+    "nav": {
+      "overall": "Application complete",
+      "stages": "Your application",
+      "help": "Help",
+      "callback": "Request a callback",
+      "faq": "Questions & answers",
+      "saved": "Your answers are saved each time you move to the next page."
     }
   },
   "docs2": {

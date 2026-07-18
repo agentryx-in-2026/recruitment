@@ -72,7 +72,14 @@ export interface PickedProfession {
   addonData: AddonData;
 }
 
-const LANGS = ["Hindi", "English", "Punjabi", "Nepali", "Urdu", "Arabic", "Malayalam"];
+// UAT-05: four languages that actually matter for HP -> Gulf placement, plus the
+// "Other language" free-text box for everything else. Nepali, Malayalam and
+// Punjabi were dropped from the tiles — a long list of chips a candidate has to
+// read past is a cost paid by every applicant to serve a few, and the free-text
+// field serves those few without it. Arabic stays because it is the DESTINATION
+// language: a candidate who speaks it is materially more employable in the Gulf.
+// MUST stay in sync with COMMON_LANGUAGES in pages/profile-wizard.tsx.
+const LANGS = ["Hindi", "English", "Urdu", "Arabic"];
 const LANG_LEVELS = ["elementary", "intermediate", "professional", "native"] as const;
 const EDU_LEVELS = ["none", "class5", "class8", "class10", "class12", "iti", "diploma", "degree"];
 const BOARDS = ["HPBOSE", "CBSE", "ICSE", "NIOS", "Other State Board"];
@@ -83,6 +90,10 @@ export default function RegisterPage() {
   const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
+  // Furthest stage reached. The sidebar lets a candidate go BACK to a page
+  // they have completed, never forward past one they have not — each page
+  // saves on Next, so skipping ahead would leave earlier pages unsaved.
+  const [maxStepReached, setMaxStepReached] = useState(0);
   const [saving, setSaving] = useState(false);
 
   // ── Page 1: about you ──────────────────────────────────────────────
@@ -396,7 +407,7 @@ export default function RegisterPage() {
       if (step === 0) await savePage1();
       if (step === 1) await savePage2();
       if (step === 2) await savePage3();
-      setStep((s) => Math.min(s + 1, TOTAL - 1));
+      setStep((s) => { const n = Math.min(s + 1, TOTAL - 1); setMaxStepReached((m) => Math.max(m, n)); return n; });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e: any) {
       toast({ title: t("reg.saveFailed"), description: e?.message, variant: "destructive" });
@@ -425,6 +436,8 @@ export default function RegisterPage() {
     <RegisterShell
       step={step} totalSteps={TOTAL} stepLabels={stepLabels} stepIcons={stepIcons}
       stepProgress={stepProgress} overallProgress={overallProgress} startedAt={startedAtRef.current}
+      maxStepReached={maxStepReached}
+      onNavigate={(i) => { setStep(i); window.scrollTo({ top: 0, behavior: "smooth" }); }}
       title={titles[step]} help={helps[step]}
       onBack={step > 0 ? () => { setStep(step - 1); window.scrollTo({ top: 0 }); } : undefined}
       onNext={step < TOTAL - 1 ? next : submit}
