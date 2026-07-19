@@ -12,6 +12,7 @@ import agencyRouter from '../server/routes/agency.routes';
 import jobRouter from '../server/routes/job.routes';
 import notificationRouter from '../server/routes/notification.routes';
 import documentRouter from '../server/routes/document.routes';
+import documentObligationsRouter from '../server/routes/document-obligations.routes';
 import applicationRouter from '../server/routes/application.routes';
 import driveRouter from '../server/routes/drive.routes';
 import reportsRouter from '../server/routes/admin/reports';
@@ -74,6 +75,10 @@ export function createTestApp(): express.Express {
   app.use('/api/v1/jobs', jobRouter);
   app.use('/api/v1/notifications', notificationRouter);
   app.use('/api/v1/candidates/documents', documentRouter);
+  // Mounted in server/routes.ts:165 but previously missing here, so the
+  // document-obligation engine — the thing that decides what a candidate is
+  // asked for and when (UAT-05 item 9) — had no integration coverage at all.
+  app.use('/api/v1/candidates/documents', documentObligationsRouter);
   app.use('/api/v1/applications', applicationRouter);
   app.use('/api/v1/drives', driveRouter);
   app.use('/api/v1/admin/reports', reportsRouter);
@@ -176,6 +181,14 @@ export async function truncateAllTables(): Promise<void> {
   await updateSetting('capability.employer_self_registration', true);
   await updateSetting('capability.agency_self_registration', true);
   await updateSetting('capability.agency_mode', 'marketplace');
+  // Same reasoning as agency_mode above: the inherited suite walks the SIX-stage
+  // workflow (reviewed -> shortlisted -> interview -> selected) as setup for
+  // interview-outcome, placement and reporting tests. Production now defaults to
+  // the compact HPSEDC pipeline, which does not run those two stages and rejects
+  // transitions into them. Pin the profile the inherited suite was written
+  // against; the compact default is covered explicitly by
+  // tests/integration/pipeline-compact.test.ts.
+  await updateSetting('pipeline.profile', 'full');
 }
 
 /**

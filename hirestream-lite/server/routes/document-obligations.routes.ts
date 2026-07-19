@@ -33,6 +33,8 @@ import {
 } from "@shared/schema";
 import { resolveRequiredDocs, relevantProfessions, docLabel, type DocStage } from "@shared/documents";
 import { eq, inArray } from "drizzle-orm";
+import { documentStageFor } from "@shared/pipeline";
+import { getSetting } from "../services/settings.service";
 
 const router = Router();
 
@@ -63,18 +65,16 @@ router.use(protect, (req, res, next) => {
  * early states — null means "ask for nothing", which is the default for the
  * ~19,500 applications that never get past them.
  */
+/**
+ * Kept for callers that predate pipeline profiles. It answers for the FULL
+ * profile only; anything deciding what a candidate actually owes must go
+ * through documentStageFor() with the active profile, because the compact
+ * pipeline moves the trigger to `selected` and collects both document sets
+ * there.
+ */
 export function stageForStatus(status: string | null | undefined): DocStage | null {
-  switch (status) {
-    case "shortlisted":
-    case "interview_scheduled":
-      return "verify";
-    case "selected":
-    case "placed":
-      return "deploy";
-    default:
-      // submitted, reviewed, rejected, withdrawn — nothing owed.
-      return null;
-  }
+  const r = documentStageFor(status, "full");
+  return r ? r.stage : null;
 }
 
 /** identity_proof has historical aliases; treat any of them as "have it". */
@@ -106,7 +106,11 @@ router.get("/obligations", async (req, res, next) => {
       .innerJoin(jobs, eq(applications.jobId, jobs.id))
       .where(eq(applications.candidateId, candidateId));
 
-    const live = appRows.filter((r: any) => stageForStatus(r.application.status) !== null);
+    // The active profile decides when documents come due — compact (HPSEDC
+    // phase 1) asks nothing until `selected`, because every applicant is
+    // interviewed and an interview is therefore not a narrowing point.
+    const profile = await getSetting<string>("pipeline.profile");
+    const live = appRows.filter((r: any) => documentStageFor(r.application.status, profile) !== null);
     if (live.length === 0) return res.json({ success: true, data: { obligations: [] } });
 
     const myProfs = await db.select().from(candidateProfessions).where(eq(candidateProfessions.candidateId, candidateId));
@@ -125,12 +129,14 @@ router.get("/obligations", async (req, res, next) => {
     const lang = String(req.query.lang || "en");
 
     const obligations = live.map((r: any) => {
-      const stage = stageForStatus(r.application.status) as DocStage;
+      const due = documentStageFor(r.application.status, profile)!;
+      const stage = due.stage as DocStage;
       // Scope to the trades THIS vacancy cares about — a mason job must not ask
       // a nurse-and-mason candidate for a Nursing Council registration.
       const relevant = relevantProfessions(professionKeys, professionReqs, r.job.category);
       const resolved = resolveRequiredDocs({
         stage,
+        cumulative: due.cumulative,
         professionKeys: relevant,
         professionReqs,
         country: r.job.country,

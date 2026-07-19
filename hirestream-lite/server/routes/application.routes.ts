@@ -5,15 +5,35 @@ import { logger } from "../config/logger.config";
 import { applications, candidates, jobs, interviews } from "@shared/schema";
 import { eq, and, desc, inArray, ne } from "drizzle-orm";
 import { notify } from "../services/notification.service";
+import { stageOrder } from "@shared/pipeline";
 import { getSetting } from "../services/settings.service";
 
 const router = Router();
 
+// The full vocabulary. Which of these a deployment actually USES is decided by
+// the active pipeline profile (shared/pipeline.ts) — compact skips `reviewed`
+// and `shortlisted` entirely. Ordering stays global so "is this backward?"
+// keeps working when a profile changes underneath existing applications.
 const STATUS_ORDER = ["submitted", "reviewed", "shortlisted", "interview_scheduled", "selected", "placed"] as const;
 function isBackward(from: string, to: string): boolean {
   const fi = STATUS_ORDER.indexOf(from as any);
   const ti = STATUS_ORDER.indexOf(to as any);
   return fi >= 0 && ti >= 0 && ti < fi;
+}
+
+/**
+ * Statuses a staff user may move an application INTO under the active profile.
+ *
+ * Rejecting a stage the profile does not use is the point: under compact,
+ * "shortlisted" is not a lighter version of "selected", it is a stage HPSEDC do
+ * not run — and an application parked there would sit outside the funnel the
+ * dashboards and the document engine understand.
+ *
+ * Statuses already on existing rows are never invalidated; this governs writes.
+ */
+async function allowedTargetStatuses(): Promise<string[]> {
+  const profile = await getSetting<string>("pipeline.profile");
+  return [...stageOrder(profile).filter((x) => x !== "placed"), "rejected"];
 }
 
 // ── Single application status update (agent / admin / employer) ──────
@@ -28,9 +48,12 @@ router.patch("/:id/status", protect, async (req, res, next) => {
     }
 
     const { status, reason, rejectionFeedback } = req.body ?? {};
-    const validStatuses = ["submitted", "reviewed", "shortlisted", "interview_scheduled", "selected", "rejected"];
+    const validStatuses = await allowedTargetStatuses();
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ success: false, error: { code: 400, message: "Invalid status" } });
+      return res.status(400).json({
+        success: false,
+        error: { code: 400, message: `Invalid status for the active pipeline. Allowed: ${validStatuses.join(", ")}.` },
+      });
     }
 
     const [app] = await db.select().from(applications).where(eq(applications.id, req.params.id)).limit(1);

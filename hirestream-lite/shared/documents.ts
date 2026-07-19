@@ -203,6 +203,12 @@ export function resolveRequiredDocs(input: {
   country?: string | null;
   /** jobs.additional_required_docs — the per-vacancy exception. */
   jobAdditional?: string[] | null;
+  /**
+   * Collect the verification documents alongside the deployment ones. Set by
+   * pipeline profiles whose candidates never pass through a separate verify
+   * stage — see shared/pipeline.ts.
+   */
+  cumulative?: boolean;
 }): RequiredDocs {
   const required = new Set<string>();
   const optional = new Set<string>();
@@ -211,7 +217,13 @@ export function resolveRequiredDocs(input: {
 
   if (input.stage === "deploy") {
     for (const k of DEPLOY_DOCS) { required.add(k); because(k, "selected"); }
-    return { required: [...required], optional: [], reasons };
+    // Non-cumulative deploy returns ONLY the perishable set, because the
+    // verification documents were already collected at the shortlist. Under a
+    // pipeline with no shortlist (HPSEDC phase 1) that upstream stage never
+    // ran, so returning early here would ask a selected candidate for a police
+    // clearance and a medical certificate and never once for their passport or
+    // trade certificate. Fall through and collect both sets instead.
+    if (!input.cumulative) return { required: [...required], optional: [], reasons };
   }
 
   for (const k of BASE_VERIFY_DOCS) { required.add(k); because(k, "base"); }

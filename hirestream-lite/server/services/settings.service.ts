@@ -155,6 +155,16 @@ export const SETTING_SPECS: SettingSpec[] = [
     options: ["single", "marketplace"],
   },
   {
+    key: "pipeline.profile",
+    category: "pipeline",
+    label: "Recruitment pipeline",
+    description:
+      "'compact' = HPSEDC phase 1: apply -> interview -> selected -> placed, with documents requested only from selected candidates. 'full' = the six-stage agency workflow with a desk review and a shortlist, for when individual agencies are enabled.",
+    type: "string",
+    default: "compact",
+    options: ["compact", "full"],
+  },
+  {
     key: "capability.default_agency_user_id",
     category: "capability",
     label: "Default (mega) agency user id",
