@@ -3284,6 +3284,7 @@ function OffersBanner({ applications, setActiveView }: { applications: any[]; se
 function CandidateCompliancePanel({ profile }: { profile: any }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [, setLocation] = useLocation();
   const [form, setForm] = useState<any>(null);
 
   // Initialise from profile on first render or when profile id changes
@@ -3310,9 +3311,19 @@ function CandidateCompliancePanel({ profile }: { profile: any }) {
       if (!form) return;
       const body: any = { ...form };
       delete body._id;
+      // Send only what this panel actually edits. Passport/ECR moved to the
+      // application form, and PDO plus the staff-confirmed statuses are 403 for
+      // a candidate — posting them anyway would fail the whole save on a field
+      // the user never touched.
+      delete body.passportNumber;
+      delete body.passportExpiry;
+      delete body.ecrStatus;
+      delete body.pdoCompleted;
+      delete body.pdoDate;
+      for (const k of ["medicalStatus", "pbbyInsuranceStatus"]) {
+        if (!["pending", "", null, undefined].includes(body[k])) delete body[k];
+      }
       body.ieltsBand = body.ieltsBand === "" ? null : Number(body.ieltsBand);
-      body.passportExpiry = body.passportExpiry || null;
-      body.pdoDate = body.pdoDate || null;
       const r = await fetch("/api/v1/me/compliance", {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
@@ -3344,28 +3355,32 @@ function CandidateCompliancePanel({ profile }: { profile: any }) {
         </div>
       </div>
       <div className="p-5 grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs font-semibold text-slate-700">Passport number</label>
-          <Input value={form.passportNumber} onChange={(e) => setForm({ ...form, passportNumber: e.target.value })}
-            className="mt-1 h-10 text-sm" placeholder="e.g. N1234567" />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-700">Passport expiry</label>
-          <Input type="date" value={form.passportExpiry}
-            onChange={(e) => setForm({ ...form, passportExpiry: e.target.value })}
-            min={new Date().toISOString().slice(0, 10)}
-            className="mt-1 h-10 text-sm" />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-700">ECR / ECNR status</label>
-          <Select value={form.ecrStatus} onValueChange={(v) => setForm({ ...form, ecrStatus: v })}>
-            <SelectTrigger className="mt-1 h-10 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ecnr">ECNR (no clearance needed)</SelectItem>
-              <SelectItem value="ecr">ECR (emigration clearance required)</SelectItem>
-              <SelectItem value="unknown">Not sure</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Passport and ECR are asked ON PAGE 1 OF THE APPLICATION. Editing them
+            here too meant two differently-styled surfaces for the same three
+            fields, and the second one ignored the admin field-configuration
+            (it offered the ECR "Not sure" option HPSEDC had switched off).
+            One form owns these; this panel shows them and links to it. */}
+        <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="grid sm:grid-cols-3 gap-3 flex-1 text-sm">
+              <div>
+                <div className="text-xs font-semibold text-slate-500">Passport number</div>
+                <div className="font-semibold text-slate-800">{form.passportNumber || "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-500">Passport expiry</div>
+                <div className="font-semibold text-slate-800">{form.passportExpiry || "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-500">ECR / ECNR</div>
+                <div className="font-semibold text-slate-800 uppercase">{form.ecrStatus || "—"}</div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" className="shrink-0"
+              onClick={() => setLocation("/register?page=1")}>
+              Edit
+            </Button>
+          </div>
         </div>
         <div>
           <label className="text-xs font-semibold text-slate-700">Police Clearance Certificate (PCC)</label>
@@ -3383,14 +3398,24 @@ function CandidateCompliancePanel({ profile }: { profile: any }) {
         </div>
         <div>
           <label className="text-xs font-semibold text-slate-700">Medical fitness</label>
-          <Select value={form.medicalStatus} onValueChange={(v) => setForm({ ...form, medicalStatus: v })}>
-            <SelectTrigger className="mt-1 h-10 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="fit">Fit</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="unfit">Unfit</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Fit / Unfit are a DOCTOR's finding recorded by HPSEDC, not something
+              the candidate declares — the server rejects them here (403). Showing
+              them in the dropdown meant offering a choice that always failed. The
+              candidate reports that they have booked/attended; staff record the
+              result, and it is displayed back to them read-only. */}
+          {["fit", "unfit", "not_required"].includes(form.medicalStatus) ? (
+            <div className="mt-1 h-10 flex items-center gap-2 text-sm rounded-md border border-slate-200 bg-slate-50 px-3">
+              <span className="font-semibold capitalize">{form.medicalStatus.replace("_", " ")}</span>
+              <span className="text-xs text-slate-500">· recorded by HPSEDC</span>
+            </div>
+          ) : (
+            <Select value={form.medicalStatus} onValueChange={(v) => setForm({ ...form, medicalStatus: v })}>
+              <SelectTrigger className="mt-1 h-10 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Booked / pending</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div>
           <label className="text-xs font-semibold text-slate-700">IELTS band</label>
@@ -3400,28 +3425,32 @@ function CandidateCompliancePanel({ profile }: { profile: any }) {
         </div>
         <div>
           <label className="text-xs font-semibold text-slate-700">Pre-Departure Orientation (PDO)</label>
-          <div className="flex items-center gap-3 mt-1">
-            <label className="flex items-center gap-1.5 text-sm">
-              <input type="checkbox" checked={form.pdoCompleted}
-                onChange={(e) => setForm({ ...form, pdoCompleted: e.target.checked })}
-                className="w-4 h-4" />
-              Completed
-            </label>
-            <Input type="date" value={form.pdoDate}
-              onChange={(e) => setForm({ ...form, pdoDate: e.target.value })}
-              className="h-10 text-sm flex-1" />
+          {/* Attendance is marked by HPSEDC after the session — the server
+              rejects pdoCompleted/pdoDate from a candidate outright. */}
+          <div className="mt-1 h-10 flex items-center gap-2 text-sm rounded-md border border-slate-200 bg-slate-50 px-3">
+            {form.pdoCompleted
+              ? <><span className="font-semibold text-emerald-700">Completed</span>
+                  {form.pdoDate && <span className="text-xs text-slate-500">· {form.pdoDate}</span>}</>
+              : <span className="text-slate-500">HPSEDC will record this after you attend</span>}
           </div>
         </div>
         <div>
           <label className="text-xs font-semibold text-slate-700">PBBY insurance</label>
+          {["enrolled", "not_required"].includes(form.pbbyInsuranceStatus) ? (
+            <div className="mt-1 h-10 flex items-center gap-2 text-sm rounded-md border border-slate-200 bg-slate-50 px-3">
+              <span className="font-semibold capitalize">{form.pbbyInsuranceStatus.replace("_", " ")}</span>
+              <span className="text-xs text-slate-500">· recorded by HPSEDC</span>
+            </div>
+          ) : (
           <Select value={form.pbbyInsuranceStatus} onValueChange={(v) => setForm({ ...form, pbbyInsuranceStatus: v })}>
             <SelectTrigger className="mt-1 h-10 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="enrolled">Enrolled</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="not_required">Not required</SelectItem>
+              {/* Enrolment is confirmed by the agency against the insurer, and
+                  "not required" is a waiver only HPSEDC can grant. Both 403 here. */}
+              <SelectItem value="pending">Applied / pending</SelectItem>
             </SelectContent>
           </Select>
+          )}
         </div>
         <div className="md:col-span-2">
           <label className="text-xs font-semibold text-slate-700">PBBY policy number</label>
