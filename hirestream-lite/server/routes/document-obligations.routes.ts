@@ -33,7 +33,7 @@ import {
 } from "@shared/schema";
 import { resolveRequiredDocs, relevantProfessions, docLabel, type DocStage } from "@shared/documents";
 import { eq, inArray } from "drizzle-orm";
-import { documentStageFor } from "@shared/pipeline";
+import { documentStageFor, getPipeline, stageOrder } from "@shared/pipeline";
 import { getSetting } from "../services/settings.service";
 
 const router = Router();
@@ -218,12 +218,32 @@ router.get("/preview", async (req, res, next) => {
 
     const lang = String(req.query.lang || "en");
     const relevant = relevantProfessions(professionKeys, professionReqs, job.category);
-    const shape = (stage: DocStage) => {
-      const r = resolveRequiredDocs({ stage, professionKeys: relevant, professionReqs, country: job.country, jobAdditional: job.additionalRequiredDocs });
+    const shape = (stage: DocStage, cumulative = false) => {
+      const r = resolveRequiredDocs({ stage, cumulative, professionKeys: relevant, professionReqs, country: job.country, jobAdditional: job.additionalRequiredDocs });
       return r.required.map((k) => ({ key: k, label: docLabel(k, lang), have: hasDoc(owned, k), reasons: r.reasons[k] || [] }));
     };
 
-    res.json({ success: true, data: { jobId, country: job.country, ifShortlisted: shape("verify"), ifSelected: shape("deploy") } });
+    // Review 2026-07-19: this answered as if the six-stage pipeline were always
+    // running — it promised a shortlist step that Direct does not have, and
+    // said selection needed only PCC and medical, understating the real ask by
+    // four documents. "What will I be asked for?" is precisely the question
+    // item 9 exists to answer honestly, so it has to follow the live profile.
+    const previewProfile = await getSetting<string>("pipeline.profile");
+    const pipeline = getPipeline(previewProfile);
+    const hasShortlistStage = stageOrder(previewProfile).includes("shortlisted");
+
+    res.json({
+      success: true,
+      data: {
+        jobId,
+        country: job.country,
+        pipelineProfile: pipeline.key,
+        // Null rather than absent: the client can tell "this pipeline has no
+        // such stage" from "this stage asks for nothing".
+        ifShortlisted: hasShortlistStage ? shape("verify") : null,
+        ifSelected: shape("deploy", pipeline.documentsCumulative),
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -189,6 +189,11 @@ export async function truncateAllTables(): Promise<void> {
   // against; the compact default is covered explicitly by
   // tests/integration/pipeline-compact.test.ts.
   await updateSetting('pipeline.profile', 'full');
+  // UAT-05 item 1 gates APPLYING on a confirmed email. The inherited suite
+  // registers a candidate and applies in the same test without an inbox, so
+  // the gate is off here and covered explicitly by
+  // tests/integration/email-verification.test.ts.
+  await updateSetting('registration.require_verified_email_to_apply', false);
 }
 
 /**

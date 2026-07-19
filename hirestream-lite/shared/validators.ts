@@ -22,4 +22,10 @@ export const loginSchema = z.object({
 export const otpSchema = z.object({
   email: z.string().trim().email().max(120),
   otp: z.string().length(6, "OTP must be exactly 6 digits").regex(/^\d{6}$/, "OTP must be numeric"),
+  // Must match the purpose the code was ISSUED under — verifyOtp filters on it,
+  // so a code sent as "register" is invisible to a lookup for "login". The
+  // default MIRRORS send-otp's default ("login") so the pair agrees when
+  // neither side specifies; flows that issue under another purpose pass it
+  // explicitly on both calls.
+  purpose: z.enum(["login", "register", "password_reset"]).default("login"),
 });

@@ -1,4 +1,5 @@
 import { useParams, useLocation, Link } from "wouter";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -38,6 +39,8 @@ const PIPELINE = [
 ];
 
 export default function AgentJobDetailPage() {
+  const { capabilities } = useCapabilities();
+  const activeProfile = capabilities.pipelineProfile;
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const [statusFilter, setStatusFilter] = useState("all");
@@ -427,10 +430,14 @@ export default function AgentJobDetailPage() {
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10"
-              onClick={() => bulkAction("reviewed")}>Mark Reviewed</Button>
-            <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => bulkAction("shortlisted")}>Shortlist All</Button>
+            {activeProfile === "full" && (
+              <>
+                <Button size="sm" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10"
+                  onClick={() => bulkAction("reviewed")}>Mark Reviewed</Button>
+                <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={() => bulkAction("shortlisted")}>Shortlist All</Button>
+              </>
+            )}
             <Button size="sm" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10"
               onClick={() => bulkAction("rejected")}>Reject All</Button>
             {selected.size >= 2 && selected.size <= 4 && (
@@ -590,18 +597,30 @@ export default function AgentJobDetailPage() {
                     <Link href={`/agent/candidates/${a.candidate.id}`}>
                       <Button size="sm" variant="outline" className="gap-1"><Eye className="w-3.5 h-3.5" /> View Profile</Button>
                     </Link>
-                    {a.status === "submitted" && (
+                    {/* Review 2026-07-19: these two were left six-stage-only.
+                        Under Direct the server rejects both transitions, so on
+                        the screen staff use most every row offered two buttons
+                        that always 400 — and no way to schedule an interview
+                        for a `submitted` applicant, which is the whole flow. */}
+                    {activeProfile === "full" && a.status === "submitted" && (
                       <Button size="sm" variant="outline" disabled={isBusy}
                         onClick={() => updateStatus.mutate({ applicationId: a.applicationId, status: "reviewed" })}
                         className="gap-1 border-amber-200 text-amber-700 hover:bg-amber-50">
                         Mark Reviewed
                       </Button>
                     )}
-                    {["submitted", "reviewed"].includes(a.status) && (
+                    {activeProfile === "full" && ["submitted", "reviewed"].includes(a.status) && (
                       <Button size="sm" disabled={isBusy}
                         onClick={() => updateStatus.mutate({ applicationId: a.applicationId, status: "shortlisted" })}
                         className="gap-1 bg-purple-600 hover:bg-purple-700 text-white">
                         <Star className="w-3.5 h-3.5" /> Shortlist
+                      </Button>
+                    )}
+                    {activeProfile === "compact" && ["submitted", "reviewed"].includes(a.status) && (
+                      <Button size="sm"
+                        onClick={() => setInterviewFor({ applicationId: a.applicationId, candidateName: a.candidate.fullName })}
+                        className="gap-1 bg-cyan-600 hover:bg-cyan-700 text-white">
+                        <Clock className="w-3.5 h-3.5" /> Schedule interview
                       </Button>
                     )}
                     {a.status === "shortlisted" && (

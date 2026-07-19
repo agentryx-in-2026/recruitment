@@ -105,6 +105,16 @@ router.post("/register", validateRequest(registerSchema), async (req, res, next)
           message: `Your account has been created as ${role}. Complete your profile to get started.`,
         }).catch(() => {});
 
+        // UAT-05 item 1 — send the verification code as part of registering,
+        // so the candidate can confirm it while they still have the tab open.
+        // Best-effort: a mail failure must not fail the registration, or a
+        // slow SMTP host would cost us the applicant. They can resend from the
+        // banner, and nothing is blocked until they try to apply.
+        if (user.email) {
+          createAndSendOtp(user.email, "register")
+            .catch((e: any) => logger.warn(`registration OTP send failed for ${user.id}: ${e?.message}`));
+        }
+
         return res.status(201).json({ success: true, data: safeUser });
       });
     });
@@ -352,8 +362,12 @@ router.post("/send-otp", sensitiveLimiter, validateRequest(sendOtpBodySchema), a
 // ── Verify OTP (real) ───────────────────────────────────────────────
 router.post("/verify-otp", validateRequest(otpSchema), async (req, res, next) => {
   try {
-    const { email, otp } = req.body;
-    const result = await verifyOtp(email, otp);
+    const { email, otp, purpose } = req.body;
+    // The purpose is part of the OTP's identity — verifyOtp matches on it, so
+    // a code issued for "register" is invisible to a lookup defaulting to
+    // "login". That mismatch silently 401'd every registration verification
+    // while the code sat valid in the table.
+    const result = await verifyOtp(email, otp, purpose);
 
     if (!result.success) {
       return res.status(401).json({
@@ -362,14 +376,18 @@ router.post("/verify-otp", validateRequest(otpSchema), async (req, res, next) =>
       });
     }
 
-    // Mark user's email as verified if they exist
+    // UAT-05 item 1. This used to set `phoneVerified` — the comment said
+    // "reuse field for email verification" — so verifying an EMAIL marked the
+    // user's PHONE as verified and left the email unverified forever. Two
+    // separate claims about two separate channels; there is now a column for
+    // each.
     const db = storage.db;
     if (db) {
       const existingUser = await storage.getUserByUsername(email);
       if (existingUser) {
         await db
           .update(users)
-          .set({ phoneVerified: true }) // reuse field for email verification
+          .set({ emailVerified: true, emailVerifiedAt: new Date() })
           .where(eq(users.id, existingUser.id));
       }
     }

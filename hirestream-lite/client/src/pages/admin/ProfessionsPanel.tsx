@@ -279,7 +279,7 @@ function ProfEditor({ draft, setDraft, docTypes, onCancel, onSave, saving, isNew
         </div>
 
         <div className="lg:col-span-2">
-          <Label className="text-xs font-semibold text-slate-600">Required documents <span className="font-normal text-slate-400">— asked once shortlisted</span></Label>
+          <Label className="text-xs font-semibold text-slate-600">Required documents <span className="font-normal text-slate-400">— asked once the candidate reaches the stage where documents are due (see System Config &rarr; Recruitment pipeline)</span></Label>
           <div className="mt-1.5">
             <DocPicker all={docTypes} value={draft.requiredDocs || []} onChange={(v: string[]) => set({ requiredDocs: v })} exclude={draft.optionalDocs || []} />
           </div>

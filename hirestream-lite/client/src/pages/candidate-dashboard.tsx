@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { stageOrder } from "@shared/pipeline";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1523,7 +1524,12 @@ function JobsView({ allJobs, appliedJobIds, savedJobIds, recommendations, comple
 
 // ── APPLICATIONS VIEW ───────────────────────────────────────────────
 
-const PIPELINE = [
+// Every step this view can draw. Which are SHOWN follows the active pipeline
+// profile: under Direct there is no desk review and no shortlist, so drawing
+// six told a candidate they were 4/6 through a journey containing two stages
+// that will never happen to them. Overstating the remaining work is worse than
+// showing no bar at all.
+const ALL_PIPELINE = [
   { key: "submitted", label: "Submitted", color: "text-blue-600", bg: "bg-blue-100", gradient: "from-blue-500 to-blue-600" },
   { key: "reviewed", label: "Reviewed", color: "text-amber-600", bg: "bg-amber-100", gradient: "from-amber-500 to-amber-600" },
   { key: "shortlisted", label: "Shortlisted", color: "text-purple-600", bg: "bg-purple-100", gradient: "from-purple-500 to-purple-600" },
@@ -1531,6 +1537,17 @@ const PIPELINE = [
   { key: "selected", label: "Selected", color: "text-emerald-600", bg: "bg-emerald-100", gradient: "from-emerald-500 to-emerald-600" },
   { key: "placed", label: "Placed", color: "text-green-700", bg: "bg-green-100", gradient: "from-green-500 to-green-600" },
 ];
+
+/**
+ * Steps for the active profile, plus whichever step this application actually
+ * sits in — a row parked in `shortlisted` before a profile switch must not
+ * render a bar its own status is missing from.
+ */
+function pipelineFor(profile: string, currentStatus?: string | null) {
+  const allowed = new Set(stageOrder(profile));
+  if (currentStatus) allowed.add(currentStatus);
+  return ALL_PIPELINE.filter((s) => allowed.has(s.key));
+}
 
 // Candidate view groups its applications into three buckets:
 //   Active  — in-progress submissions the agency is still working (submitted..interview)
@@ -1550,7 +1567,7 @@ function groupForStatus(status: string): GroupKey | null {
 }
 
 // audit 2026-07-06 (Batch 3): takes the caller's `t` — module-level helper, not a component.
-function renderAppCard(app: any, selectedApp: any, setSelectedApp: (a: any) => void, t: (k: string, o?: any) => string) {
+function renderAppCard(app: any, selectedApp: any, setSelectedApp: (a: any) => void, t: (k: string, o?: any) => string, PIPELINE = ALL_PIPELINE) {
   const isSelected = selectedApp?.id === app.id;
   return (
     <div key={app.id} onClick={() => setSelectedApp(app)}
@@ -1608,6 +1625,10 @@ function renderAppCard(app: any, selectedApp: any, setSelectedApp: (a: any) => v
 }
 
 function ApplicationsView({ applications, initialIntent, setActiveView }: { applications: any[]; initialIntent?: string | null; setActiveView?: (v: string, intent?: string) => void }) {
+  const { capabilities: appsCaps } = useCapabilities();
+  // Stage list for the filter dropdown — profile stages only, since the filter
+  // offers stages to look for rather than describing one application.
+  const PIPELINE = pipelineFor(appsCaps.pipelineProfile);
   // v0.4.20: initial filter state honors the `intent` hint passed from
   // the Overview stat cards so each card lands the user on the rows the
   // card was about — instead of always dumping them on the same list.
@@ -1778,13 +1799,13 @@ function ApplicationsView({ applications, initialIntent, setActiveView }: { appl
                 </button>
                 {!collapsed[g.key] && (
                   <div className="space-y-2 mt-1">
-                    {grouped[g.key].map((app: any) => renderAppCard(app, selectedApp, setSelectedApp, t))}
+                    {grouped[g.key].map((app: any) => renderAppCard(app, selectedApp, setSelectedApp, t, pipelineFor(appsCaps.pipelineProfile, app.status)))}
                   </div>
                 )}
               </div>
             ))
           ) : (
-            filtered.map((app: any) => renderAppCard(app, selectedApp, setSelectedApp, t))
+            filtered.map((app: any) => renderAppCard(app, selectedApp, setSelectedApp, t, pipelineFor(appsCaps.pipelineProfile, app.status)))
           )}
         </div>
       </div>
@@ -1805,8 +1826,8 @@ function ApplicationsView({ applications, initialIntent, setActiveView }: { appl
 
               {/* Full Pipeline */}
               <div className="flex items-center gap-1.5 my-6 bg-gradient-to-r from-slate-50 to-white rounded-xl p-4 border border-slate-100">
-                {PIPELINE.map((stage, i) => {
-                  const stageIdx = PIPELINE.findIndex(s => s.key === selectedApp.status);
+                {pipelineFor(appsCaps.pipelineProfile, selectedApp.status).map((stage, i, DETAIL) => {
+                  const stageIdx = DETAIL.findIndex(s => s.key === selectedApp.status);
                   const isRejected = selectedApp.status === "rejected";
                   const isDone = !isRejected && i < stageIdx;
                   const isCurrent = !isRejected && i === stageIdx;
@@ -1826,7 +1847,7 @@ function ApplicationsView({ applications, initialIntent, setActiveView }: { appl
                           {t(`appsView.stage.${stage.key}`)}
                         </span>
                       </div>
-                      {i < PIPELINE.length - 1 && <div className={`flex-1 h-0.5 mx-1 rounded-full ${isDone ? "bg-emerald-400" : "bg-slate-200"}`} />}
+                      {i < DETAIL.length - 1 && <div className={`flex-1 h-0.5 mx-1 rounded-full ${isDone ? "bg-emerald-400" : "bg-slate-200"}`} />}
                     </div>
                   );
                 })}
@@ -2433,6 +2454,8 @@ function SavedJobsView({ savedJobs, appliedJobIds, setActiveView }: { savedJobs:
 // ── Compact Application Card (for overview) ─────────────────────────
 
 function CompactAppCard({ app }: { app: any }) {
+  const { capabilities: cardCaps } = useCapabilities();
+  const PIPELINE = pipelineFor(cardCaps.pipelineProfile, app?.status);
   const [, setLocation] = useLocation();
   const stageIdx = PIPELINE.findIndex(s => s.key === app.status);
   const currentStage = PIPELINE.find(s => s.key === app.status);
@@ -2471,6 +2494,7 @@ function CompactAppCard({ app }: { app: any }) {
 // ── JOURNEY VIEW ────────────────────────────────────────────────────
 
 function JourneyView({ profile, applications, completion, docs, education, experience }: any) {
+  const journeyProfile = useCapabilities().capabilities.pipelineProfile;
   // Build milestones from user data
   const profileComplete = completion.percentage >= 80;
   const hasProfile = profile?.fullName;
@@ -2490,8 +2514,17 @@ function JourneyView({ profile, applications, completion, docs, education, exper
     { label: "Experience Added", desc: hasExperience ? `${experience.length} record(s)` : "Add work history", icon: Briefcase, done: hasExperience, date: null, color: "emerald" },
     { label: "Documents Uploaded", desc: hasDocs ? `${docs.length} file(s)` : "Upload CV, passport, certificates", icon: FileText, done: hasDocs, date: null, color: "purple" },
     { label: "First Application", desc: hasApplied ? `${applications.length} job(s) applied` : "Apply to your first job", icon: ClipboardList, done: hasApplied, date: applications?.[0]?.appliedAt, color: "amber" },
-    { label: "Shortlisted", desc: shortlistedApp ? `For ${shortlistedApp.jobTitle || "a position"}` : "Waiting for recruiter review", icon: Star, done: !!shortlistedApp, date: shortlistedApp?.appliedAt, color: "orange" },
-    { label: "Interview Scheduled", desc: interviewApp ? `With ${interviewApp.company || "employer"}` : "Pending shortlist", icon: Calendar, done: !!interviewApp, date: interviewApp?.appliedAt, color: "rose" },
+    // Under Direct there is no shortlist, so this milestone can never complete —
+    // it would sit permanently grey on the candidate's own progress list, and
+    // "Pending shortlist" would describe a step that does not exist. Every
+    // applicant is interviewed, so that is the honest next milestone.
+    ...(journeyProfile === "full" ? [
+      { label: "Shortlisted", desc: shortlistedApp ? `For ${shortlistedApp.jobTitle || "a position"}` : "Waiting for recruiter review", icon: Star, done: !!shortlistedApp, date: shortlistedApp?.appliedAt, color: "orange" },
+    ] : []),
+    { label: "Interview Scheduled",
+      desc: interviewApp ? `With ${interviewApp.company || "employer"}`
+        : journeyProfile === "full" ? "Pending shortlist" : "Every applicant is interviewed",
+      icon: Calendar, done: !!interviewApp, date: interviewApp?.appliedAt, color: "rose" },
     { label: "Selected", desc: selectedApp ? `Selected for ${selectedApp.jobTitle || "role"}` : "Show your best in the interview", icon: Award, done: !!selectedApp, date: selectedApp?.appliedAt, color: "pink" },
     { label: "Placed Abroad", desc: placedApp ? `Placed at ${placedApp.company || "overseas employer"}` : "Final step — overseas deployment", icon: Globe, done: !!placedApp, date: placedApp?.appliedAt, color: "green" },
   ];
@@ -3069,6 +3102,7 @@ function similarJobs(current: any, all: any[]): any[] {
 
 // ── Journey Strip: 3 next milestones on Overview ─────────────────────
 function JourneyStrip({ profile, completion, docs, education, experience, applications, setActiveView }: any) {
+  const checklistProfile = useCapabilities().capabilities.pipelineProfile;
   const [, setLocation] = useLocation();
   const hasProfile     = !!profile?.fullName;
   const profileFull    = (completion?.percentage ?? 0) >= 80;
@@ -3087,7 +3121,9 @@ function JourneyStrip({ profile, completion, docs, education, experience, applic
     { key: "experience", label: "Add experience",      icon: Briefcase,    done: hasExperience, cta: { label: "Add",      action: () => setLocation("/register?page=3") } },
     { key: "documents",  label: "Upload CV + passport", icon: FileText,    done: hasDocs,       cta: { label: "Upload",   action: () => setActiveView("documents") } },
     { key: "apply",      label: "Apply to a job",      icon: ClipboardList, done: hasApplied,   cta: { label: "Browse",   action: () => setActiveView("jobs") } },
-    { key: "shortlisted", label: "Get shortlisted",    icon: Star,         done: !!shortlisted, cta: null },
+    ...(checklistProfile === "full"
+      ? [{ key: "shortlisted", label: "Get shortlisted", icon: Star, done: !!shortlisted, cta: null }]
+      : []),
     { key: "interview",  label: "Attend interview",    icon: Calendar,     done: !!interview,   cta: null },
     { key: "placed",     label: "Placed abroad",       icon: Globe,        done: !!placed,      cta: null },
   ];

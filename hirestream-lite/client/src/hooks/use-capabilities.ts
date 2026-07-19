@@ -16,6 +16,8 @@ export interface Capabilities {
   assistedCallbackEnabled: boolean;
   standardRegistrationEnabled: boolean;
   professionalRegistrationEnabled: boolean;
+  /** Which recruitment pipeline this deployment runs — see shared/pipeline.ts. */
+  pipelineProfile: "compact" | "full";
 }
 
 const SAFE_DEFAULT: Capabilities = {
@@ -25,6 +27,10 @@ const SAFE_DEFAULT: Capabilities = {
   assistedCallbackEnabled: true,
   standardRegistrationEnabled: true,
   professionalRegistrationEnabled: true,
+  // Matches the server default. Erring toward the SHORTER pipeline is the safe
+  // fallback: it offers fewer transitions, so a stale or failed config fetch
+  // hides buttons rather than showing ones the server will reject.
+  pipelineProfile: "compact",
 };
 
 export function useCapabilities(): { capabilities: Capabilities; isLoading: boolean } {

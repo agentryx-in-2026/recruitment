@@ -8,6 +8,8 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useSearch } from "wouter";
+import { useCapabilities } from "@/hooks/use-capabilities";
+import { stageOrder, TERMINAL_STATUSES } from "@shared/pipeline";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Filter, Users, ArrowLeft, Briefcase, MapPin, Eye, Star, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +55,12 @@ type SortKey = "newest" | "oldest" | "match" | "longest_in_stage";
 // v0.4.23: added Withdrawn pill so "All" = sum of all pills. Before
 // this, withdrawn applications were counted in "All" but had no pill —
 // making the math look broken on the UI.
-const PIPELINE = [
+// Every stage this screen knows how to draw. Which of them are actually SHOWN
+// depends on the active pipeline profile — under Direct (4 stages) HPSEDC do
+// not run a desk review or a shortlist, and the server rejects transitions into
+// them, so offering the pills and the Shortlist button would mean buttons that
+// always error. Terminal states are shown in every profile.
+const ALL_PIPELINE = [
   { key: "submitted",           label: "Submitted",  color: "bg-blue-100 text-blue-700" },
   { key: "reviewed",            label: "Reviewed",   color: "bg-amber-100 text-amber-700" },
   { key: "shortlisted",         label: "Shortlisted",color: "bg-purple-100 text-purple-700" },
@@ -68,6 +75,8 @@ const VALID_STATUSES = ["submitted", "reviewed", "shortlisted", "interview_sched
 
 export default function AgentApplicantsPage() {
   const [, setLocation] = useLocation();
+  const { capabilities } = useCapabilities();
+  const activeProfile = capabilities.pipelineProfile;
   const queryString = useSearch();
   // Seed the filter from ?status=<stage> when the page is deep-linked from
   // the dashboard pipeline pills. Treat the query as a one-shot hint — after
@@ -137,6 +146,18 @@ export default function AgentApplicantsPage() {
     },
     onError: (e: any) => toast({ title: "Couldn't update", description: e.message, variant: "destructive" }),
   });
+
+  // A stage this profile does not run is hidden — UNLESS an application is
+  // actually sitting in it. Rows created before a profile switch (or by the
+  // bulk endpoint, which used to bypass the profile entirely) must stay
+  // visible and filterable, or "All" stops equalling the sum of the pills and
+  // the rows become unreachable on the screen that exists to manage them.
+  // That is the v0.4.23 bug, re-created — hence the occupancy check.
+  const PIPELINE = useMemo(() => {
+    const allowed = new Set([...stageOrder(activeProfile), ...TERMINAL_STATUSES]);
+    const occupied = new Set(applicants.map((a: any) => a.status));
+    return ALL_PIPELINE.filter((s) => allowed.has(s.key) || occupied.has(s.key));
+  }, [activeProfile, applicants]);
 
   const counts: Record<string, number> = {};
   for (const s of PIPELINE) counts[s.key] = 0;
@@ -389,17 +410,26 @@ export default function AgentApplicantsPage() {
                           </Button>
                         </Link>
                         {a.status === "submitted" && (
-                          <Button size="sm" variant="outline" disabled={updateStatus.isPending}
+                          <Button size="sm" variant="outline" disabled={updateStatus.isPending || activeProfile === "compact"}
                             onClick={() => updateStatus.mutate({ applicationId: a.applicationId, status: "reviewed" })}
                             className="gap-1 h-8 border-amber-200 text-amber-700 hover:bg-amber-50">
                             Reviewed
                           </Button>
                         )}
-                        {["submitted", "reviewed"].includes(a.status) && (
+                        {activeProfile === "full" && ["submitted", "reviewed"].includes(a.status) && (
                           <Button size="sm" disabled={updateStatus.isPending}
                             onClick={() => updateStatus.mutate({ applicationId: a.applicationId, status: "shortlisted" })}
                             className="gap-1 h-8 bg-purple-600 hover:bg-purple-700 text-white">
                             <Star className="w-3.5 h-3.5" /> Shortlist
+                          </Button>
+                        )}
+                        {/* Direct: interviews are scheduled straight off an
+                            application, since every applicant is interviewed. */}
+                        {activeProfile === "compact" && ["submitted", "reviewed"].includes(a.status) && (
+                          <Button size="sm"
+                            onClick={() => setInterviewFor({ applicationId: a.applicationId, candidateName: a.candidate.fullName })}
+                            className="gap-1 h-8 bg-cyan-600 hover:bg-cyan-700 text-white">
+                            <Clock className="w-3.5 h-3.5" /> Schedule interview
                           </Button>
                         )}
                         {a.status === "shortlisted" && (

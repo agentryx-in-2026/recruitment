@@ -1,4 +1,6 @@
 import { useParams, useLocation, Link } from "wouter";
+import { useCapabilities } from "@/hooks/use-capabilities";
+import { stageOrder } from "@shared/pipeline";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -17,7 +19,12 @@ async function fetchJson(url: string) {
   return res.json();
 }
 
-const PIPELINE = [
+// Every step this bar can draw. Which are SHOWN follows the active pipeline
+// profile — under Direct there is no desk review and no shortlist, so drawing
+// six steps told a candidate they were 2/6 of the way through a journey with
+// two stages that will never happen to them. A progress bar that overstates
+// the remaining work is worse than none.
+const ALL_STEPS = [
   { key: "submitted", label: "Submitted", bg: "bg-blue-100", color: "text-blue-600" },
   { key: "reviewed", label: "Reviewed", bg: "bg-amber-100", color: "text-amber-600" },
   { key: "shortlisted", label: "Shortlisted", bg: "bg-purple-100", color: "text-purple-600" },
@@ -26,7 +33,22 @@ const PIPELINE = [
   { key: "placed", label: "Placed", bg: "bg-green-100", color: "text-green-700" },
 ];
 
+/**
+ * Steps for the active profile, plus whichever step this application is
+ * actually sitting in.
+ *
+ * The occupancy term matters: rows parked in `reviewed` or `shortlisted` before
+ * the profile switch would otherwise render a bar their own status is absent
+ * from, i.e. a progress bar showing no progress.
+ */
+function stepsFor(profile: string, currentStatus?: string | null) {
+  const allowed = new Set(stageOrder(profile));
+  if (currentStatus) allowed.add(currentStatus);
+  return ALL_STEPS.filter((s) => allowed.has(s.key));
+}
+
 export default function ApplicationDetailPage() {
+  const { capabilities } = useCapabilities();
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -86,6 +108,7 @@ export default function ApplicationDetailPage() {
     );
   }
 
+  const PIPELINE = stepsFor(capabilities.pipelineProfile, app.status);
   const stageIdx = PIPELINE.findIndex((s) => s.key === app.status);
   const isRejected = app.status === "rejected";
   // Known dates per pipeline stage (best-effort from what the candidate API exposes)

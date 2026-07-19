@@ -40,6 +40,9 @@ export interface EventContext {
 // Severity assigned per event type. Drives the drawer color + banner urgency.
 // Admin can still override per-template via the DB if a deployment disagrees.
 export const EVENT_SEVERITY: Record<string, "info" | "positive" | "warning" | "urgent"> = {
+  // Carries a deadline: it should read like the selection notice it follows,
+  // not like a dismissible info toast.
+  "documents.now_required": "positive",
   "application.submitted":         "info",
   "application.reviewed":          "info",
   "application.shortlisted":       "positive",
@@ -61,6 +64,7 @@ export const EVENT_SEVERITY: Record<string, "info" | "positive" | "warning" | "u
 // Events that auto-save so the user can't accidentally dismiss something
 // consequential. Offers and interviews should stay around until handled.
 export const AUTO_SAVE_EVENTS = new Set([
+  "documents.now_required",
   "offer.issued", "offer.accepted",
   "application.selected",
   "interview.scheduled",
@@ -83,6 +87,11 @@ export const EVENT_KEYS = [
   "job.auto_close_nudge",
   "requisition.picked_up",
   "job.matches_your_profile",
+  // Fired when an application crosses into the stage where documents become
+  // due — the shortlist under Screened, selection under Direct. See
+  // application.routes.ts; the crossing is computed from the pipeline profile
+  // rather than a fixed status.
+  "documents.now_required",
 ] as const;
 export type EventKey = typeof EVENT_KEYS[number];
 

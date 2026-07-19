@@ -38,6 +38,8 @@ export class MemStorage implements IStorage {
       aadhaarVerified: false,
       phoneNumber: null,
       phoneVerified: false,
+      emailVerified: false,
+      emailVerifiedAt: null,
       himAccessId: null,
       preferredLanguage: "en",
       isActive: true,

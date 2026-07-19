@@ -23,6 +23,18 @@ export interface SettingSpec {
   min?: number;
   max?: number;
   options?: string[]; // for string_array / enum-style settings
+  /**
+   * Human labels for `options`, keyed by option value. Without these the admin
+   * UI shows the raw stored key — "compact" tells an HPSEDC operator nothing
+   * about what they are switching the portal to.
+   */
+  optionLabels?: Record<string, string>;
+  /**
+   * Machine-managed: shown in the admin UI but not hand-editable. These hold
+   * IDs written by the boot-time seed; a typo silently breaks job ownership or
+   * routing, and there is no sensible free-text validation for a UUID.
+   */
+  systemManaged?: boolean;
 }
 
 export const SETTING_SPECS: SettingSpec[] = [
@@ -153,19 +165,28 @@ export const SETTING_SPECS: SettingSpec[] = [
     type: "string",
     default: "single",
     options: ["single", "marketplace"],
+    optionLabels: {
+      single: "Single agency (HPSEDC)",
+      marketplace: "Marketplace (many agencies)",
+    },
   },
   {
     key: "pipeline.profile",
     category: "pipeline",
     label: "Recruitment pipeline",
     description:
-      "'compact' = HPSEDC phase 1: apply -> interview -> selected -> placed, with documents requested only from selected candidates. 'full' = the six-stage agency workflow with a desk review and a shortlist, for when individual agencies are enabled.",
+      "Direct (4 stages): Applied -> Interview -> Selected -> Placed. Every applicant is interviewed; documents are requested only from selected candidates. This is HPSEDC phase 1. Screened (6 stages) adds a desk review and a shortlist before interviews, with documents from the shortlist onward — for when individual agencies are enabled.",
     type: "string",
     default: "compact",
     options: ["compact", "full"],
+    optionLabels: {
+      compact: "Direct — 4 stages",
+      full: "Screened — 6 stages",
+    },
   },
   {
     key: "capability.default_agency_user_id",
+    systemManaged: true,
     category: "capability",
     label: "Default (mega) agency user id",
     description: "In single mode, the agent user id that owns all jobs. Populated by the boot-time default-agency seed; do not edit by hand.",
@@ -230,6 +251,7 @@ export const SETTING_SPECS: SettingSpec[] = [
     // v1 is the legacy 3-factor for rollback. Admin Parameters Module
     // surfaces this as a radio toggle.
     key: "matching.engine_version",
+    options: ["v1", "v2"],
     category: "matching",
     label: "Matching engine version",
     description: "Switch between v2 (7-factor, default) and v1 (legacy 3-factor) without redeploying.",
@@ -395,6 +417,15 @@ export const SETTING_SPECS: SettingSpec[] = [
   // they decide without a release — and can change their mind after seeing
   // real numbers, which is the only honest way to settle any of them.
   {
+    key: "registration.require_verified_email_to_apply",
+    category: "registration",
+    label: "Require a confirmed email before applying",
+    description:
+      "UAT-05 Item 1. ON (default): a candidate may register, sign in and browse, but must confirm the code emailed to them before they can apply. Verification deliberately does NOT gate sign-in — locking someone out of a new account because a mail was slow or went to spam loses the applicant entirely. Turn OFF if email delivery proves unreliable for HPSEDC's applicants.",
+    type: "boolean",
+    default: true,
+  },
+  {
     key: "registration.passport_mandatory",
     category: "registration",
     label: "Passport number is hard-mandatory",
@@ -441,6 +472,7 @@ export const SETTING_SPECS: SettingSpec[] = [
     // (default) = resolve at commit time — the first verified agency's user
     // (HPSEDC mega-agency in single mode), else the importing admin.
     key: "jobimport.default_agent_user_id",
+    systemManaged: true,
     category: "access",
     label: "Job importer — owner agent user id",
     description: "Agent user_id that owns jobs created by the Smart Job Importer. Leave empty to auto-resolve: the first verified agency (HPSEDC) or, if none, the importing admin.",
@@ -544,6 +576,7 @@ export const SETTING_SPECS: SettingSpec[] = [
   // ── Grievance routing + SLA ──────────────────────────────────────────
   {
     key: "grievance.technical_owner_user_id",
+    systemManaged: true,
     category: "access",
     label: "Technical-grievance owner (user_id)",
     description: "When set, technical_problem grievances are auto-assigned to this user_id (typically an Agentryx delivery contact). Empty = falls back to admin queue. Find the user_id in superadmin → User Management.",

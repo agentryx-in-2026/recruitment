@@ -8,10 +8,11 @@ const router = Router();
 // non-sensitive capability booleans — never secrets or internal settings.
 router.get("/public", async (_req, res) => {
   try {
-    const [employerSelfReg, agencySelfReg, agencyMode, assistedCallback, standardReg, professionalReg, helplinePhone, helplineHours] = await Promise.all([
+    const [employerSelfReg, agencySelfReg, agencyMode, pipelineProfile, assistedCallback, standardReg, professionalReg, helplinePhone, helplineHours] = await Promise.all([
       getSetting<boolean>("capability.employer_self_registration"),
       getSetting<boolean>("capability.agency_self_registration"),
       getSetting<string>("capability.agency_mode"),
+      getSetting<string>("pipeline.profile"),
       getSetting<boolean>("capability.assisted_callback_enabled"),
       getSetting<boolean>("capability.standard_registration_enabled"),
       getSetting<boolean>("capability.professional_registration_enabled"),
@@ -25,6 +26,10 @@ router.get("/public", async (_req, res) => {
           employerSelfRegistration: !!employerSelfReg,
           agencySelfRegistration: !!agencySelfReg,
           agencyMode: agencyMode || "single",
+          // Staff screens render their stage pills and action buttons from
+          // this — without it they offer "Shortlist" under a pipeline whose
+          // server rejects that transition, i.e. a button that always errors.
+          pipelineProfile: pipelineProfile || "compact",
           // default true when unset so an un-seeded deploy still offers them
           assistedCallbackEnabled: assistedCallback !== false,
           standardRegistrationEnabled: standardReg !== false,

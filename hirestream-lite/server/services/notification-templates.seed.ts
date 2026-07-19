@@ -129,6 +129,21 @@ const DEFAULTS: TemplateSeed[] = [
     body: "Employer selected {{candidate.fullName}} for {{job.title}}. Issue the offer letter.",
     channels: ["in_app"], hideEmployerName: false },
 
+  // documents now due — the engine knew, and never said so
+  //
+  // Until this existed, a candidate reaching the point where documents become
+  // due was told "Sit tight" (shortlisted) or "the agency will send your offer
+  // letter shortly" (selected). Nothing anywhere mentioned documents. The
+  // obligation engine computed exactly what was owed and displayed it on a
+  // dashboard the candidate had no reason to open. Email as well as in-app,
+  // because this one has a deadline attached to it.
+  { eventKey: "documents.now_required", recipientRole: "candidate",
+    title: "Documents needed for {{job.title}}",
+    body: "You have reached the stage where HPSEDC need your documents for {{job.title}}. Sign in and open your dashboard to see exactly which ones and to upload them. Nothing else is needed from you until these are in.",
+    titleHi: "{{job.title}} के लिए दस्तावेज़ चाहिए",
+    bodyHi: "{{job.title}} के लिए अब HPSEDC को आपके दस्तावेज़ चाहिए। साइन इन करके अपने डैशबोर्ड पर देखें कि कौन-से दस्तावेज़ चाहिए और उन्हें अपलोड करें। तब तक आपसे और कुछ नहीं चाहिए।",
+    channels: ["in_app", "email"], hideEmployerName: true },
+
   // offer issued
   { eventKey: "offer.issued", recipientRole: "candidate",
     title: "Offer available",

@@ -2557,6 +2557,48 @@ function SettingRow({ spec, onChange, saving }: { spec: any; onChange: (v: any) 
             )}
           </div>
         )}
+        {/* A plain string WITH options previously rendered no control at all —
+            the row appeared, showed its value, and could not be changed. That
+            silently made pipeline.profile and capability.agency_mode read-only
+            in the one screen built for editing them. Rendered as a segmented
+            choice so the options are visible without opening a menu; there are
+            only ever two or three. */}
+        {spec.type === "string" && spec.options && (
+          <div className="flex flex-wrap gap-1 justify-end max-w-md">
+            {spec.options.map((opt: string) => {
+              const active = spec.value === opt;
+              return (
+                <button key={opt}
+                  onClick={() => { if (!active) onChange(opt); }}
+                  disabled={saving || active}
+                  aria-pressed={active}
+                  className={`text-[11px] px-2.5 py-1.5 rounded border transition ${
+                    active
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"}`}>
+                  {spec.optionLabels?.[opt] ?? opt.replace(/_/g, " ")}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {spec.type === "string" && spec.systemManaged && (
+          <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded max-w-[220px] truncate"
+                title={`${spec.value ?? "—"} — set by the system, not editable here`}>
+            {spec.value ?? "—"}
+          </span>
+        )}
+        {spec.type === "string" && !spec.options && !spec.systemManaged && (
+          <div className="flex items-center gap-2">
+            <input type="text" value={local ?? ""} onChange={(e) => setLocal(e.target.value)}
+              className="w-48 h-9 text-sm rounded-md border border-slate-200 px-2" />
+            {dirty && (
+              <Button size="sm" onClick={() => onChange(local)} disabled={saving}>
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
+              </Button>
+            )}
+          </div>
+        )}
         {spec.type === "string_array" && spec.options && (
           <div className="flex flex-wrap gap-1 max-w-sm justify-end">
             {spec.options.map((opt: string) => {

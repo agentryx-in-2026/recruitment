@@ -1,5 +1,6 @@
 import "./lib/i18n"; // Initialize i18n before anything else
 import { Switch, Route, Redirect } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -62,6 +63,52 @@ function PageLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Where a signed-in candidate lands.
+ *
+ * UAT-05 item 2: "the Candidate Dashboard opens directly on the Profile
+ * Completion Form" until personal, educational and professional details are in.
+ *
+ * Two guards on that redirect, both learned the hard way:
+ *  · It must not fire while the profile is still loading, or every candidate
+ *    gets a flash of the form before being bounced back.
+ *  · It must NOT trap a candidate who owes documents. Under Direct, `selected`
+ *    is the moment six documents come due and the dashboard is the only place
+ *    that lists them — sending that person back to a form they already
+ *    submitted would hide the one thing they need to act on. An outstanding
+ *    obligation therefore wins over an incomplete profile.
+ *
+ * It is a redirect, not a lock: the form's own navigation still reaches the
+ * dashboard, so nobody is stuck.
+ */
+function CandidateEntry() {
+  const { data: profileRes, isLoading: profileLoading } = useQuery<any>({ queryKey: ["/api/v1/candidates/profile"] });
+  const { data: oblRes, isLoading: oblLoading } = useQuery<any>({ queryKey: ["/api/v1/candidates/documents/obligations"] });
+
+  if (profileLoading || oblLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  const profile = profileRes?.data;
+  const owesDocuments = (oblRes?.data?.obligations || []).some((o: any) => !o.complete);
+  const profileComplete = Boolean(profile?.profileComplete);
+
+  if (!profileComplete && !owesDocuments) return <Redirect to="/register" />;
+
+  return (
+    <div>
+      <div className="max-w-[1800px] mx-auto px-4 xl:px-8 2xl:px-12 pt-5">
+        <AnnouncementBanner />
+      </div>
+      <CandidateDashboard />
+    </div>
+  );
+}
+
 function DashboardContent() {
   const { user, isLoading } = useAuth();
 
@@ -75,6 +122,10 @@ function DashboardContent() {
 
   if (!user) return <LandingPage />;
 
+  // UAT-05 item 2 — a candidate whose profile is not yet complete lands on the
+  // form, not the dashboard.
+  if (user.role === "candidate") return <CandidateEntry />;
+
   return (
     <div>
       <div className="max-w-[1800px] mx-auto px-4 xl:px-8 2xl:px-12 pt-5">
@@ -84,7 +135,6 @@ function DashboardContent() {
           tiers default to its Minimal mode (few big buttons), professionals to
           Advanced; a per-user toggle switches. Navigation is state-driven, so
           the old ?full=1 fork (and its refresh-needed nav bug) is retired. */}
-      {user.role === "candidate" && <CandidateDashboard />}
       {user.role === "agent" && <AgentDashboard />}
       {user.role === "employer" && <EmployerDashboard />}
       {user.role === "admin" && <AdminDashboard />}

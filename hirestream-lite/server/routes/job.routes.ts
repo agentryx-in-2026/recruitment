@@ -926,6 +926,27 @@ router.post("/:id/apply", protect, async (req, res, next) => {
       return res.status(403).json({ success: false, error: { code: 403, message: "Only candidates can apply to jobs." } });
     }
 
+    // UAT-05 item 1 — verification gates APPLYING, not signing in.
+    //
+    // Blocking login would lock a candidate out of an account they just made
+    // because a mail was slow or landed in spam, and HPSEDC's applicants are
+    // largely blue-collar, often on a shared or borrowed address. Applying is
+    // the right gate: it is the point where a reachable address starts to
+    // matter, because that is how the interview call and the offer letter get
+    // to them. Configurable, so HPSEDC can drop it if it costs applicants.
+    const { getSetting: getSettingForApply } = await import("../services/settings.service");
+    const requireVerifiedEmail = await getSettingForApply<boolean>("registration.require_verified_email_to_apply");
+    if (requireVerifiedEmail && (req.user as any)?.emailVerified === false) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 403,
+          message: "Please confirm your email address before applying. We have sent you a code — check your inbox, or request a new one from your dashboard.",
+          reason: "EMAIL_NOT_VERIFIED",
+        },
+      });
+    }
+
     // System Controls: applications pipeline pause
     const { getControls } = await import("../services/system-controls.service");
     const ctrl = await getControls();

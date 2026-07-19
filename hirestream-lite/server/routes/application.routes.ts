@@ -5,8 +5,48 @@ import { logger } from "../config/logger.config";
 import { applications, candidates, jobs, interviews } from "@shared/schema";
 import { eq, and, desc, inArray, ne } from "drizzle-orm";
 import { notify } from "../services/notification.service";
-import { stageOrder } from "@shared/pipeline";
+import { stageOrder, documentStageFor } from "@shared/pipeline";
 import { getSetting } from "../services/settings.service";
+
+/**
+ * Tell the candidate when documents have just become due.
+ *
+ * Fired on the CROSSING, not on a status: whichever transition first makes
+ * documentStageFor() non-null is the moment the candidate suddenly owes
+ * paperwork. Keying it to the crossing means it follows the pipeline profile —
+ * the shortlist under Screened, selection under Direct — instead of a second
+ * rule that could drift from the engine it announces.
+ *
+ * Review 2026-07-19: this lived inline in the single-status PATCH, which is NOT
+ * how a Direct-pipeline candidate reaches `selected`. The shipped flow is
+ * Schedule interview -> Record Outcome (pass), and interview-outcome writes the
+ * status itself — so the notification never fired on the primary path it was
+ * built for, and HPSEDC's bulk-select never fired it either. Hence a helper
+ * every writer calls rather than a block one of them happens to contain.
+ *
+ * Best-effort throughout: a notification failure must never roll back a status
+ * change the staff user has already seen succeed.
+ */
+export async function notifyIfDocumentsBecameDue(
+  applicationId: string,
+  fromStatus: string | null | undefined,
+  toStatus: string,
+  actor?: { id?: string; role?: string },
+): Promise<void> {
+  try {
+    const profile = await getSetting<string>("pipeline.profile");
+    const wasDue = documentStageFor(fromStatus, profile) !== null;
+    const nowDue = documentStageFor(toStatus, profile) !== null;
+    if (wasDue || !nowDue) return;
+    const { fireEvent, resolveParticipantsFromApplication } = await import("../services/event-notifications.service");
+    const ctx = await resolveParticipantsFromApplication(applicationId);
+    if (actor?.id) ctx.actorUserId = actor.id;
+    if (actor?.role) ctx.actorRole = actor.role;
+    await fireEvent("documents.now_required", ctx);
+  } catch (e: any) {
+    logger.warn(`documents.now_required notification failed for ${applicationId}: ${e?.message}`);
+  }
+}
 
 const router = Router();
 
@@ -146,6 +186,8 @@ router.patch("/:id/status", protect, async (req, res, next) => {
       });
     } catch (e: any) { logger.warn(`audit on status change failed: ${e?.message}`); }
 
+    await notifyIfDocumentsBecameDue(app.id, fromStatus, status, user);
+
     // PWS §5: fire the matching pipeline event through the notification engine
     // so candidate/agent/employer all get the right wording per their role.
     // The engine is the single source of truth for notifications on status
@@ -227,9 +269,13 @@ router.patch("/bulk-status", protect, async (req, res, next) => {
       return res.status(400).json({ success: false, error: { code: 400, message: "Maximum 50 applications per bulk update" } });
     }
 
-    const validStatuses = ["submitted", "reviewed", "shortlisted", "interview_scheduled", "selected", "rejected"];
+    // Review 2026-07-19: this hardcoded the six-stage list while the single
+    // PATCH validated against the profile, so "Shortlist All" kept succeeding
+    // under Direct and parked rows in a stage the portal no longer runs —
+    // which is where the stranded rows in the live DB came from.
+    const validStatuses = await allowedTargetStatuses();
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ success: false, error: { code: 400, message: `Invalid status. Must be one of: ${validStatuses.join(", ")}` } });
+      return res.status(400).json({ success: false, error: { code: 400, message: `Invalid status for the active pipeline. Allowed: ${validStatuses.join(", ")}` } });
     }
 
     // Ownership filter: agents/employers can only update applications on their own jobs
@@ -250,11 +296,29 @@ router.patch("/bulk-status", protect, async (req, res, next) => {
       }
     }
 
+    // Capture the PRIOR status per row before the write — .returning() gives
+    // the new value, and the documents-due notification fires on the crossing,
+    // so it needs the one being left behind.
+    const priorRows = await db
+      .select({ id: applications.id, status: applications.status })
+      .from(applications)
+      .where(inArray(applications.id, ownedAppIds));
+    const priorStatus: Record<string, string | null> = Object.fromEntries(
+      priorRows.map((r: any) => [r.id, r.status]),
+    );
+
     const updated = await db
       .update(applications)
       .set({ status })
       .where(inArray(applications.id, ownedAppIds))
       .returning();
+
+    // HPSEDC bulk-select is a primary path under Direct: a government batch is
+    // decided in one action, and every candidate in it needs telling that their
+    // documents are now due.
+    await Promise.all(
+      updated.map((u: any) => notifyIfDocumentsBecameDue(u.id, priorStatus[u.id], status, req.user as any)),
+    );
 
     // v0.4.14: bulk-select also needs placement auto-create. Same idempotent
     // helper as the single-status path.
@@ -558,6 +622,11 @@ router.post("/:id/interview-outcome", protect, async (req, res, next) => {
         await ensurePlacementForApplication(app.id);
       } catch (e: any) { logger.warn(`placement auto-create on interview-outcome failed: ${e?.message}`); }
     }
+
+    // Under Direct this IS how a candidate reaches `selected` — the status is
+    // written here, not through the status PATCH — so the documents-due
+    // notification has to fire from here too.
+    await notifyIfDocumentsBecameDue(app.id, app.status, newStatus, user);
 
     // Audit
     try {

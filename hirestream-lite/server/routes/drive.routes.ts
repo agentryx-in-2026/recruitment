@@ -327,7 +327,7 @@ router.post("/:id/notify-candidates", protect, async (req, res, next) => {
         // audit 2026-07-06 (C5): the old post-query "filter" was dead code
         // (String(a.appId ? "" : "") is always ""), so rejected/withdrawn
         // applicants were broadcast too. Filter to shortlisted+ in the query.
-        inArray(applications.status, ["shortlisted", "interview_scheduled", "selected"]),
+        inArray(applications.status, ["submitted", "shortlisted", "interview_scheduled", "selected"]),
       ));
 
     const targets = new Map<string, { candidateName: string; jobTitle: string }>();
@@ -602,8 +602,13 @@ router.patch("/interviews/:id/result", protect, async (req, res, next) => {
       .returning();
 
     // Reflect result onto the application status
+    const priorAppStatus = (await db.select({ s: applications.status }).from(applications)
+      .where(eq(applications.id, intRows[0].applicationId)).limit(1))[0]?.s ?? null;
     if (normalised === "selected") {
       await db.update(applications).set({ status: "selected" }).where(eq(applications.id, intRows[0].applicationId));
+      // Third writer of `selected`, and it was silent about documents too.
+      const { notifyIfDocumentsBecameDue } = await import("./application.routes");
+      await notifyIfDocumentsBecameDue(intRows[0].applicationId, priorAppStatus, "selected", req.user as any);
     } else if (normalised === "rejected") {
       await db.update(applications).set({ status: "rejected" }).where(eq(applications.id, intRows[0].applicationId));
     } else if (normalised === "hold" || normalised === null) {

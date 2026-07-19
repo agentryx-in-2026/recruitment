@@ -14,6 +14,14 @@ export const users = pgTable("users", {
   aadhaarVerified: boolean("aadhaar_verified").default(false),
   phoneNumber: text("phone_number"),
   phoneVerified: boolean("phone_verified").default(false),
+  // UAT-05 item 1. Deliberately NOT a login gate: HPSEDC's applicants are
+  // largely blue-collar, often on a shared or borrowed email, and locking them
+  // out of an account they just created because a mail was slow or went to spam
+  // loses the applicant entirely. Verification instead gates APPLYING — the
+  // point where a real address starts to matter, because that is how the
+  // interview call and the offer letter reach them.
+  emailVerified: boolean("email_verified").default(false),
+  emailVerifiedAt: timestamp("email_verified_at"),
   himAccessId: text("him_access_id"),
   preferredLanguage: text("preferred_language").default("en"),
   isActive: boolean("is_active").default(true),

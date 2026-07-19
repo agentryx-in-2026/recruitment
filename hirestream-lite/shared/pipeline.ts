@@ -67,9 +67,9 @@ export const PIPELINES: Record<PipelineProfile, PipelineDefinition> = {
    */
   full: {
     key: "full",
-    label: "Full (agency marketplace)",
+    label: "Screened — 6 stages",
     description:
-      "Six stages with a desk review and a shortlist before interviews. For when individual agencies are enabled and screen their own candidates.",
+      "Applied -> Reviewed -> Shortlisted -> Interview -> Selected -> Placed. Agencies screen to a shortlist before interviewing, and documents are requested from the shortlist onward. For when individual agencies are enabled.",
     stages: [
       { status: "submitted", label: "Applied", labelHi: "आवेदन किया" },
       { status: "reviewed", label: "Reviewed", labelHi: "समीक्षा की गई" },
@@ -90,9 +90,9 @@ export const PIPELINES: Record<PipelineProfile, PipelineDefinition> = {
    */
   compact: {
     key: "compact",
-    label: "Compact (HPSEDC single-agency)",
+    label: "Direct — 4 stages",
     description:
-      "Four stages. Every applicant is interviewed and selection follows the interview, so there is no desk review or shortlist. Documents are requested only from selected candidates.",
+      "Applied -> Interview -> Selected -> Placed. Every applicant is interviewed and selection follows the interview, so there is no desk review or shortlist. Documents are requested only from selected candidates. HPSEDC phase 1.",
     stages: [
       { status: "submitted", label: "Applied", labelHi: "आवेदन किया" },
       { status: "interview_scheduled", label: "Interview", labelHi: "साक्षात्कार" },
