@@ -267,7 +267,7 @@ async function seed() {
   addExp("neha_chauhan", [{ company: "Radisson Blu, Shimla", role: "Housekeeping Attendant", years: 4 }]);
   addExp("karan_rana", [{ company: "HRTC", role: "Heavy Vehicle Driver", years: 6 }, { company: "Private Transport, Una", role: "Driver", years: 3 }]);
   addExp("meera_iyer", [{ company: "Solan Care Home", role: "Geriatric Caregiver", years: 3 }]);
-  addExp("vikram_negi", [{ company: "L&T Heavy Engineering", role: "Welder (TIG/MIG)", years: 6 }, { company: "Local Fabrication, Kullu", role: "Welder", years: 4 }]);
+  addExp("vikram_negi", [{ company: "Himalaya Heavy Fabrication Pvt Ltd", role: "Welder (TIG/MIG)", years: 6 }, { company: "Local Fabrication, Kullu", role: "Welder", years: 4 }]);
   addExp("ananya_bhatt", [{ company: "Sunrise IT Services Pvt Ltd", role: "IT Support Engineer", years: 4 }]);
   addExp("aman_kapoor", [{ company: "Greenfield Builders Pvt Ltd", role: "Plumber", years: 6 }]);
   addExp("sahil_verma", [{ company: "Apex Infra Projects Pvt Ltd", role: "Electrician", years: 5 }]);

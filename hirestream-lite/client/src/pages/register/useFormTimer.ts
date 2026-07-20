@@ -14,11 +14,17 @@
  * candidate does move device, restarting the clock is the honest answer anyway,
  * because we genuinely do not know how long they spent on the other one.
  *
- * ── Auto-pause when the tab is hidden ───────────────────────────────────────
- * Deliberate. Someone who opens the form and goes to find their passport should
- * not come back to "47:12" — that destroys the very message the number carries.
- * The clock counts time spent LOOKING at the form, which is the only reading a
- * candidate could check against "about four minutes".
+ * ── What counts as "time spent" ─────────────────────────────────────────────
+ * Only time actually spent LOOKING at the form. The clock stops when:
+ *   · the tab is hidden, or the browser loses focus entirely (alt-tabbing to
+ *     another application does not always fire visibilitychange; blur does)
+ *   · nothing has been touched for IDLE_MS — they went to find their passport,
+ *     or someone came to the door
+ *   · the candidate presses Pause
+ *   · they sign out, or the form unmounts
+ *
+ * Anything looser lets "about four minutes" quietly become 47:12, which
+ * destroys the only message the number carries.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -32,6 +38,9 @@ interface Persisted {
 }
 
 const EMPTY: Persisted = { elapsed: 0, runningSince: null, userPaused: false };
+
+/** No keyboard, mouse or touch for this long and the clock stops by itself. */
+const IDLE_MS = 90_000;
 
 function read(key: string): Persisted {
   try {
@@ -47,8 +56,17 @@ function write(key: string, p: Persisted) {
   try { localStorage.setItem(key, JSON.stringify(p)); } catch { /* private mode — timer just won't persist */ }
 }
 
-export function useFormTimer(key = "hs_reg_timer") {
+/**
+ * @param candidateId scopes the clock to one person. It used to be a single
+ *   global slot, so two candidates registering on the same machine — a
+ *   cyber-cafe, a panchayat office, a shared phone, which is how a great many
+ *   HPSEDC applicants reach this form — shared one timer and each inherited the
+ *   other's minutes.
+ */
+export function useFormTimer(candidateId?: string | null) {
+  const key = `hs_reg_timer:${candidateId || "anon"}`;
   const stateRef = useRef<Persisted>(EMPTY);
+  const idleRef = useRef<number | null>(null);
   const [, force] = useState(0);
   const rerender = useCallback(() => force((n) => n + 1), []);
 
@@ -77,16 +95,43 @@ export function useFormTimer(key = "hs_reg_timer") {
     }
   }, [persist]);
 
+  /** Restart the idle countdown; called on any real interaction. */
+  const bumpIdle = useCallback(() => {
+    if (idleRef.current) window.clearTimeout(idleRef.current);
+    idleRef.current = window.setTimeout(() => {
+      // An idle pause is automatic, so it deliberately does NOT set userPaused:
+      // the next keystroke resumes the clock without the candidate having to
+      // notice a button or understand why it stopped.
+      freeze();
+      rerender();
+    }, IDLE_MS);
+  }, [freeze, rerender]);
+
   // Mount: rehydrate. A previous session that was never frozen (tab closed
   // abruptly) leaves runningSince set — banking it would silently add all the
   // time the tab spent closed, so it is discarded rather than counted.
   useEffect(() => {
     const p = read(key);
     stateRef.current = { elapsed: p.elapsed, runningSince: null, userPaused: p.userPaused };
-    if (!p.userPaused && !document.hidden) start();
+    if (!p.userPaused && !document.hidden) { start(); bumpIdle(); }
     rerender();
-    return () => { freeze(); };
-  }, [key, start, freeze, rerender]);
+    return () => {
+      freeze();
+      if (idleRef.current) window.clearTimeout(idleRef.current);
+    };
+  }, [key, start, freeze, rerender, bumpIdle]);
+
+  // Any genuine interaction resumes the clock (unless deliberately paused) and
+  // restarts the idle countdown.
+  useEffect(() => {
+    const onActivity = () => {
+      if (!stateRef.current.userPaused && !document.hidden) start();
+      bumpIdle();
+    };
+    const events: (keyof WindowEventMap)[] = ["keydown", "mousedown", "touchstart", "scroll"];
+    for (const e of events) window.addEventListener(e, onActivity, { passive: true });
+    return () => { for (const e of events) window.removeEventListener(e, onActivity); };
+  }, [start, bumpIdle]);
 
   // Tick.
   useEffect(() => {
@@ -99,32 +144,49 @@ export function useFormTimer(key = "hs_reg_timer") {
   useEffect(() => {
     const onVis = () => {
       if (document.hidden) { freeze(); }
-      else if (!stateRef.current.userPaused) { start(); }
+      else if (!stateRef.current.userPaused) { start(); bumpIdle(); }
       rerender();
     };
+    const onBlur = () => { freeze(); rerender(); };
     document.addEventListener("visibilitychange", onVis);
+    // Switching to another APPLICATION does not reliably fire visibilitychange;
+    // blur does, so alt-tabbing out of the browser still stops the clock.
+    window.addEventListener("blur", onBlur);
     // Last-chance save — `unload` is unreliable on mobile, `pagehide` is not.
     window.addEventListener("pagehide", freeze);
     return () => {
       document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("blur", onBlur);
       window.removeEventListener("pagehide", freeze);
     };
-  }, [freeze, start, rerender]);
+  }, [freeze, start, rerender, bumpIdle]);
 
-  const paused = stateRef.current.userPaused;
+  // Reported as paused whenever the clock is not actually running — an idle or
+  // blur pause must LOOK paused, or the candidate sees a frozen number and
+  // assumes it is broken.
+  const paused = stateRef.current.userPaused || !stateRef.current.runningSince;
 
   const toggle = useCallback(() => {
     const s = stateRef.current;
-    if (s.userPaused) {
+    if (s.userPaused || !s.runningSince) {
       stateRef.current = { ...s, userPaused: false };
       start();
+      bumpIdle();
     } else {
       freeze();
       stateRef.current = { ...stateRef.current, userPaused: true };
       persist();
     }
     rerender();
-  }, [start, freeze, persist, rerender]);
+  }, [start, freeze, persist, rerender, bumpIdle]);
+
+  /** Back to zero and counting again — for a clean measured run. */
+  const reset = useCallback(() => {
+    stateRef.current = { elapsed: 0, runningSince: Date.now(), userPaused: false };
+    persist();
+    bumpIdle();
+    rerender();
+  }, [persist, rerender, bumpIdle]);
 
   const total = Math.max(0, Math.floor(totalMs() / 1000));
   const hh = Math.floor(total / 3600);
@@ -134,5 +196,5 @@ export function useFormTimer(key = "hs_reg_timer") {
     ? `${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
     : `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
 
-  return { label, paused, toggle };
+  return { label, paused, toggle, reset };
 }

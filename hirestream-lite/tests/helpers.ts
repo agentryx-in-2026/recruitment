@@ -12,6 +12,8 @@ import agencyRouter from '../server/routes/agency.routes';
 import jobRouter from '../server/routes/job.routes';
 import notificationRouter from '../server/routes/notification.routes';
 import documentRouter from '../server/routes/document.routes';
+import professionRouter from '../server/routes/profession.routes';
+import adminProfessionsRouter from '../server/routes/admin-professions.routes';
 import documentObligationsRouter from '../server/routes/document-obligations.routes';
 import applicationRouter from '../server/routes/application.routes';
 import driveRouter from '../server/routes/drive.routes';
@@ -75,6 +77,13 @@ export function createTestApp(): express.Express {
   app.use('/api/v1/jobs', jobRouter);
   app.use('/api/v1/notifications', notificationRouter);
   app.use('/api/v1/candidates/documents', documentRouter);
+  // Mounted in server/routes.ts:145/151 but missing here, so every request to
+  // /professions 404'd in tests with an empty body. That is the second router
+  // found missing from this fixture, and it is why UAT-05 item 21 —
+  // profession-specific qualifications and documents, the largest feature in
+  // the release — had no integration coverage at all.
+  app.use('/api/v1/professions', professionRouter);
+  app.use('/api/v1/admin/professions', adminProfessionsRouter);
   // Mounted in server/routes.ts:165 but previously missing here, so the
   // document-obligation engine — the thing that decides what a candidate is
   // asked for and when (UAT-05 item 9) — had no integration coverage at all.
@@ -177,6 +186,14 @@ export async function truncateAllTables(): Promise<void> {
   // test env. updateSetting writes the DB row AND the in-memory settings cache
   // that the register gate reads. The disabled-default behaviour is covered
   // explicitly by tests/integration/capability-gating.test.ts.
+  // TRUNCATE wipes profession_requirements too, and nothing re-seeded it — so
+  // PUT /professions/mine 404'd in every test and the "skills" completion
+  // checkpoint could never pass. That is why item 21 (profession-specific
+  // qualifications and documents) had no integration coverage at all: the
+  // fixture made it untestable.
+  const { seedProfessions } = await import('../server/services/professions.seed');
+  await seedProfessions().catch(() => {});
+
   const { updateSetting } = await import('../server/services/settings.service');
   await updateSetting('capability.employer_self_registration', true);
   await updateSetting('capability.agency_self_registration', true);

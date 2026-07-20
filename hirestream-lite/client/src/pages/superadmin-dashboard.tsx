@@ -765,6 +765,7 @@ function SystemView({ stats }: any) {
 // v0.4.36: rebuilt with 4 modes. The old version called a stale endpoint
 // that silently failed (wrong table names + missing FK-child tables).
 type ResetChoice =
+  | { kind: "demoAccounts" }
   | { kind: "reseed" }
   | { kind: "full" }
   | { kind: "activity" }
@@ -785,6 +786,14 @@ function DataManagementPanel() {
 
   const run = useMutation({
     mutationFn: async (choice: ResetChoice) => {
+      if (choice.kind === "demoAccounts") {
+        const res = await fetch("/api/v1/superadmin/reset-demo-accounts", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ confirmation: "RESET_DEMO_ACCOUNTS" }),
+        });
+        if (!res.ok) throw new Error((await res.json()).message || "Failed");
+        return { type: "demoAccounts", data: await res.json() };
+      }
       if (choice.kind === "reseed") {
         const res = await fetch("/api/v1/superadmin/reseed", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -821,6 +830,25 @@ function DataManagementPanel() {
       <p className="text-xs text-red-700/80 mb-4">Testing utilities — destructive, FK-safe wipes. Super Admin login + system config (settings, integrations, templates) are always preserved.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Demo accounts only — the safe, everyday one, so it leads.
+            Testing a first-run experience (the pre-flight checklist, the empty
+            form, the verify-email prompt) needs a candidate who has done
+            NOTHING. Once demo1..demoN are half filled they can never show that
+            again, and the only options were inventing more accounts or wiping
+            the whole database and losing the curated cast. */}
+        <ResetCard
+          icon={UserPlus} tone="orange"
+          title="Clear demo accounts only"
+          desc="Delete the throwaway demoN@demo.com accounts and their data. The 22 seeded candidates, jobs and settings are untouched — use this to test a brand-new signup again."
+          actionLabel="Clear demo accounts"
+          confirmLabel="Confirm — clear demo accounts"
+          armed={pending?.kind === "demoAccounts"}
+          onArm={() => setPending({ kind: "demoAccounts" })}
+          onCancel={() => setPending(null)}
+          onConfirm={() => run.mutate({ kind: "demoAccounts" })}
+          busy={run.isPending}
+        />
+
         {/* Full + Reseed */}
         <ResetCard
           icon={UserPlus} tone="orange"

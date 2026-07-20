@@ -58,7 +58,8 @@
     "resetFailed": "Couldn't send reset email",
     "resetFailedDesc": "Could not send reset email.",
     "sending": "Sending...",
-    "verifiedInitiative": "A verified Government of Himachal Pradesh initiative"
+    "verifiedInitiative": "A verified Government of Himachal Pradesh initiative",
+    "loginId": "Email or username"
   },
   "roles": {
     "candidate": "Job Seeker",
@@ -465,7 +466,9 @@
       "applied": "Applied",
       "review": "Review",
       "interview": "Interview",
-      "selected": "Selected"
+      "selected": "Selected",
+      "shortlisted": "Shortlisted",
+      "placed": "Placed"
     },
     "status": {
       "reviewLabel": "Being reviewed",
@@ -479,7 +482,8 @@
       "placedLine": "Congratulations! Your overseas placement is confirmed.",
       "closedLabel": "This application did not go ahead",
       "closedLine": "No problem — apply for other jobs."
-    }
+    },
+    "completeDeployment": "Complete your travel documents →"
   },
   "help": {
     "title": "Get help",
@@ -858,7 +862,7 @@
     "assistedHeading": "We will call you back",
     "assistedSub": "Leave your details. An HPSEDC officer will call and help you register. This is slower than filling the form yourself.",
     "nameLabel": "Your name",
-    "workLabel": "What work do you do?",
+    "workLabel": "What skills do you have?",
     "optional": "(optional)",
     "phWork": "e.g. Mason, Driver, Cook",
     "requestCallback": "Request a callback",
@@ -1420,7 +1424,10 @@
       "elementary": "Basic",
       "intermediate": "Good",
       "professional": "Fluent",
-      "native": "Native"
+      "native": "Native",
+      "speak": "Speak",
+      "write": "Write",
+      "cannotWrite": "Cannot write"
     },
     "blk": {
       "year": "Year",
@@ -1496,7 +1503,52 @@
     "timer": {
       "pause": "Pause the timer",
       "resume": "Resume",
-      "paused": "Paused"
+      "paused": "Paused",
+      "reset": "Reset the clock",
+      "resetConfirm": "Reset the time spent back to 00:00? This cannot be undone."
+    },
+    "submitChanges": "Submit changes",
+    "submittedNote": "Application submitted {{date}}",
+    "noChanges": "Nothing has changed since you submitted. Edit any answer and this button will turn on.",
+    "p5": {
+      "tab": "Documents",
+      "title": "Your documents",
+      "help": "HPSEDC need these before you can travel. Upload a clear photo or scan of each one — they will check them and mark each as accepted.",
+      "hint": "Take a photo with your phone, or upload a scan. PDF, JPG or PNG.",
+      "upload": "Upload",
+      "accepted": "Accepted",
+      "checking": "Checking",
+      "uploaded": "Document uploaded",
+      "uploadFailed": "Could not upload",
+      "none": "Nothing needed yet",
+      "noneBody": "HPSEDC will ask for your documents once you are selected for a job. There is nothing to upload today.",
+      "replace": "Replace",
+      "acceptedNote": "HPSEDC have checked and accepted this.",
+      "checkingNote": "Uploaded — HPSEDC are checking it. Tap Replace if you need to send a clearer copy.",
+      "neededNote": "Not uploaded yet.",
+      "replaceAcceptedConfirm": "HPSEDC have already accepted your {{label}}. Replacing it will send the new copy back for checking, and anything confirmed from the old one will be checked again. Continue?"
+    },
+    "p6": {
+      "tab": "Compliance",
+      "title": "Before you travel",
+      "help": "These are required under the Emigration Act. Tell HPSEDC where you have got to — they will confirm each one when it is done.",
+      "hint": "You report your progress; HPSEDC confirm the result.",
+      "pcc": "Police Clearance Certificate",
+      "pccHint": "Applied for it at the police station, or already submitted it?",
+      "medical": "Medical fitness test",
+      "medicalHint": "The clinic sends the result to HPSEDC — they record it.",
+      "pbby": "PBBY insurance",
+      "pbbyHint": "Pravasi Bharatiya Bima Yojana — mandatory for ECR emigrants.",
+      "policyNo": "Policy number",
+      "pdo": "Pre-departure orientation",
+      "pdoDone": "Attended",
+      "pdoPending": "HPSEDC will record this after you attend",
+      "applied": "Applied for it",
+      "submitted": "Submitted to HPSEDC",
+      "booked": "Booked / done",
+      "byHpsedc": "recorded by HPSEDC",
+      "save": "Save my progress",
+      "saved": "Saved"
     }
   },
   "docs2": {

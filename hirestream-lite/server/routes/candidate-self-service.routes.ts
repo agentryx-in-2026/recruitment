@@ -174,8 +174,45 @@ router.patch("/compliance", async (req, res, next) => {
       }
     }
 
-    const [row] = await storage.db.update(candidates).set(set).where(eq(candidates.id, candId)).returning();
-    res.json({ success: true, data: row });
+    // Same audit as PATCH /profile. This route writes passportNumber,
+    // passportExpiry and ecrStatus too — auditing only the other door would
+    // leave the highest-risk fields changeable without a trace, which is the
+    // sibling-endpoint mistake this codebase has already made three times.
+    const beforeRows = await storage.db.select().from(candidates).where(eq(candidates.id, candId)).limit(1);
+    const before: any = beforeRows[0] ?? {};
+
+    // Same evidence lock as PATCH /profile. This route writes passportNumber,
+    // passportExpiry and ecrStatus, so locking only the other door would leave
+    // the highest-risk fields wide open — the sibling-endpoint mistake this
+    // codebase has now made four times.
+    const { applyProfileLock } = await import("../services/profile-lock.service");
+    const lock = await applyProfileLock(candId, set, user.role ?? "candidate");
+    if (lock.refused.length > 0 && lock.meaningfulCount === 0) {
+      return res.status(403).json({
+        success: false,
+        message: lock.reasons[lock.refused[0]],
+        error: { code: 403, message: lock.reasons[lock.refused[0]], reason: "FIELD_LOCKED", fields: lock.refused },
+      });
+    }
+
+    const [row] = await storage.db.update(candidates).set(lock.allowed).where(eq(candidates.id, candId)).returning();
+
+    if (row) {
+      const { logProfileEdit } = await import("../services/profile-audit.service");
+      logProfileEdit({
+        candidateId: row.id,
+        actorUserId: user.id,
+        actorRole: user.role ?? "candidate",
+        before,
+        after: row,
+        ipAddress: req.ip,
+      }).catch(() => {});
+    }
+
+    res.json({
+      success: true, data: row,
+      ...(lock.refused.length > 0 ? { lockedFields: lock.refused, lockReasons: lock.reasons } : {}),
+    });
   } catch (err) { next(err); }
 });
 

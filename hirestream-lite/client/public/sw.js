@@ -1,7 +1,7 @@
 // HireStream Service Worker — offline cache + network-first for API
 // IMPORTANT: Bump CACHE_VERSION on every production build so clients get
 // the latest HTML (which references new hashed asset filenames).
-const CACHE_VERSION = "hirestream-v4-2026-04-14";
+const CACHE_VERSION = "hirestream-v12-2026-07-19i";
 const STATIC_ASSETS = ["/manifest.json", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -58,17 +58,22 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for hashed static assets (JS/CSS/images — filenames change per build)
+  // Network-first for hashed static assets, falling back to cache only offline.
+  //
+  // These filenames are content-hashed, so a fresh network copy is never wrong,
+  // and network-first means a returning client can NEVER be pinned to a stale
+  // bundle by the service worker. Cache-first here (the old behaviour) is what
+  // silently served an out-of-date app across an entire day of deploys, because
+  // the SW only re-installs when sw.js itself changes.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((resp) => {
+    fetch(request)
+      .then((resp) => {
         if (resp.ok && request.method === "GET") {
           const copy = resp.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
         }
         return resp;
-      }).catch(() => caches.match("/"));
-    })
+      })
+      .catch(() => caches.match(request).then((c) => c || caches.match("/")))
   );
 });

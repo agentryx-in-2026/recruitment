@@ -209,7 +209,7 @@ function LoginForm() {
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t("auth.email")}</FormLabel>
+              <FormLabel>{t("auth.loginId")}</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />

@@ -174,11 +174,13 @@ import { seedSystemConfig } from "./services/system-config.service";
 import { seedDefaultAgency } from "./services/default-agency.seed";
 import { seedProfessions } from "./services/professions.seed";
 import { seedRegistrationFields } from "./services/registration-fields.seed";
+import { backfillEmailVerified } from "./services/email-verified-backfill.seed";
 import { loadValidCountries } from "./services/country-validator.service";
 
 (async () => {
   await initSettings().catch((e) => logger.warn(`Settings init skipped: ${e?.message}`));
   await initControls().catch((e) => logger.warn(`System controls init skipped: ${e?.message}`));
+  await backfillEmailVerified().catch((e) => logger.warn(`Email-verified backfill skipped: ${e?.message}`));
   await seedNotificationTemplates().catch((e) => logger.warn(`Template seed skipped: ${e?.message}`));
   await seedCountryInfo().catch((e) => logger.warn(`Country info seed skipped: ${e?.message}`));
   await seedSystemConfig().catch((e) => logger.warn(`System config seed skipped: ${e?.message}`));

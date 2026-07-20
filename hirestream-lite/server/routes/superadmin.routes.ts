@@ -2,6 +2,9 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import { auditAction } from "../middleware/audit.middleware";
 import { sanitizeUser } from "../lib/safeUser";
+import { sql } from "drizzle-orm";
+import { storage } from "../storage";
+import { logger } from "../config/logger.config";
 
 const router = Router();
 
@@ -180,6 +183,70 @@ router.get("/reset/options", async (_req, res) => {
 // data-reset service (TRUNCATE CASCADE, FK-safe, transactional).
 // Body: { confirmation: "RESET_HIRESTREAM", mode: "activity"|"full"|"selective",
 //         classes?: string[] }  — `classes` required when mode=selective.
+/**
+ * POST /api/v1/superadmin/reset-demo-accounts
+ *
+ * Delete ONLY the throwaway accounts made by the "create a demo account"
+ * button (demo1@demo.com, demo2@demo.com, …) and everything hanging off them.
+ * The 22 seeded cast members, the jobs, the agency and all configuration are
+ * untouched.
+ *
+ * Why this exists as its own action: testing the FIRST-RUN experience — the
+ * pre-flight checklist, the empty form, the email-verification prompt — needs a
+ * candidate who has never done anything. Once demo1..demo5 have been half
+ * filled in they can never show that again, and the only alternatives were to
+ * keep inventing new accounts or to wipe the whole database and lose the
+ * curated cast. This resets the scratch space and nothing else.
+ */
+router.post("/reset-demo-accounts", async (req, res) => {
+  try {
+    const { confirmation } = req.body ?? {};
+    if (confirmation !== "RESET_DEMO_ACCOUNTS") {
+      return res.status(400).json({
+        success: false,
+        message: "Missing confirmation. Send { confirmation: 'RESET_DEMO_ACCOUNTS' } to proceed.",
+      });
+    }
+    const db = storage.db;
+    if (!db) return res.status(500).json({ success: false, message: "Database not available" });
+
+    // Scope is deliberately narrow and pattern-based: only @demo.com addresses,
+    // which is exactly what the auto-create button mints. A stray real account
+    // can never match.
+    const victims = await db.execute(sql`SELECT id FROM users WHERE email LIKE '%@demo.com'`);
+    const ids: string[] = ((victims as any).rows || []).map((r: any) => r.id);
+    if (ids.length === 0) {
+      return res.json({ success: true, data: { deleted: 0, message: "No demo accounts to clear." } });
+    }
+
+    // drizzle's sql template cannot bind a JS array into ANY() — it produces a
+    // malformed query that fails at the DB. Join the ids into a bound IN list.
+    const idList = sql.join(ids.map((id) => sql`${id}`), sql`, `);
+
+    // Children first — these FKs do not cascade.
+    await db.execute(sql`DELETE FROM interviews WHERE application_id IN (SELECT a.id FROM applications a JOIN candidates c ON c.id = a.candidate_id WHERE c.user_id IN (${idList}))`);
+    await db.execute(sql`DELETE FROM placements WHERE application_id IN (SELECT a.id FROM applications a JOIN candidates c ON c.id = a.candidate_id WHERE c.user_id IN (${idList}))`);
+    await db.execute(sql`DELETE FROM applications WHERE candidate_id IN (SELECT id FROM candidates WHERE user_id IN (${idList}))`);
+    await db.execute(sql`DELETE FROM documents WHERE candidate_id IN (SELECT id FROM candidates WHERE user_id IN (${idList}))`);
+    await db.execute(sql`DELETE FROM candidate_education WHERE candidate_id IN (SELECT id FROM candidates WHERE user_id IN (${idList}))`);
+    await db.execute(sql`DELETE FROM candidate_experience WHERE candidate_id IN (SELECT id FROM candidates WHERE user_id IN (${idList}))`);
+    await db.execute(sql`DELETE FROM candidate_languages WHERE candidate_id IN (SELECT id FROM candidates WHERE user_id IN (${idList}))`);
+    await db.execute(sql`DELETE FROM candidate_references WHERE candidate_id IN (SELECT id FROM candidates WHERE user_id IN (${idList}))`);
+    await db.execute(sql`DELETE FROM candidate_professions WHERE candidate_id IN (SELECT id FROM candidates WHERE user_id IN (${idList}))`);
+    await db.execute(sql`DELETE FROM candidates WHERE user_id IN (${idList})`);
+    await db.execute(sql`DELETE FROM notifications WHERE user_id IN (${idList})`);
+    await db.execute(sql`DELETE FROM audit_log WHERE user_id IN (${idList})`);
+    await db.execute(sql`DELETE FROM otp_codes WHERE email LIKE '%@demo.com'`);
+    await db.execute(sql`DELETE FROM users WHERE id IN (${idList})`);
+
+    logger.info(`Superadmin cleared ${ids.length} demo account(s).`);
+    res.json({ success: true, data: { deleted: ids.length } });
+  } catch (err: any) {
+    logger.error(`reset-demo-accounts failed: ${err?.message}`);
+    res.status(500).json({ success: false, message: err?.message || "Failed" });
+  }
+});
+
 router.post("/reset", async (req, res) => {
   try {
     const { confirmation, mode = "full", classes } = req.body;

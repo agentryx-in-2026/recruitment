@@ -49,13 +49,35 @@ const router = Router();
  * of a candidate's documents belongs on an admin-scoped endpoint that takes an
  * explicit id, not on this one.
  */
-router.use(protect, (req, res, next) => {
+/**
+ * Candidate-only — but scoped to THIS router's own paths.
+ *
+ * This was a blanket `router.use`, and the router is mounted on the SAME prefix
+ * as document.routes and BEFORE it (server/routes.ts:165-166). Express runs a
+ * router's middleware for any request matching the mount path, whether or not
+ * that router has a route for it — so the guard fired on
+ * `PATCH /candidates/documents/:id/verify`, which belongs to the other router,
+ * and answered 403 "Candidate-only endpoint" before the real handler was ever
+ * reached.
+ *
+ * Effect: HPSEDC staff could not verify ANY document, portal-wide. The upload
+ * flow worked, the obligation list worked, and the step that turns an uploaded
+ * file into a checked one was dead — so no candidate could ever be documented
+ * as verified, and the evidence-based profile lock (which keys off exactly that
+ * flag) could never engage either.
+ *
+ * Guarding the specific paths keeps the protection and stops it leaking onto a
+ * sibling router's routes.
+ */
+const candidateOnly = (req: any, res: any, next: any) => {
   const role = (req.user as any)?.role;
   if (role !== "candidate") {
     return res.status(403).json({ success: false, error: { code: 403, message: "Candidate-only endpoint" } });
   }
   next();
-});
+};
+router.use(protect);
+router.use(["/obligations", "/preview"], candidateOnly);
 
 /**
  * Application status → the stage of documents it justifies asking for.

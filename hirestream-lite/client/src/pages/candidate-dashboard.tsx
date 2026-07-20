@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { VerifyEmailBanner } from "@/components/candidate/VerifyEmailBanner";
 import { stageOrder } from "@shared/pipeline";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { useHelpline, useCapabilities } from "@/hooks/use-capabilities";
 import {
-  Briefcase, Star, FileText, CheckCircle, AlertCircle, Loader2, Download,
+  Briefcase, Star, FileText, CheckCircle, Circle, AlertCircle, Loader2, Download,
   MapPin, Mail, User, GraduationCap, Building, Search, DollarSign,
   Clock, Shield, ChevronDown, ChevronUp, ArrowUpDown, Sparkles,
   LayoutDashboard, ClipboardList, XCircle, Calendar, ArrowRight,
@@ -488,6 +489,13 @@ export default function CandidateDashboard() {
 
         {/* ── MAIN CONTENT ── */}
         <main className="min-w-0">
+          {/* Above the view switch, so it is present in BOTH minimal and
+              advanced modes and on every tab. Mounting it inside OverviewView
+              meant blue-collar candidates — who default to minimal — never saw
+              it, which is precisely the group least able to work out why their
+              Apply button was refusing them. */}
+          <VerifyEmailBanner />
+
           <AnimatePresence mode="wait">
             <motion.div key={activeView + (minimal ? "-min" : "")} variants={scaleIn} initial="initial" animate="animate" exit="exit">
               {activeView === "overview" && (minimal
@@ -675,6 +683,15 @@ function MinDocRow({ icon: Icon, label, done, t }: any) {
 }
 
 function MinAppStatus({ app, extra, setActiveView, t }: any) {
+  const { capabilities: minCaps } = useCapabilities();
+  // Candidate-facing wording, in the order the active pipeline actually runs.
+  const minSteps = stageOrder(minCaps.pipelineProfile).map((st) =>
+    st === "submitted" ? t("simpleDash.steps.applied")
+      : st === "reviewed" ? t("simpleDash.steps.review")
+      : st === "shortlisted" ? t("simpleDash.steps.shortlisted", "Shortlisted")
+      : st === "interview_scheduled" ? t("simpleDash.steps.interview")
+      : st === "selected" ? t("simpleDash.steps.selected")
+      : t("simpleDash.steps.placed", "Placed"));
   const key = minFriendlyKey(app);
   const f = MIN_FRIENDLY[key];
   const Icon = f.icon;
@@ -691,13 +708,27 @@ function MinAppStatus({ app, extra, setActiveView, t }: any) {
       <p className="text-base font-medium text-slate-700 mt-3 truncate">{app.jobTitle}{app.country ? ` · ${app.country}` : ""}</p>
       {key !== "closed" && (
         <div className="mt-4">
-          <div className="flex gap-1.5">{[1, 2, 3, 4].map((s) => <div key={s} className={`h-2.5 flex-1 rounded-full ${s <= f.step ? "bg-emerald-500" : "bg-slate-200"}`} />)}</div>
+          {/* A FOURTH hardcoded stage list — this one showed "Review", a stage
+              the Direct pipeline does not run, on the simple dashboard that
+              blue-collar candidates get by default. Driven off the active
+              profile now, like the other three. */}
+          <div className="flex gap-1.5">{minSteps.map((_, idx) => <div key={idx} className={`h-2.5 flex-1 rounded-full ${idx < f.step ? "bg-emerald-500" : "bg-slate-200"}`} />)}</div>
           <div className="flex justify-between mt-1.5 text-xs text-slate-500 font-medium">
-            <span>{t("simpleDash.steps.applied")}</span><span>{t("simpleDash.steps.review")}</span><span>{t("simpleDash.steps.interview")}</span><span>{t("simpleDash.steps.selected")}</span>
+            {minSteps.map((label) => <span key={label}>{label}</span>)}
           </div>
         </div>
       )}
       {offered && <Button onClick={() => setActiveView("applications")} className="w-full h-14 text-lg font-semibold rounded-xl mt-4 bg-amber-500 hover:bg-amber-600 text-white">{t("simpleDash.offerAction")}</Button>}
+      {/* Once selected the application grows two more pages (documents +
+          compliance). The dashboard is where the candidate lives, so it must
+          point at them — otherwise the pages exist but nobody can find the
+          door. Deep-links straight to page 5. */}
+      {(key === "selected" || key === "placed") && (
+        <Button onClick={() => window.location.assign("/register?page=5")}
+          className="w-full h-14 text-lg font-semibold rounded-xl mt-4 bg-blue-700 hover:bg-blue-800 text-white">
+          {t("simpleDash.completeDeployment")}
+        </Button>
+      )}
       {extra > 0 && <button onClick={() => setActiveView("applications")} className="mt-4 w-full min-h-[44px] text-base text-blue-700 font-medium underline underline-offset-2">{t("simpleDash.moreApplications", { count: extra })}</button>}
     </div>
   );
@@ -2155,6 +2186,51 @@ function RecommendedView({ recommendations, savedJobIds, setActiveView }: { reco
 
 // ── DOCUMENTS VIEW ──────────────────────────────────────────────────
 
+
+/**
+ * The documents this candidate currently owes, per application, straight from
+ * the obligation engine — the same source the /documents page and the staff
+ * screens read. Renders nothing before anything is owed, which under the Direct
+ * pipeline means nothing until selection: that silence IS the 20,000:500 rule.
+ */
+function RequiredDocsPanel() {
+  const { data } = useQuery<any>({ queryKey: ["/api/v1/candidates/documents/obligations"] });
+  const obligations: any[] = data?.data?.obligations || [];
+  if (obligations.length === 0) return null;
+
+  return (
+    <motion.div variants={fadeUp} className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <FileText className="w-4 h-4 text-amber-700" />
+        <h3 className="text-sm font-bold text-amber-900">Documents HPSEDC need from you</h3>
+      </div>
+      {obligations.map((ob: any) => (
+        <div key={ob.applicationId} className="mb-3 last:mb-0">
+          <p className="text-xs font-semibold text-slate-700 mb-1.5">
+            {ob.jobTitle}{ob.country ? ` — ${ob.country}` : ""}
+          </p>
+          <div className="grid sm:grid-cols-2 gap-1.5">
+            {ob.required.map((d: any) => (
+              <div key={d.key}
+                className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs ${
+                  d.have ? "border-emerald-200 bg-emerald-50/60 text-emerald-800"
+                         : "border-slate-200 bg-white text-slate-700"}`}>
+                {d.have ? <CheckCircle className="w-3.5 h-3.5 shrink-0" /> : <Circle className="w-3.5 h-3.5 shrink-0 text-slate-300" />}
+                <span className="flex-1">{d.label}</span>
+                {d.have && !d.verified && <span className="text-[10px] text-amber-600 font-medium">checking</span>}
+                {d.have && d.verified && <span className="text-[10px] text-emerald-600 font-semibold">accepted</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <p className="text-[11px] text-amber-800 mt-2.5">
+        Upload each one below. HPSEDC ask only for what this job actually needs.
+      </p>
+    </motion.div>
+  );
+}
+
 function DocumentsView({ docs, profile, intent, docsNeeded }: { docs: any[]; profile: any; intent?: string | null; docsNeeded?: boolean }) {
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -2220,6 +2296,15 @@ function DocumentsView({ docs, profile, intent, docsNeeded }: { docs: any[]; pro
 
   return (
     <motion.div variants={stagger} initial="initial" animate="animate">
+      {/* What HPSEDC have actually ASKED FOR, from the obligations engine.
+          Without this the screen showed only a fixed slot list (CV / ID /
+          Passport / Certificate), so a nurse was never told she needs her
+          Council registration and an electrician never heard of a trade test —
+          item 21 computed correctly on the server and no candidate could see
+          it. Simple view is the default for blue-collar candidates, i.e.
+          exactly the people the profession rules exist to protect. */}
+      <RequiredDocsPanel />
+
       <motion.div variants={fadeUp} className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-md shadow-violet-500/20">

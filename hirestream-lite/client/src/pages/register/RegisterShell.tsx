@@ -3,7 +3,7 @@ import { useFormTimer } from "./useFormTimer";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2, Landmark, ShieldCheck, AlertTriangle, PhoneCall, Clock, CheckCircle2, HelpCircle, Pause, Play, Save, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Landmark, ShieldCheck, AlertTriangle, PhoneCall, Clock, CheckCircle2, HelpCircle, Pause, Play, RotateCcw, Save, Wand2 } from "lucide-react";
 
 /**
  * UAT-05 registration shell — replaces simple-apply/QuestionShell.
@@ -114,12 +114,18 @@ export function Section({
 
 export function RegisterShell({
   step, totalSteps, title, help, children,
-  onBack, backLabel, onNext, nextLabel, nextDisabled, loading, onSkip, stepLabels, stepIcons,
+  onBack, backLabel, onNext, nextLabel, nextDisabled, loading, onSkip, submittedNote, submittedHint, candidateId, stepLabels, stepIcons,
   stepProgress, overallProgress, startedAt, onNavigate, maxStepReached,
 }: {
   step: number; totalSteps: number; title: string; help?: string;
   children: React.ReactNode; onBack?: () => void; backLabel?: string; onNext?: () => void;
   nextLabel?: string; nextDisabled?: boolean; loading?: boolean; onSkip?: () => void;
+  /** Scopes the timer to this person — see useFormTimer. */
+  candidateId?: string | null;
+  /** Shown beside the action when the application is in, with nothing new to send. */
+  submittedNote?: string;
+  /** Why the action is disabled. Without it a grey button just looks broken. */
+  submittedHint?: string;
   stepLabels?: string[];
   /** One glyph per stage — scannable for a candidate who reads slowly. */
   stepIcons?: React.ElementType[];
@@ -140,7 +146,7 @@ export function RegisterShell({
   // visible four-minute clock is the counter-argument, and it is the one number a
   // candidate can check against the promise on page 1. It therefore has to
   // SURVIVE leaving and coming back, or it is evidence of nothing.
-  const { label: mmss, paused: timerPaused, toggle: toggleTimer } = useFormTimer();
+  const { label: mmss, paused: timerPaused, toggle: toggleTimer, reset: resetTimer } = useFormTimer(candidateId);
   // print:* on the chrome below — page 4 prints an A4 application form, and
   // everything in this shell is screen furniture that must not appear on it.
   // Marked here at the source rather than in ReviewPage's stylesheet: that one
@@ -205,6 +211,15 @@ export function RegisterShell({
                     className={`ml-0.5 w-7 h-7 rounded-md flex items-center justify-center transition-colors ${
                       timerPaused ? "bg-amber-600 text-white hover:bg-amber-700" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"}`}>
                     {timerPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                  </button>
+                  {/* Reset — for a clean measured run. Confirmed, because the
+                      number is the evidence that this form is short and wiping
+                      it by accident loses that reading for good. */}
+                  <button type="button"
+                    onClick={() => { if (window.confirm(t("reg.timer.resetConfirm"))) resetTimer(); }}
+                    title={t("reg.timer.reset")} aria-label={t("reg.timer.reset")}
+                    className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                    <RotateCcw className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 {overallProgress !== undefined && (
@@ -287,13 +302,31 @@ export function RegisterShell({
                 )}
               </div>
               {onNext && (
-                <Button
-                  onClick={onNext} disabled={nextDisabled || loading}
-                  className="w-full sm:w-auto sm:min-w-[220px] h-14 rounded-xl text-lg font-semibold gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-500/25 transition-all"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                  {nextLabel || t("shell.next")} {!loading && <ArrowRight className="w-5 h-5" />}
-                </Button>
+                <div className="w-full sm:w-auto flex flex-col items-stretch sm:items-end gap-1.5">
+                  {/* A submitted application says so. Without this the review
+                      page offered the same "Submit application" button forever,
+                      so a candidate had no way to tell whether theirs had gone
+                      in — and pressed it again to be sure. */}
+                  {submittedNote && (
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-emerald-700">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{submittedNote}</span>
+                    </div>
+                  )}
+                  <Button
+                    onClick={onNext} disabled={nextDisabled || loading}
+                    className={`w-full sm:w-auto sm:min-w-[220px] h-14 rounded-xl text-lg font-semibold gap-2 text-white shadow-lg transition-all ${
+                      submittedNote
+                        ? "bg-slate-300 shadow-none hover:bg-slate-300"
+                        : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-blue-500/25"}`}
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                    {nextLabel || t("shell.next")} {!loading && !submittedNote && <ArrowRight className="w-5 h-5" />}
+                  </Button>
+                  {submittedHint && (
+                    <p className="text-xs text-slate-500 text-right max-w-[320px]">{submittedHint}</p>
+                  )}
+                </div>
               )}
             </div>
           </div>

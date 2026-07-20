@@ -607,6 +607,8 @@ router.patch("/interviews/:id/result", protect, async (req, res, next) => {
     if (normalised === "selected") {
       await db.update(applications).set({ status: "selected" }).where(eq(applications.id, intRows[0].applicationId));
       // Third writer of `selected`, and it was silent about documents too.
+      const { captureSelectionSnapshot } = await import("../services/selection-snapshot.service");
+      await captureSelectionSnapshot(intRows[0].applicationId);
       const { notifyIfDocumentsBecameDue } = await import("./application.routes");
       await notifyIfDocumentsBecameDue(intRows[0].applicationId, priorAppStatus, "selected", req.user as any);
     } else if (normalised === "rejected") {

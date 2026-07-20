@@ -60,12 +60,30 @@ export default function JobDetailPage() {
   const applyMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/v1/jobs/${id}/apply`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
+      const body = await res.json().catch(() => ({} as any));
+      // This threw a bare "Failed" and the mutation had NO onError, so every
+      // rejection — including the email-verification block — surfaced as the
+      // button doing nothing at all. Carry the server's message through.
+      if (!res.ok) {
+        const err: any = new Error(body?.error?.message || "Could not apply. Please try again.");
+        err.reason = body?.error?.reason;
+        throw err;
+      }
+      return body;
     },
     onSuccess: () => {
       toast({ title: "Applied successfully", description: "The recruiter will get in touch." });
       qc.invalidateQueries({ queryKey: ["/api/v1/candidates/applications"] });
+    },
+    onError: (e: any) => {
+      const needsVerify = e?.reason === "EMAIL_NOT_VERIFIED";
+      toast({
+        title: needsVerify ? "Confirm your email first" : "Could not apply",
+        description: needsVerify
+          ? "Open your dashboard and enter the 6-digit code we emailed you — there is a Resend button if it has not arrived."
+          : e?.message,
+        variant: "destructive",
+      });
     },
   });
   const saveMutation = useMutation({
@@ -199,24 +217,50 @@ export default function JobDetailPage() {
               {d.have && <span className="text-[11px] font-semibold text-emerald-600">Have it</span>}
             </div>
           );
+          // The preview endpoint returns `ifShortlisted: null` when the active
+          // pipeline has no shortlist stage (Direct). This mapped over it
+          // unguarded and threw on render, breaking the job detail page for
+          // every candidate — a null I introduced server-side on 2026-07-19
+          // without checking the consumer. Null and empty mean different
+          // things here: null is "this pipeline has no such stage".
+          const shortlistStage: any[] | null = prev.ifShortlisted ?? null;
+          const selectedDocs: any[] = prev.ifSelected ?? [];
+          if (!shortlistStage?.length && !selectedDocs.length) return null;
           return (
             <section className="mt-6">
               <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                If you are shortlisted for this job — {job.country}
+                {shortlistStage?.length
+                  ? `If you are shortlisted for this job — ${job.country}`
+                  : `If you are selected for this job — ${job.country}`}
               </h2>
-              <div className="grid sm:grid-cols-2 gap-2">
-                {prev.ifShortlisted.map((d: any) => <Line key={d.key} d={d} />)}
-              </div>
-              {prev.ifSelected?.length > 0 && (
-                <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5">
-                  <p className="text-[11px] text-slate-600">
-                    <strong>Only if you are selected:</strong>{" "}
-                    {prev.ifSelected.map((d: any) => d.label).join(", ")}.{" "}
-                    <span className="text-slate-500">
-                      You do not need these to apply — they expire, so HPSEDC ask for them only once you have the job.
-                    </span>
+              {shortlistStage?.length ? (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {shortlistStage.map((d: any) => <Line key={d.key} d={d} />)}
+                  </div>
+                  {selectedDocs.length > 0 && (
+                    <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5">
+                      <p className="text-[11px] text-slate-600">
+                        <strong>Only if you are selected:</strong>{" "}
+                        {selectedDocs.map((d: any) => d.label).join(", ")}.{" "}
+                        <span className="text-slate-500">
+                          You do not need these to apply — they expire, so HPSEDC ask for them only once you have the job.
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Direct: nothing is asked until selection, so the whole set
+                      is the honest answer to "what will I need?". */}
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {selectedDocs.map((d: any) => <Line key={d.key} d={d} />)}
+                  </div>
+                  <p className="mt-3 text-[11px] text-slate-500">
+                    You do not need any of these to apply. HPSEDC ask for them only once you have been selected.
                   </p>
-                </div>
+                </>
               )}
             </section>
           );

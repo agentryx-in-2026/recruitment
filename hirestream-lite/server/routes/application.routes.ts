@@ -186,6 +186,10 @@ router.patch("/:id/status", protect, async (req, res, next) => {
       });
     } catch (e: any) { logger.warn(`audit on status change failed: ${e?.message}`); }
 
+    if (status === "selected") {
+      const { captureSelectionSnapshot } = await import("../services/selection-snapshot.service");
+      await captureSelectionSnapshot(app.id);
+    }
     await notifyIfDocumentsBecameDue(app.id, fromStatus, status, user);
 
     // PWS §5: fire the matching pipeline event through the notification engine
@@ -316,6 +320,10 @@ router.patch("/bulk-status", protect, async (req, res, next) => {
     // HPSEDC bulk-select is a primary path under Direct: a government batch is
     // decided in one action, and every candidate in it needs telling that their
     // documents are now due.
+    if (status === "selected") {
+      const { captureSelectionSnapshot } = await import("../services/selection-snapshot.service");
+      await Promise.all(updated.map((u: any) => captureSelectionSnapshot(u.id)));
+    }
     await Promise.all(
       updated.map((u: any) => notifyIfDocumentsBecameDue(u.id, priorStatus[u.id], status, req.user as any)),
     );
@@ -626,6 +634,10 @@ router.post("/:id/interview-outcome", protect, async (req, res, next) => {
     // Under Direct this IS how a candidate reaches `selected` — the status is
     // written here, not through the status PATCH — so the documents-due
     // notification has to fire from here too.
+    if (newStatus === "selected") {
+      const { captureSelectionSnapshot } = await import("../services/selection-snapshot.service");
+      await captureSelectionSnapshot(app.id);
+    }
     await notifyIfDocumentsBecameDue(app.id, app.status, newStatus, user);
 
     // Audit

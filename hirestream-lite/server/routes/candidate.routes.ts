@@ -83,10 +83,81 @@ router.patch("/profile", protect, async (req, res, next) => {
         return res.status(200).json({ success: true, data: newCandidate[0] });
      }
 
+     // Capture the BEFORE row so the audit entry records what actually changed.
+     // Until now a candidate could alter their name, date of birth or passport
+     // number at any stage — including after selection, with a visa being
+     // issued against those exact values — and the change left no trace
+     // anywhere and notified nobody. Whatever locking policy HPSEDC settle on,
+     // the trail has to exist first: without it there is no way to answer
+     // "when did this passport number change, and who changed it?"
+     const beforeRows = await storage.db.select().from(candidates)
+       .where(eq(candidates.userId, userId)).limit(1);
+     const before: any = beforeRows[0] ?? {};
+
+     // Evidence-based lock: fields printed on a document HPSEDC have VERIFIED
+     // stop being candidate-editable. Not stage-based — see profile-lock
+     // service for why a stage freeze is the wrong axis for this population.
+     const { applyProfileLock } = await import("../services/profile-lock.service");
+     const lock = before.id
+       ? await applyProfileLock(before.id, validatedData as any, (req.user as any)?.role ?? "candidate")
+       : { allowed: validatedData as any, refused: [] as string[], reasons: {} as Record<string, string>, meaningfulCount: 1 };
+     if (lock.refused.length > 0 && lock.meaningfulCount === 0) {
+       // Nothing left to write — tell them plainly rather than reporting a
+       // success that silently reverts.
+       return res.status(403).json({
+         success: false,
+         message: lock.reasons[lock.refused[0]],
+         error: { code: 403, message: lock.reasons[lock.refused[0]], reason: "FIELD_LOCKED", fields: lock.refused },
+       });
+     }
+
      const updated = await storage.db.update(candidates)
-         .set(validatedData)
+         .set(lock.allowed)
          .where(eq(candidates.userId, userId))
          .returning();
+
+     if (updated[0]) {
+       const { logProfileEdit } = await import("../services/profile-audit.service");
+       // Best-effort: an audit failure must never roll back a save the
+       // candidate has already been told succeeded.
+       logProfileEdit({
+         candidateId: updated[0].id,
+         actorUserId: userId,
+         actorRole: (req.user as any)?.role ?? "candidate",
+         before,
+         after: updated[0],
+         ipAddress: req.ip,
+       }).catch(() => {});
+     }
+
+
+     // profileComplete is SERVER-COMPUTED, never accepted from the client.
+     //
+     // The mass-assignment fix (2026-07-18) correctly stripped it from
+     // updateCandidateSchema — a candidate must not be able to declare
+     // themselves complete. But nothing then set it, and UAT-05 item 2 routes
+     // on exactly this flag, so every real candidate finished the form, was
+     // sent to the dashboard, and was bounced straight back into the form.
+     // Forever. The seeded demo cast hid it because the seed writes the column
+     // directly.
+     //
+     // Computing it from the same 7 checkpoints /register asks for keeps both
+     // properties: the candidate cannot lie about it, and finishing the form
+     // actually ends the loop.
+     if (updated[0]) {
+       try {
+         const completion = await computeCompletion(updated[0].id);
+         const isComplete = completion.percentage >= 100;
+         if (Boolean(updated[0].profileComplete) !== isComplete) {
+           await storage.db.update(candidates)
+             .set({ profileComplete: isComplete })
+             .where(eq(candidates.id, updated[0].id));
+           updated[0].profileComplete = isComplete;
+         }
+       } catch (e: any) {
+         logger.warn(`profileComplete recompute failed for ${updated[0].id}: ${e?.message}`);
+       }
+     }
 
      // If username was provided, also update the users table.
      // audit 2026-07-06 (S8): previously written with only trim() — bypassing
@@ -106,7 +177,14 @@ router.patch("/profile", protect, async (req, res, next) => {
          .where(eq(users.id, userId));
      }
 
-     res.status(200).json({ success: true, data: updated[0] });
+     // Partial write: the rest saved, but the candidate must be told WHICH
+     // answers were kept as-is and why. Silently dropping them would look like
+     // a successful save that mysteriously reverts.
+     res.status(200).json({
+       success: true,
+       data: updated[0],
+       ...(lock.refused.length > 0 ? { lockedFields: lock.refused, lockReasons: lock.reasons } : {}),
+     });
   } catch (err) {
     logger.error(`Error updating candidate profile: ${err}`);
     next(err);

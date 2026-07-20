@@ -248,6 +248,20 @@ export const applications = pgTable("applications", {
   employerDecision: text("employer_decision"),       // approved_for_interview | replacement_requested | selected_by_employer | rejected_by_employer
   employerDecisionAt: timestamp("employer_decision_at"),
   employerDecisionNotes: text("employer_decision_notes"),
+  /**
+   * Who this candidate WAS at the moment they were selected.
+   *
+   * The profile is a living document; a selection is a decision taken against
+   * one particular version of it. Every mainstream ATS treats a submitted
+   * application as an immutable snapshot for this reason, and this portal had
+   * no equivalent — a candidate could change their trade, name or passport
+   * number after being chosen and nothing recorded what was actually agreed.
+   *
+   * With the snapshot, later edits stop being dangerous: the record of the
+   * decision survives them. That is what lets the candidate keep
+   * responsibility for their own data instead of being locked out of it.
+   */
+  selectionSnapshot: jsonb("selection_snapshot"),
   appliedAt: timestamp("applied_at").defaultNow(),
 }, (t) => ({
   // audit 2026-07-06 (C4): DB-level duplicate-application guard. The route's
@@ -639,8 +653,17 @@ export type RegistrationField = typeof registrationFields.$inferSelect;
 export const candidateLanguages = pgTable("candidate_languages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   candidateId: varchar("candidate_id").references(() => candidates.id).notNull(),
-  language: text("language").notNull(),         // Hindi | English | Arabic | Malayalam | ...
+  language: text("language").notNull(),         // Hindi | English | Urdu | Arabic
+  // SPOKEN level. Kept under the original name so every existing consumer —
+  // matching, the PDF export, the agent screens — keeps working unchanged;
+  // speaking is what they were all really reading.
   proficiency: text("proficiency").notNull(),   // elementary | intermediate | professional | native
+  // WRITTEN level, asked separately because the two genuinely diverge for this
+  // workforce: a mason may speak workable Hindi and Arabic and write neither,
+  // while a nurse needs written English for charting. Collapsing them into one
+  // number told an employer nothing about which they were getting. Nullable —
+  // rows predating this only ever recorded one level.
+  writtenProficiency: text("written_proficiency"),
   canRead: boolean("can_read").default(false),
   canWrite: boolean("can_write").default(false),
   canSpeak: boolean("can_speak").default(true),
@@ -1282,6 +1305,11 @@ export const insertLanguageSchema = createInsertSchema(candidateLanguages).omit(
   proficiency: z.enum(["elementary", "intermediate", "professional", "native"], {
     errorMap: () => ({ message: "Pick a proficiency level." }),
   }),
+  // "none" is a real answer here, not a missing one: plenty of candidates speak
+  // a language they cannot write, and recording that honestly is the point of
+  // asking the two separately.
+  writtenProficiency: z.enum(["none", "elementary", "intermediate", "professional", "native"])
+    .optional().nullable(),
 });
 
 // UAT-05 Item 15 — one trade the candidate does. `candidateId` is omitted: it

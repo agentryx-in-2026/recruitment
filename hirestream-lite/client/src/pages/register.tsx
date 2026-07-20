@@ -48,10 +48,11 @@ import { formatAadhaar, stripAadhaar, maskAadhaar, isValidAadhaar } from "@share
 import { splitPhone } from "./register/Field";
 import { ProfessionAddonBlock, isAddonComplete, type AddonData } from "./register/profession-blocks";
 import { ReviewPage } from "./register/ReviewPage";
+import { DocumentsPage, CompliancePage } from "./register/DeploymentPages";
 import { ReadyChecklist } from "./register/ReadyChecklist";
 import { isTestMode, TEST_DATA } from "./register/test-mode";
 import { Check, Plus, Minus, Info, Briefcase, BookUser, User, Phone, MapPin,
-         Wrench, GraduationCap, ClipboardCheck, FlaskConical, Wand2 } from "lucide-react";
+         Wrench, GraduationCap, ClipboardCheck, FlaskConical, Wand2, FileText, ShieldCheck } from "lucide-react";
 
 /**
  * Four pages TODAY — everything HPSEDC need to match a candidate to a vacancy.
@@ -88,7 +89,7 @@ export function findOwnEducationRow(rows: any[], knownLabels: string[]): any | u
   return [...rows].sort((a, b) => (Number(b.year) || 0) - (Number(a.year) || 0))[0];
 }
 
-const TOTAL = 4;
+const BASE_PAGES = 4;
 // 18 is the statutory minimum emigration age. The `max` attribute stops the
 // picker offering an under-age date at all; the inline error covers typed input.
 const maxDobForAdult = () => {
@@ -140,7 +141,7 @@ export default function RegisterPage() {
   const requestedPage = (() => {
     if (typeof window === "undefined") return 0;
     const raw = Number(new URLSearchParams(window.location.search).get("page"));
-    return Number.isFinite(raw) && raw >= 1 && raw <= TOTAL ? raw - 1 : 0;
+    return Number.isFinite(raw) && raw >= 1 && raw <= 6 ? raw - 1 : 0;
   })();
   const [step, setStep] = useState(requestedPage);
   // Furthest stage reached. The sidebar lets a candidate go BACK to a page
@@ -190,6 +191,26 @@ export default function RegisterPage() {
   const [eduPassed, setEduPassed] = useState(true);
 
   const { data: profileRes } = useQuery<any>({ queryKey: ["/api/v1/candidates/profile"] });
+  // Has this candidate already submitted? The server computes profileComplete
+  // from the same checkpoints the form collects, so it is the honest answer —
+  // and unlike local state it survives a reload.
+  const alreadySubmitted = Boolean(profileRes?.data?.profileComplete);
+  const submittedAt: string | null = profileRes?.data?.updatedAt ?? null;
+
+  // Has anything changed since the last save? Without this the review page
+  // offered "Submit application" forever — a candidate who had already
+  // submitted, went to their dashboard and came back saw the same call to
+  // action and no evidence their application had ever gone in. The button now
+  // only lights up when there is genuinely something new to send.
+  const savedSnapshot = useRef<string | null>(null);
+  const answersKey = JSON.stringify([
+    passportNumber, passportExpiry, passportIssueDate, passportPlaceOfIssue, noPassportYet,
+    ecrStatus, aadhaarNumber, fullName, dateOfBirth, sex, fatherName, motherName,
+    disabilityStatus, disabilityType, phone, whatsappSame, whatsappNumber, email,
+    homeTown, pAddr1, pAddr2, pDistrict, pState, pPin, corrSame, cAddr1, cAddr2, cDistrict, cState, cPin,
+    picked, langs, eduLevel, eduBoard, eduInstitution, eduYear, eduPassed,
+  ]);
+  const isDirty = savedSnapshot.current !== null && savedSnapshot.current !== answersKey;
   const { data: profRes } = useQuery<any>({ queryKey: ["/api/v1/professions"] });
   const { data: minePropRes } = useQuery<any>({ queryKey: ["/api/v1/professions/mine"] });
   const { data: langRes } = useQuery<any>({ queryKey: ["/api/v1/candidates/languages"] });
@@ -200,6 +221,12 @@ export default function RegisterPage() {
   // same row, pressing Next then PUT the blanks straight over their real
   // answers. Silent data loss on an edit, which is the worst kind.
   const { data: eduRes } = useQuery<any>({ queryKey: ["/api/v1/candidates/education"] });
+  // Pages 5 and 6 exist only once HPSEDC actually need them — i.e. once this
+  // candidate has been selected and owes documents. Twenty thousand applicants
+  // must never be walked through a police-clearance page; five hundred must.
+  const { data: deployObl } = useQuery<any>({ queryKey: ["/api/v1/candidates/documents/obligations"] });
+  const hasDeploymentStage = (deployObl?.data?.obligations || []).length > 0;
+  const TOTAL = hasDeploymentStage ? 6 : BASE_PAGES;
   // Field configuration — HPSEDC turn fields on/off and required/optional from
   // the admin screen, no release. The server is the authority; this is the form
   // reading it. Defaults are permissive so a failed fetch shows the full form
@@ -249,6 +276,37 @@ export default function RegisterPage() {
   // Restore the education row this page owns — matched the same way the save
   // path finds it, by degree label, so the two cannot disagree about which row
   // is "ours".
+  // Resume where it makes sense. Someone who has already submitted and comes
+  // back through "Edit" wants the review page — the summary with per-section
+  // Edit links — not to be dropped at field one of page one and marched
+  // through all four again. Only fires once, and never overrides an explicit
+  // ?page= deep-link.
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (resumed.current || !profileRes?.data) return;
+    resumed.current = true;
+    if (alreadySubmitted && requestedPage === 0) {
+      setStep(TOTAL - 1);
+      setMaxStepReached(TOTAL - 1);
+    }
+  }, [profileRes, alreadySubmitted, requestedPage]);
+
+  // Snapshot ONCE, after the loaded profile has been written into state.
+  //
+  // Keying this on [profileRes] was wrong: React Query refetches the profile on
+  // window focus and after every save, so the baseline was re-taken WITH the
+  // candidate's unsaved edits folded in — the form forgot it was dirty and the
+  // button fell back to disabled while their changes sat unsaved. Alt-tabbing
+  // was enough to trigger it. The baseline must move only when we deliberately
+  // move it: here once, and after a successful save or submit.
+  const baselined = useRef(false);
+  useEffect(() => {
+    if (baselined.current || !profileRes?.data) return;
+    const t = setTimeout(() => { savedSnapshot.current = answersKey; baselined.current = true; }, 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileRes]);
+
   const prefilledEdu = useRef(false);
   useEffect(() => {
     const rows = eduRes?.data;
@@ -285,7 +343,13 @@ export default function RegisterPage() {
     const rows = langRes?.data;
     if (!rows || prefilledLangs.current) return;
     prefilledLangs.current = true;
-    setLangs(rows.map((r: any) => ({ language: r.language, proficiency: r.proficiency })));
+    setLangs(rows.map((r: any) => ({
+      language: r.language,
+      proficiency: r.proficiency,
+      // Rows written before the split recorded one level; show it for both
+      // rather than implying the candidate cannot write at all.
+      writtenProficiency: r.writtenProficiency ?? r.proficiency,
+    })));
   }, [langRes]);
 
   // ── Per-field validation messages ──────────────────────────────────
@@ -361,28 +425,56 @@ export default function RegisterPage() {
     ...picked.map((x) => isAddonComplete(x.professionKey, x.addonData)),
     ...picked.map((x) => x.experienceMonths > 0),
   ];
-  const stepProgress = [pct(p1Fields), pct(p2Fields), pct(p3Fields), step === TOTAL - 1 ? 100 : 0];
+  // The review page counts as done when the application has actually been
+  // SUBMITTED — not merely when the candidate happens to be standing on it.
+  // Position-based progress meant a candidate who submitted, went to their
+  // dashboard and came back saw "Review 0% · 90% complete" and had to click
+  // through and submit a second time, every time. `alreadySubmitted` comes from
+  // the server's profileComplete, so it survives reloads and devices.
+  // Page 5 progresses with the documents actually uploaded; page 6 with the
+  // compliance answers given. Both are real work, so they must count.
+  const deployObligations: any[] = deployObl?.data?.obligations || [];
+  const allDocs = deployObligations.flatMap((o: any) => o.required || []);
+  const docPct = allDocs.length ? Math.round((allDocs.filter((d: any) => d.have).length / allDocs.length) * 100) : 0;
+  const compliancePct = pct([profileRes?.data?.pccStatus, profileRes?.data?.medicalStatus, profileRes?.data?.pbbyInsuranceStatus]);
+  const reviewDone = (alreadySubmitted || step === 3) ? 100 : 0;
+  const stepProgress = hasDeploymentStage
+    ? [pct(p1Fields), pct(p2Fields), pct(p3Fields), reviewDone, docPct, compliancePct]
+    : [pct(p1Fields), pct(p2Fields), pct(p3Fields), reviewDone];
   // Weighted by how much work each page actually is, not a flat average — page 1
   // is ~18 fields and page 2 is two choices, so a flat mean would jump to 25%
   // for one tap and badly overstate progress.
-  const overallProgress = Math.round(
-    (stepProgress[0] * 0.5) + (stepProgress[1] * 0.15) + (stepProgress[2] * 0.25) + (stepProgress[3] * 0.10));
+  const overallProgress = hasDeploymentStage
+    ? Math.round((stepProgress[0] * 0.30) + (stepProgress[1] * 0.10) + (stepProgress[2] * 0.15)
+        + (stepProgress[3] * 0.05) + (stepProgress[4] * 0.25) + (stepProgress[5] * 0.15))
+    : Math.round((stepProgress[0] * 0.5) + (stepProgress[1] * 0.15) + (stepProgress[2] * 0.25) + (stepProgress[3] * 0.10));
 
   // The pre-flight checklist, shown once per candidate on a fresh form. Skipped
   // for anyone resuming — they have already seen it and already have their
   // papers out.
   const [showChecklist, setShowChecklist] = useState(false);
   const checklistDecided = useRef(false);
+  // The "already seen it" flag is per CANDIDATE, not per browser.
+  //
+  // It used to be one global localStorage key, so the first person to dismiss
+  // the checklist on a given machine suppressed it for everyone who registered
+  // afterwards on that machine — every new account looked like it had no
+  // checklist. That is wrong on a shared or public terminal, which is exactly
+  // how many HPSEDC applicants will reach this form: a cyber-café, a panchayat
+  // office, a helper's phone. Keying it to the candidate means a genuinely new
+  // applicant always gets the pre-flight list.
+  const checklistKey = (id?: string) => `hs_reg_checklist_seen:${id || "anon"}`;
   useEffect(() => {
     const p = profileRes?.data;
     if (!p || checklistDecided.current) return;
     checklistDecided.current = true;
     const started = Boolean(p.fullName && p.fullName !== "Unknown" && p.phone);
-    const seen = typeof window !== "undefined" && localStorage.getItem("hs_reg_checklist_seen") === "1";
+    let seen = false;
+    try { seen = localStorage.getItem(checklistKey(p.id)) === "1"; } catch { /* private mode */ }
     if (!started && !seen) setShowChecklist(true);
   }, [profileRes]);
   const dismissChecklist = () => {
-    try { localStorage.setItem("hs_reg_checklist_seen", "1"); } catch { /* private mode */ }
+    try { localStorage.setItem(checklistKey(profileRes?.data?.id), "1"); } catch { /* private mode */ }
     setShowChecklist(false);
   };
 
@@ -533,10 +625,14 @@ export default function RegisterPage() {
     // change is a delete + add of that one row.
     const existing = (langRes?.data || []) as any[];
     const sameName = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-    const toRemove = existing.filter((e) =>
-      !langs.some((l) => sameName(l.language, e.language) && l.proficiency === e.proficiency));
-    const toAdd = langs.filter((l) =>
-      !existing.some((e) => sameName(l.language, e.language) && l.proficiency === e.proficiency));
+    // Compare BOTH levels. Comparing only `proficiency` meant a candidate who
+    // changed just their writing level produced no delete and no add, and the
+    // change vanished on save with a success toast.
+    const written = (x: any) => x.writtenProficiency ?? x.proficiency ?? null;
+    const same = (a: any, b: any) =>
+      sameName(a.language, b.language) && a.proficiency === b.proficiency && written(a) === written(b);
+    const toRemove = existing.filter((e) => !langs.some((l) => same(l, e)));
+    const toAdd = langs.filter((l) => !existing.some((e) => same(l, e)));
     for (const row of toRemove) await apiRequest("DELETE", `/api/v1/candidates/languages/${row.id}`);
     for (const l of toAdd) await apiRequest("POST", "/api/v1/candidates/languages", l);
     queryClient.invalidateQueries({ queryKey: ["/api/v1/professions/mine"] });
@@ -596,6 +692,7 @@ export default function RegisterPage() {
       if (step === 0) await savePage1();
       if (step === 1) await savePage2();
       if (step === 2) await savePage3();
+      savedSnapshot.current = answersKey;
       setStep((s) => { const n = Math.min(s + 1, TOTAL - 1); setMaxStepReached((m) => Math.max(m, n)); return n; });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e: any) {
@@ -608,6 +705,7 @@ export default function RegisterPage() {
     try {
       await apiRequest("PATCH", "/api/v1/candidates/profile", { profileComplete: true });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/candidates/profile"] });
+      savedSnapshot.current = answersKey;
       toast({ title: t("reg.submitted"), description: t("reg.submittedSub") });
       setLocation("/");
     } catch (e: any) {
@@ -615,14 +713,19 @@ export default function RegisterPage() {
     } finally { setSaving(false); }
   }
 
-  const stepLabels = [t("reg.p1.tab"), t("reg.p2.tab"), t("reg.p3.tab"), t("reg.p4.tab")];
-  const stepIcons = [User, Wrench, GraduationCap, ClipboardCheck];
-  const titles = [t("reg.p1.title"), t("reg.p2.title"), t("reg.p3.title"), t("reg.p4.title")];
-  const helps = [t("reg.p1.help"), t("reg.p2.help"), t("reg.p3.help"), t("reg.p4.help")];
-  const okFor = [p1Ok, p2Ok, p3Ok, true];
+  const stepLabels = hasDeploymentStage
+    ? [t("reg.p1.tab"), t("reg.p2.tab"), t("reg.p3.tab"), t("reg.p4.tab"), t("reg.p5.tab"), t("reg.p6.tab")]
+    : [t("reg.p1.tab"), t("reg.p2.tab"), t("reg.p3.tab"), t("reg.p4.tab")];
+  const stepIcons = hasDeploymentStage
+    ? [User, Wrench, GraduationCap, ClipboardCheck, FileText, ShieldCheck]
+    : [User, Wrench, GraduationCap, ClipboardCheck];
+  const titles = [t("reg.p1.title"), t("reg.p2.title"), t("reg.p3.title"), t("reg.p4.title"), t("reg.p5.title"), t("reg.p6.title")];
+  const helps = [t("reg.p1.help"), t("reg.p2.help"), t("reg.p3.help"), t("reg.p4.help"), t("reg.p5.help"), t("reg.p6.help")];
+  const okFor = [p1Ok, p2Ok, p3Ok, true, true, true];
 
   return (
     <RegisterShell
+      candidateId={profileRes?.data?.id}
       step={step} totalSteps={TOTAL} stepLabels={stepLabels} stepIcons={stepIcons}
       stepProgress={stepProgress} overallProgress={overallProgress}
       maxStepReached={maxStepReached}
@@ -630,8 +733,22 @@ export default function RegisterPage() {
       title={titles[step]} help={helps[step]}
       onBack={step > 0 ? () => { setStep(step - 1); window.scrollTo({ top: 0 }); } : undefined}
       onNext={step < TOTAL - 1 ? next : submit}
-      nextLabel={step === TOTAL - 1 ? t("reg.submit") : undefined}
-      nextDisabled={!okFor[step]} loading={saving}
+      nextLabel={step === TOTAL - 1
+        ? (alreadySubmitted && !isDirty ? t("reg.submitted") : t("reg.submit"))
+        : undefined}
+      // Already submitted and nothing edited? There is nothing to send. Leaving
+      // it live invited candidates to press it repeatedly wondering whether it
+      // had worked.
+      nextDisabled={!okFor[step] || (step === TOTAL - 1 && alreadySubmitted && !isDirty)}
+      submittedNote={step === TOTAL - 1 && alreadySubmitted && !isDirty
+        ? t("reg.submittedNote", { date: submittedAt ? new Date(submittedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "" })
+        : undefined}
+      // A disabled button with no explanation reads as broken — the operator hit
+      // this twice, retyping a value that was already saved and concluding the
+      // form was faulty. Saying "nothing has changed" turns a dead control into
+      // an answer.
+      submittedHint={step === TOTAL - 1 && alreadySubmitted && !isDirty ? t("reg.noChanges") : undefined}
+      loading={saving}
     >
       {showChecklist && (
         <ReadyChecklist onStart={dismissChecklist} onDismiss={dismissChecklist} />
@@ -906,6 +1023,11 @@ export default function RegisterPage() {
           picked={picked} langs={langs} profByKey={profByKey} labelOf={labelOf}
         />
       )}
+
+      {/* Pages 5 and 6 — deployment. Rendered only when this candidate has
+          actually been selected and owes documents; see hasDeploymentStage. */}
+      {step === 4 && hasDeploymentStage && <DocumentsPage />}
+      {step === 5 && hasDeploymentStage && <CompliancePage profile={profileRes?.data} />}
     </RegisterShell>
   );
 }
@@ -978,21 +1100,44 @@ function SkillsPage({
               <div key={lang} className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={() => setLangs(row
                     ? langs.filter((l: any) => l.language !== lang)
-                    : [...langs, { language: lang, proficiency: "intermediate" }])}
+                    : [...langs, { language: lang, proficiency: "intermediate", writtenProficiency: "intermediate" }])}
                   className={`rounded-lg border-2 px-4 h-11 text-sm font-semibold min-w-[112px] text-left transition-all ${
                     row ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 bg-white text-slate-700 hover:border-blue-300"}`}>
                   {lang}
                 </button>
+                {/* Speaking and writing asked separately: the two genuinely
+                    diverge for this workforce. A mason may speak workable Hindi
+                    and Arabic and write neither; a nurse needs written English
+                    for charting. One combined level told an employer nothing
+                    about which they were getting. */}
                 {row && (
-                  <div className="flex gap-1.5 flex-wrap">
-                    {LANG_LEVELS.map((lv) => (
-                      <button key={lv} type="button"
-                        onClick={() => setLangs(langs.map((l: any) => l.language === lang ? { ...l, proficiency: lv } : l))}
-                        className={`rounded-lg px-3 h-9 text-xs font-medium transition-all ${
-                          row.proficiency === lv ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
-                        {t(`reg.lang.${lv}`)}
-                      </button>
-                    ))}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-semibold text-slate-500 w-14 shrink-0">{t("reg.lang.speak")}</span>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {LANG_LEVELS.map((lv) => (
+                          <button key={lv} type="button"
+                            onClick={() => setLangs(langs.map((l: any) => l.language === lang ? { ...l, proficiency: lv } : l))}
+                            className={`rounded-lg px-3 h-9 text-xs font-medium transition-all ${
+                              row.proficiency === lv ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                            {t(`reg.lang.${lv}`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-semibold text-slate-500 w-14 shrink-0">{t("reg.lang.write")}</span>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {["none", ...LANG_LEVELS].map((lv) => (
+                          <button key={lv} type="button"
+                            onClick={() => setLangs(langs.map((l: any) => l.language === lang ? { ...l, writtenProficiency: lv } : l))}
+                            className={`rounded-lg px-3 h-9 text-xs font-medium transition-all ${
+                              (row.writtenProficiency ?? row.proficiency) === lv ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                            {lv === "none" ? t("reg.lang.cannotWrite") : t(`reg.lang.${lv}`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

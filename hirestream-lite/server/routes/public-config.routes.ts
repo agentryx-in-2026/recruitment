@@ -8,11 +8,12 @@ const router = Router();
 // non-sensitive capability booleans — never secrets or internal settings.
 router.get("/public", async (_req, res) => {
   try {
-    const [employerSelfReg, agencySelfReg, agencyMode, pipelineProfile, assistedCallback, standardReg, professionalReg, helplinePhone, helplineHours] = await Promise.all([
+    const [employerSelfReg, agencySelfReg, agencyMode, pipelineProfile, gateBrowsing, assistedCallback, standardReg, professionalReg, helplinePhone, helplineHours] = await Promise.all([
       getSetting<boolean>("capability.employer_self_registration"),
       getSetting<boolean>("capability.agency_self_registration"),
       getSetting<string>("capability.agency_mode"),
       getSetting<string>("pipeline.profile"),
+      getSetting<boolean>("registration.gate_browsing"),
       getSetting<boolean>("capability.assisted_callback_enabled"),
       getSetting<boolean>("capability.standard_registration_enabled"),
       getSetting<boolean>("capability.professional_registration_enabled"),
@@ -30,6 +31,9 @@ router.get("/public", async (_req, res) => {
           // this — without it they offer "Shortlist" under a pipeline whose
           // server rejects that transition, i.e. a button that always errors.
           pipelineProfile: pipelineProfile || "compact",
+          // UAT-05 item 2's stricter reading. Registry-only until now: HPSEDC
+          // could flip it and nothing happened.
+          gateBrowsing: gateBrowsing === true,
           // default true when unset so an un-seeded deploy still offers them
           assistedCallbackEnabled: assistedCallback !== false,
           standardRegistrationEnabled: standardReg !== false,

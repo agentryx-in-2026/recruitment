@@ -63,8 +63,22 @@ router.post("/register", validateRequest(registerSchema), async (req, res, next)
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Username was set to the whole email address, so the only way to sign in
+    // was to type it in full — on a phone, in a cyber-cafe, for a candidate who
+    // may barely use email. Derive a short handle from the local part instead,
+    // uniquified on collision. Login already accepts EITHER username or email
+    // (storage.getUserByUsername ORs them), so this just gives people something
+    // shorter to type; nobody's existing email login stops working.
+    const base = String(email).split("@")[0].toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 40) || "user";
+    let handle = base;
+    for (let n = 2; n < 100; n++) {
+      const taken = await storage.getUserByUsername(handle);
+      if (!taken) break;
+      handle = `${base}${n}`;
+    }
+
     const user = await storage.createUser({
-      username: email,
+      username: handle,
       email,
       password: hashedPassword,
       role: role || "candidate",

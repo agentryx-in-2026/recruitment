@@ -1,5 +1,5 @@
 import "./lib/i18n"; // Initialize i18n before anything else
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
@@ -7,6 +7,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { Masthead } from "@/components/layout/masthead";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -99,6 +100,7 @@ function CandidateEntry() {
 
   if (!profileComplete && !owesDocuments) return <Redirect to="/register" />;
 
+
   return (
     <div>
       <div className="max-w-[1800px] mx-auto px-4 xl:px-8 2xl:px-12 pt-5">
@@ -156,9 +158,44 @@ function LegacyStartRedirect() {
   return <Redirect to={assisted ? "/callback" : "/register"} />;
 }
 
+/**
+ * registration.gate_browsing — UAT-05 item 2's stricter reading,
+ * "before accessing other portal features".
+ *
+ * Audit 2026-07-19: the setting sat in the registry, visible and flippable in
+ * admin, and read by NO code. A control that does nothing is worse than an
+ * absent one — it teaches HPSEDC the switches are decorative.
+ *
+ * Enforced in ONE place, wrapping the router, so no individual screen can
+ * forget it. Default OFF: a candidate who cannot see a single vacancy has no
+ * reason to start the form, and browsing is what motivates registering.
+ *
+ * /register and /auth are always reachable, or the gate would trap the very
+ * people it is redirecting.
+ */
+function BrowseGate({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const { capabilities } = useCapabilities();
+  const [location] = useLocation();
+  const enabled = capabilities.gateBrowsing && (user as any)?.role === "candidate";
+  const { data: profileRes } = useQuery<any>({
+    queryKey: ["/api/v1/candidates/profile"],
+    enabled: Boolean(enabled),
+  });
+
+  const exempt = location.startsWith("/register") || location.startsWith("/auth")
+    || location.startsWith("/callback") || location.startsWith("/help")
+    || location.startsWith("/faq") || location.startsWith("/grievances");
+  if (!enabled || exempt) return <>{children}</>;
+  // Undefined while loading — do not redirect on a half-known answer.
+  if (profileRes?.data && !profileRes.data.profileComplete) return <Redirect to="/register" />;
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <Suspense fallback={<RouteFallback />}>
+      <BrowseGate>
       <Switch>
         <Route path="/">
           <PageLayout><DashboardContent /></PageLayout>
@@ -267,6 +304,7 @@ function Router() {
           <PageLayout><NotFound /></PageLayout>
         </Route>
       </Switch>
+      </BrowseGate>
     </Suspense>
   );
 }

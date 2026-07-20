@@ -46,6 +46,17 @@ router.post("/", upload.single("file"), verifyUploadedFile, async (req, res, nex
       return res.status(400).json({ success: false, error: { code: 400, message: `Invalid document type. Must be one of: ${DOC_TYPE_KEYS.join(", ")}` } });
     }
 
+    // Re-uploading a type REPLACES the previous file rather than stacking a
+    // second row beside it. Without this, "Replace" left the old document in
+    // place — and if that old one was verified, the evidence lock kept treating
+    // the candidate as still holding the checked passport while the new upload
+    // sat ignored. A replacement is also, correctly, UNVERIFIED: a new document
+    // has not been checked, so it goes back into the queue and any field locked
+    // to the old one is released until staff re-verify.
+    await db.delete(documents).where(
+      and(eq(documents.candidateId, candidateRows[0].id), eq(documents.type, docType)),
+    );
+
     // Store under the HS namespace so candidate docs can never be confused with
     // any other app's uploads. URL is internal-only — downloads route through
     // the auth-gated /api/v1/candidates/documents/:id/download handler below.
@@ -55,6 +66,7 @@ router.post("/", upload.single("file"), verifyUploadedFile, async (req, res, nex
       fileName: req.file.originalname,
       fileUrl: `/uploads/hs/candidates/docs/${req.file.filename}`,
       fileSize: req.file.size,
+      verified: false,
     }).returning();
 
     logger.info(`Document uploaded: ${result[0].id} by candidate ${candidateRows[0].id}`);

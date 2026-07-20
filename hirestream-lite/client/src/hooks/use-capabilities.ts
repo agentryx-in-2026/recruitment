@@ -18,6 +18,8 @@ export interface Capabilities {
   professionalRegistrationEnabled: boolean;
   /** Which recruitment pipeline this deployment runs — see shared/pipeline.ts. */
   pipelineProfile: "compact" | "full";
+  /** When true, the portal is gated behind a finished application. */
+  gateBrowsing: boolean;
 }
 
 const SAFE_DEFAULT: Capabilities = {
@@ -31,6 +33,9 @@ const SAFE_DEFAULT: Capabilities = {
   // fallback: it offers fewer transitions, so a stale or failed config fetch
   // hides buttons rather than showing ones the server will reject.
   pipelineProfile: "compact",
+  // Safe default is the PERMISSIVE one here: wrongly gating the whole portal on
+  // a failed config fetch would lock everyone out of browsing.
+  gateBrowsing: false,
 };
 
 export function useCapabilities(): { capabilities: Capabilities; isLoading: boolean } {

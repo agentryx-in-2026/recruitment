@@ -1125,7 +1125,20 @@ router.patch("/candidates/:id/compliance", async (req, res, next) => {
       }
     }
 
+    const beforeRows = await storage.db.select().from(candidates).where(eq(candidates.id, req.params.id)).limit(1);
+    const beforeRow: any = beforeRows[0] ?? {};
+
     const [row] = await storage.db.update(candidates).set(set).where(eq(candidates.id, req.params.id)).returning();
+
+    // Staff edits are audited on the same terms as candidate edits — "who
+    // changed this passport number" must have one answer, not one per door.
+    if (row) {
+      const { logProfileEdit } = await import("../services/profile-audit.service");
+      logProfileEdit({
+        candidateId: row.id, actorUserId: user.id, actorRole: user.role,
+        before: beforeRow, after: row, ipAddress: req.ip,
+      }).catch(() => {});
+    }
 
     // readiness 2026-07-07: compliance edits are candidate-level and feed every
     // placement's readiness — re-check each of the candidate's placements for

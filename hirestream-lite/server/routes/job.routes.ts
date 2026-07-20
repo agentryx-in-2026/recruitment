@@ -11,6 +11,29 @@ import { eq, and, or, ne, ilike, gte, lte, sql, desc, asc, count, inArray, notIn
 import { SETTLED_PLACEMENT_STATUSES } from "../services/deployment.service";
 import { notify } from "../services/notification.service";
 
+/**
+ * Is this vacancy already filled? — UAT-05 item 11.
+ *
+ * Filled means its SETTLED placements (accepted/active/completed) have reached
+ * targetHires. Audit 2026-07-19: this logic lived ONLY in the list query, so a
+ * filled job vanished from browse but stayed fully fetchable by direct link
+ * AND still accepted applications. A candidate following a shared or saved
+ * link could apply to a post that no longer exists, and would wait on a reply
+ * that could never come — the kind of failure a government portal gets written
+ * about. One helper, used by list, detail and apply.
+ */
+export async function isJobFilled(db: any, jobId: string): Promise<boolean> {
+  const rows = await db
+    .select({ jobId: applications.jobId })
+    .from(placements)
+    .innerJoin(applications, eq(placements.applicationId, applications.id))
+    .innerJoin(jobs, eq(applications.jobId, jobs.id))
+    .where(and(eq(applications.jobId, jobId), inArray(placements.status, SETTLED_PLACEMENT_STATUSES)))
+    .groupBy(applications.jobId, jobs.targetHires)
+    .having(gte(count(), sql`coalesce(${jobs.targetHires}, 1)`));
+  return rows.length > 0;
+}
+
 const router = Router();
 
 // ── Create Job ──────────────────────────────────────────────────────
@@ -994,6 +1017,40 @@ router.post("/:id/apply", protect, async (req, res, next) => {
     }
 
     const job = jobResult[0];
+
+    // registration.passport_mandatory — UAT-05 item 4.
+    //
+    // Audit 2026-07-19: this setting was in the registry, visible and flippable
+    // in the admin UI, and read by NO code. HPSEDC turning on "Passport is
+    // hard-mandatory" and seeing nothing change is worse than not offering the
+    // switch: it teaches them the controls are decorative. Default stays OFF —
+    // a passport is not needed to be shortlisted, only to be deployed, and
+    // hard-blocking at field one turns away applicants who would gladly get one
+    // once a real job existed.
+    const passportMandatory = await getSettingForApply<boolean>("registration.passport_mandatory");
+    if (passportMandatory) {
+      const [me] = await db.select({ passportNumber: candidates.passportNumber })
+        .from(candidates).where(eq(candidates.userId, userId)).limit(1);
+      if (!me?.passportNumber?.trim()) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 403,
+            message: "A passport number is required before you can apply. Add it to your profile — you can apply for a passport at any Passport Seva Kendra.",
+            reason: "PASSPORT_REQUIRED",
+          },
+        });
+      }
+    }
+
+    // Item 11 — a filled vacancy stops accepting applications, not just
+    // stops being listed.
+    if (await isJobFilled(db, jobId)) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 404, message: "This position has been filled and is no longer accepting applications." },
+      });
+    }
 
     // FRS visibility — candidates must never apply to agents_only requisitions
     // even if they have the UUID (e.g. from an old link). Return the same 404
