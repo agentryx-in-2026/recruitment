@@ -1,0 +1,216 @@
+1
+00:00:15,160 --> 00:00:18,734
+HPSEDC officers sign in with an administrator account.
+
+2
+00:00:18,794 --> 00:00:23,783
+The Admin Console is the oversight and configuration centre for the portal.
+
+3
+00:00:23,843 --> 00:00:29,774
+Along the top are one-click CSV exports of candidates, jobs, applications and placements.
+
+4
+00:00:29,834 --> 00:00:38,524
+The left menu is grouped into overview and analytics, people, operations, risk and compliance, communication, and system settings.
+
+5
+00:00:38,584 --> 00:00:48,420
+The overview shows registrations, open vacancies and placements, the application pipeline, candidates by district, and jobs by destination country.
+
+6
+00:00:58,840 --> 00:01:02,870
+Government vacancies usually arrive as an Excel or CSV file.
+
+7
+00:01:02,930 --> 00:01:05,392
+Open Import Jobs and choose the file.
+
+8
+00:01:05,452 --> 00:01:14,322
+HireStream reads the columns and maps them automatically to job title, country, company, salary, number of vacancies and last date.
+
+9
+00:01:14,382 --> 00:01:16,231
+You can correct any mapping.
+
+10
+00:01:16,291 --> 00:01:19,367
+Every row is checked before anything is saved.
+
+11
+00:01:19,427 --> 00:01:27,479
+Valid rows are green, warnings are amber, and rows with errors, such as a missing country, are red and will be skipped.
+
+12
+00:01:27,539 --> 00:01:31,705
+Click Import to post the valid rows as live jobs under HPSEDC.
+
+13
+00:01:31,765 --> 00:01:34,160
+Recent imports are listed for audit.
+
+14
+00:01:55,600 --> 00:02:00,879
+Professions controls the trades candidates choose from, and what each trade must hold.
+
+15
+00:02:00,939 --> 00:02:14,291
+For each profession you can edit the English and Hindi names, the job categories it covers, the qualifications accepted, the specific skills list, the required and optional documents, and the note the candidate sees.
+
+16
+00:02:14,351 --> 00:02:17,831
+Changes are live straight away, with no software release.
+
+17
+00:02:17,891 --> 00:02:20,066
+Removing a profession only hides it.
+
+18
+00:02:20,126 --> 00:02:22,550
+Candidates who already chose it keep it.
+
+19
+00:02:36,320 --> 00:02:40,419
+Form Fields lets HPSEDC decide what the application form asks.
+
+20
+00:02:40,479 --> 00:02:44,981
+Each field can be shown or hidden, and marked must fill or optional.
+
+21
+00:02:45,041 --> 00:02:50,415
+Fields with a padlock cannot be switched off, because the portal depends on them.
+
+22
+00:02:50,475 --> 00:02:52,764
+A hidden field is never compulsory.
+
+23
+00:02:52,824 --> 00:02:58,265
+Name, date of birth, gender, mobile, email and permanent address are always asked.
+
+24
+00:02:58,325 --> 00:03:06,920
+Two entries are options rather than fields: the I do not have a passport yet choice, and the I am not sure option for ECR status.
+
+25
+00:03:14,000 --> 00:03:18,263
+System Config changes how the portal behaves, without a code release.
+
+26
+00:03:18,323 --> 00:03:22,335
+Every change is applied immediately and written to the audit log.
+
+27
+00:03:22,395 --> 00:03:31,107
+The recruitment pipeline is set to Direct, four stages: applied, interview, selected and placed, with documents requested only at selection.
+
+28
+00:03:31,167 --> 00:03:35,743
+Screened, six stages, can be switched on later if agencies are brought in.
+
+29
+00:03:35,803 --> 00:03:50,529
+Other settings cover rejection rules, requiring a confirmed email before applying, the maximum number of trades per candidate, notification behaviour, file size limits, session security, and emigration compliance such as offer validity.
+
+30
+00:03:57,240 --> 00:04:02,101
+Users lists every account, with tabs for candidates, staff and all users.
+
+31
+00:04:02,161 --> 00:04:05,674
+An administrator can disable or re-enable an account.
+
+32
+00:04:05,734 --> 00:04:10,932
+Creating staff accounts and changing roles is done by the super administrator.
+
+33
+00:04:10,992 --> 00:04:14,842
+Callbacks lists candidates who asked HPSEDC to phone them.
+
+34
+00:04:14,902 --> 00:04:17,067
+Mark each one done after calling.
+
+35
+00:04:17,127 --> 00:04:23,270
+Placement Support shows check-ins and problems reported by workers who are already overseas.
+
+36
+00:04:53,880 --> 00:04:58,989
+Compliance tracks the Emigration Act and MEA requirements across all candidates.
+
+37
+00:04:59,049 --> 00:05:14,302
+It shows passport, ECR, police clearance, medical, orientation and insurance coverage against targets, the visa pipeline, and risk flags, such as a worker placed without orientation or insurance, or a passport expiring within six months.
+
+38
+00:05:14,362 --> 00:05:19,794
+Deployment Readiness shows who is travel ready and who is blocked, with a CSV export.
+
+39
+00:05:19,854 --> 00:05:27,290
+Welfare SLA lists overdue thirty, sixty and ninety day welfare check-ins, so no worker is forgotten after departure.
+
+40
+00:05:52,760 --> 00:06:00,695
+The Audit Log records every important action: status changes, setting changes and compliance updates, with who did it and when.
+
+41
+00:06:00,755 --> 00:06:03,276
+You can filter it by resource and action.
+
+42
+00:06:03,336 --> 00:06:10,453
+Fraud Watch collects reports from candidates who were asked for money, and highlights sudden spikes in grievances.
+
+43
+00:06:10,513 --> 00:06:17,630
+Duplicates finds candidates who share an Aadhaar number, phone or email, so duplicate registrations can be merged.
+
+44
+00:06:51,640 --> 00:06:54,168
+Messages is the shared Ask HPSEDC inbox.
+
+45
+00:06:54,228 --> 00:06:59,021
+Administrators can read and reply to candidates, as the placement team can.
+
+46
+00:06:59,081 --> 00:07:02,321
+Grievances shows every complaint across the portal.
+
+47
+00:07:02,381 --> 00:07:09,439
+Each moves from submitted, to under review, to action taken, and the complainant confirms when it is resolved.
+
+48
+00:07:09,499 --> 00:07:14,033
+Notifications holds the message templates sent to candidates and staff.
+
+49
+00:07:14,093 --> 00:07:21,540
+Each template's title and text can be edited, switched off, or set to hide the employer's name in negative messages.
+
+50
+00:08:19,000 --> 00:08:26,894
+Reports gives ready-made breakdowns by district, country, placement status, skill and sector, each downloadable as CSV.
+
+51
+00:08:26,954 --> 00:08:30,504
+Funnel shows where candidates drop out between stages.
+
+52
+00:08:30,564 --> 00:08:38,458
+Countries holds the destination information candidates read, such as visa rules, embassy contacts and labour law notes.
+
+53
+00:08:38,518 --> 00:08:43,806
+Lifecycle closes jobs past their deadline every night, and can be run on demand.
+
+54
+00:08:43,866 --> 00:08:49,020
+Drives is where recruitment drives created by the placement team are approved.
+

@@ -1,0 +1,288 @@
+1
+00:00:10,007 --> 00:00:16,418
+HireStream is the official overseas placement portal of HPSEDC, the Government of Himachal Pradesh.
+
+2
+00:00:16,478 --> 00:00:19,947
+Registration is free, and HPSEDC never asks for money.
+
+3
+00:00:20,007 --> 00:00:22,431
+The portal works in English and Hindi.
+
+4
+00:00:22,491 --> 00:00:25,372
+Use the language button at the top to switch.
+
+5
+00:00:25,432 --> 00:00:27,333
+To begin, open Create Account.
+
+6
+00:00:27,393 --> 00:00:35,896
+Enter your full name, your email address and a password of at least eight characters, with a capital letter, a number and a symbol.
+
+7
+00:00:35,956 --> 00:00:40,145
+Type the password again to confirm it, then click Create Account.
+
+8
+00:00:40,205 --> 00:00:42,237
+You are signed in straight away.
+
+9
+00:00:49,400 --> 00:00:54,851
+The application form has four pages, and the bar at the top shows how far you have got.
+
+10
+00:00:54,911 --> 00:00:59,285
+Before you start, keep your passport and Aadhaar card in front of you.
+
+11
+00:00:59,345 --> 00:01:01,376
+There is nothing to upload today.
+
+12
+00:01:01,436 --> 00:01:09,485
+Page one asks for your identity documents: passport number, expiry and issue dates, place of issue, and your ECR or ECNR status.
+
+13
+00:01:09,545 --> 00:01:14,109
+If you do not have a passport yet, tick the box, and you can still apply.
+
+14
+00:01:14,169 --> 00:01:16,833
+Your Aadhaar number is checked as you type.
+
+15
+00:01:16,893 --> 00:01:26,019
+Then fill in your personal details exactly as printed on your passport, your mobile and WhatsApp numbers, your email, and your permanent address.
+
+16
+00:01:26,079 --> 00:01:29,060
+Your answers are saved each time you click Next.
+
+17
+00:03:03,440 --> 00:03:06,505
+On page two, pick the work you can actually do.
+
+18
+00:03:06,565 --> 00:03:08,766
+You can choose up to three trades.
+
+19
+00:03:08,826 --> 00:03:16,346
+Some trades, such as driver, nurse, caregiver, electrician and welder, ask a few extra questions on the next page.
+
+20
+00:03:16,406 --> 00:03:21,599
+Then choose the languages you speak, and how well you speak and write each one.
+
+21
+00:03:21,659 --> 00:03:25,390
+If your language is not listed, type it in and click Add.
+
+22
+00:03:31,680 --> 00:03:34,573
+Page three asks for your highest qualification.
+
+23
+00:03:34,633 --> 00:03:37,149
+For school classes you choose your board.
+
+24
+00:03:37,209 --> 00:03:42,364
+For ITI, diploma or a degree, you choose your university or college, or type it in.
+
+25
+00:03:42,424 --> 00:03:44,815
+Next come the questions for your trade.
+
+26
+00:03:44,875 --> 00:03:50,784
+A driver gives their licence number, class and expiry date, and says whether they hold a badge.
+
+27
+00:03:50,844 --> 00:03:59,518
+Use the plus and minus buttons to set your months of experience, pick the specific skills you have, and add your last employer if you wish.
+
+28
+00:03:59,578 --> 00:04:03,539
+You only prove these details with documents if you are selected.
+
+29
+00:05:08,280 --> 00:05:12,087
+Page four shows your whole application, section by section.
+
+30
+00:05:12,147 --> 00:05:13,988
+Use Edit to correct anything.
+
+31
+00:05:14,048 --> 00:05:19,495
+Print or Save PDF gives you a printed copy of the application form for your records.
+
+32
+00:05:19,555 --> 00:05:22,970
+When everything is correct, click Submit application.
+
+33
+00:05:23,030 --> 00:05:26,510
+You can come back and update your details at any time.
+
+34
+00:05:36,120 --> 00:05:38,800
+After submitting, your dashboard opens.
+
+35
+00:05:38,860 --> 00:05:44,632
+You will see your registration number, which you should quote when you call HPSEDC.
+
+36
+00:05:44,692 --> 00:05:48,918
+To apply for jobs, you must first confirm your email address.
+
+37
+00:05:48,978 --> 00:05:52,010
+HPSEDC sends a six digit code to your email.
+
+38
+00:05:52,070 --> 00:05:54,610
+Type it in the box and click Confirm.
+
+39
+00:05:54,670 --> 00:05:59,810
+If the code has not arrived, check your spam folder or ask for a new code.
+
+40
+00:06:04,920 --> 00:06:08,344
+Open Find a Job to see the vacancies HPSEDC has open.
+
+41
+00:06:08,404 --> 00:06:13,866
+Search by job title or skill, or filter by country, category, experience and salary.
+
+42
+00:06:13,926 --> 00:06:17,022
+Each job shows how well it matches your profile.
+
+43
+00:06:17,082 --> 00:06:24,714
+Click a job to read the details: the employer, the country, the salary, and the documents you would need if selected.
+
+44
+00:06:24,774 --> 00:06:25,765
+Click Apply Now.
+
+45
+00:06:25,825 --> 00:06:35,430
+Your application then appears under My Application, where you can follow its progress through four stages: applied, interview, selected and placed.
+
+46
+00:06:42,160 --> 00:06:44,343
+HPSEDC interviews every applicant.
+
+47
+00:06:44,403 --> 00:06:54,639
+When your interview is scheduled, you are notified, and it appears in My Application with the date, time and place, or a meeting link for a video interview.
+
+48
+00:06:54,699 --> 00:06:58,202
+Click Confirm attendance so HPSEDC know you will come.
+
+49
+00:06:58,262 --> 00:07:03,878
+If the time does not suit you, use Reschedule to explain why and suggest another time.
+
+50
+00:07:03,938 --> 00:07:06,782
+If you can no longer attend, choose Decline.
+
+51
+00:07:06,842 --> 00:07:09,950
+You can also add the interview to your calendar.
+
+52
+00:07:27,080 --> 00:07:46,391
+If you are selected, your dashboard lists the documents HPSEDC now need: a police clearance certificate, a medical fitness certificate, your passport, identity proof, education and experience certificates, and any document your trade or the destination country requires.
+
+53
+00:07:46,451 --> 00:07:49,045
+Click Complete your travel documents.
+
+54
+00:07:49,105 --> 00:07:53,422
+Upload a photo or scan of each one in PDF, JPG or PNG format.
+
+55
+00:07:53,482 --> 00:07:55,072
+HPSEDC then check them.
+
+56
+00:07:55,132 --> 00:08:06,121
+On the last page, Before you travel, tell HPSEDC how far you have got with your police clearance, medical test and insurance, then click Save my progress.
+
+57
+00:08:06,181 --> 00:08:09,350
+Replies from HPSEDC appear on your Help page.
+
+58
+00:09:08,240 --> 00:09:12,751
+When HPSEDC upload your signed appointment letter, your offer is ready.
+
+59
+00:09:12,811 --> 00:09:14,554
+Open it from My Application.
+
+60
+00:09:14,614 --> 00:09:20,735
+It shows the salary, the start date and the country, and you can view or print the offer letter.
+
+61
+00:09:20,795 --> 00:09:21,894
+Read it carefully.
+
+62
+00:09:21,954 --> 00:09:25,757
+Click Accept Offer to confirm, or Decline and give a reason.
+
+63
+00:09:25,817 --> 00:09:28,847
+Offers have a deadline, so do not wait too long.
+
+64
+00:09:28,907 --> 00:09:35,929
+Once you accept, you are placed, and your dashboard tracks the remaining pre-departure steps until you travel.
+
+65
+00:10:23,760 --> 00:10:25,793
+Help is always one click away.
+
+66
+00:10:25,853 --> 00:10:29,841
+Ask HPSEDC opens a message thread with the placement team.
+
+67
+00:10:29,901 --> 00:10:32,074
+They reply during working hours.
+
+68
+00:10:32,134 --> 00:10:34,796
+For a formal complaint, use Grievances.
+
+69
+00:10:34,856 --> 00:10:45,752
+Choose a category, such as someone asking you for money, a problem at your workplace abroad, or a problem with your application, then describe what happened.
+
+70
+00:10:45,812 --> 00:10:48,893
+The bell at the top shows your notifications.
+
+71
+00:10:48,953 --> 00:10:53,778
+Remember: HPSEDC never asks for money to register or to get you a job.
+
+72
+00:10:53,838 --> 00:10:56,430
+If anyone does, report it immediately.
+

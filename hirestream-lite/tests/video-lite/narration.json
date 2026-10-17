@@ -1,0 +1,168 @@
+{
+  "agency": [
+    {
+      "key": "login",
+      "title": "Sign in and the dashboard",
+      "text": "HPSEDC staff sign in with the Overseas Placement Cell account. In this version of HireStream, HPSEDC works as the single super agency: every vacancy belongs to this account, and every applicant comes to this team. The dashboard opens with the agency card, the verified badge, and the Applicant Pipeline, which counts applicants at each stage. Below it are the most recent jobs and recruitment drives. The Post Job button is always at the top of the left menu."
+    },
+    {
+      "key": "post",
+      "title": "Post a job",
+      "text": "To add a vacancy, click Post Job. Enter the job title and the overseas employer, then choose the destination country, the city and the job category. The category matters: it decides which trade documents a selected candidate is asked for. Set the monthly salary as a fixed amount in the local currency, the minimum experience, and optionally the qualification and language criteria. Add a description and the key skills, then click Publish Job. The vacancy is live for candidates straight away. Save as Draft keeps it private until you are ready."
+    },
+    {
+      "key": "jobs",
+      "title": "My Jobs and the job page",
+      "text": "My Jobs lists every vacancy, with filters for active, draft and closed jobs, a search box, and sorting by date or deadline. Open a job to manage it. From the job page you can edit it, preview it exactly as a candidate sees it, copy a share link, close it when the batch is filled, or reopen it. Export CSV downloads the applicant list, and the ZIP export includes their documents. Further down are the job analytics and the applicants for this job alone."
+    },
+    {
+      "key": "pipeline",
+      "title": "The Applications Pipeline",
+      "text": "The Applications Pipeline shows every application across all jobs on one page. HPSEDC runs the direct, four stage process: Submitted, Interview, Selected and Placed, with Rejected and Withdrawn kept separately. Click a stage to filter it. The Stale chip finds applications that have waited seven days or more. You can search by candidate, job, company or skill, and filter by country, company or job. Click View to open the candidate's full profile: their trades, education, experience, documents and pre-departure status."
+    },
+    {
+      "key": "schedule",
+      "title": "Schedule an interview",
+      "text": "HPSEDC interviews every applicant, so the next step for a new application is Schedule interview. Choose the date and time, whether it is in person or virtual, and the venue. For a virtual interview, a meeting link is required. Add the interviewer's name, and link it to a recruitment drive if there is one. Schedule and Notify Candidate saves the interview and tells the candidate at once. The application moves to the Interview stage, where you can see whether the candidate has confirmed."
+    },
+    {
+      "key": "reschedule",
+      "title": "Respond to a reschedule request",
+      "text": "Candidates can confirm, decline, or ask to move their interview. A request shows up as an orange Respond to reschedule button. The dialog shows the current time, the candidate's reason and the time they proposed. You can accept the proposed time, set a different time, or keep the original. Whichever you choose, the candidate is notified automatically."
+    },
+    {
+      "key": "outcome",
+      "title": "Record the interview outcome",
+      "text": "After the interview, click Outcome. Choose Pass and Select, or Fail and Reject. Add a rating out of five and your notes. Notes are required when a candidate is rejected. When you select a candidate, HireStream moves them to Selected, creates their offer, and tells them which documents they now need to upload. Before selection, a candidate is never asked for any document."
+    },
+    {
+      "key": "predeparture",
+      "title": "Pre-departure: letter, travel and visa",
+      "text": "Open a selected candidate to manage their departure. The Deployment Readiness panel lists what is still missing, such as the passport, police clearance, medical, visa, orientation and insurance. The Pre-Departure Compliance section records their emigration details under the Emigration Act, and every change is written to the audit log. Under Visa and passport assistance, set the visa status with a note. The candidate is notified each time. Under Appointment and travel, set the travel date and upload the signed appointment letter. The candidate can accept the offer only once this letter has been uploaded. Accepting it marks them Placed."
+    },
+    {
+      "key": "welfare",
+      "title": "Welfare check-ins after placement",
+      "text": "HPSEDC's duty of care continues after departure. For every placed worker there are thirty, sixty and ninety day welfare check-ins. Click Record, choose OK, Concerns, No response or Not applicable, add a short note, and save. Missed check-ins appear on the administrator's Welfare SLA monitor."
+    },
+    {
+      "key": "messages",
+      "title": "Messages and grievances",
+      "text": "Candidates can message HPSEDC from their dashboard. These messages arrive under Messages, with an unread count in the menu. Open a thread, type a reply, and send it. Formal complaints are handled separately under Grievances. Problems with an application are routed to this team automatically, and each grievance moves from review, to action taken, to resolved."
+    },
+    {
+      "key": "reports",
+      "title": "Reports",
+      "text": "Reports gives the cell its own management view. It shows jobs, applicants, placements and the conversion rate, then pipeline health, operations and service levels, including welfare check-ins due and compliance alerts. At the bottom is the HPSEDC compliance section, with orientation and insurance coverage, the E C R mix and the top destination countries."
+    }
+  ],
+  "applicant": [
+    {
+      "key": "account",
+      "title": "Create your account",
+      "text": "HireStream is the official overseas placement portal of H P S E D C, the Government of Himachal Pradesh. Registration is free, and H P S E D C never asks for money. The portal works in English and Hindi. Use the language button at the top to switch. To begin, open Create Account. Enter your full name, your email address and a password of at least eight characters, with a capital letter, a number and a symbol. Type the password again to confirm it, then click Create Account. You are signed in straight away."
+    },
+    {
+      "key": "aboutyou",
+      "title": "Page 1 — About you",
+      "text": "The application form has four pages, and the bar at the top shows how far you have got. Before you start, keep your passport and Aadhaar card in front of you. There is nothing to upload today. Page one asks for your identity documents: passport number, expiry and issue dates, place of issue, and your E C R or E C N R status. If you do not have a passport yet, tick the box, and you can still apply. Your Aadhaar number is checked as you type. Then fill in your personal details exactly as printed on your passport, your mobile and WhatsApp numbers, your email, and your permanent address. Your answers are saved each time you click Next."
+    },
+    {
+      "key": "skills",
+      "title": "Page 2 — Your skills",
+      "text": "On page two, pick the work you can actually do. You can choose up to three trades. Some trades, such as driver, nurse, caregiver, electrician and welder, ask a few extra questions on the next page. Then choose the languages you speak, and how well you speak and write each one. If your language is not listed, type it in and click Add."
+    },
+    {
+      "key": "qualifications",
+      "title": "Page 3 — Qualifications and experience",
+      "text": "Page three asks for your highest qualification. For school classes you choose your board. For I T I, diploma or a degree, you choose your university or college, or type it in. Next come the questions for your trade. A driver gives their licence number, class and expiry date, and says whether they hold a badge. Use the plus and minus buttons to set your months of experience, pick the specific skills you have, and add your last employer if you wish. You only prove these details with documents if you are selected."
+    },
+    {
+      "key": "review",
+      "title": "Page 4 — Check and submit",
+      "text": "Page four shows your whole application, section by section. Use Edit to correct anything. Print or Save P D F gives you a printed copy of the application form for your records. When everything is correct, click Submit application. You can come back and update your details at any time."
+    },
+    {
+      "key": "verify",
+      "title": "Confirm your email",
+      "text": "After submitting, your dashboard opens. You will see your registration number, which you should quote when you call H P S E D C. To apply for jobs, you must first confirm your email address. H P S E D C sends a six digit code to your email. Type it in the box and click Confirm. If the code has not arrived, check your spam folder or ask for a new code."
+    },
+    {
+      "key": "apply",
+      "title": "Find a job and apply",
+      "text": "Open Find a Job to see the vacancies H P S E D C has open. Search by job title or skill, or filter by country, category, experience and salary. Each job shows how well it matches your profile. Click a job to read the details: the employer, the country, the salary, and the documents you would need if selected. Click Apply Now. Your application then appears under My Application, where you can follow its progress through four stages: applied, interview, selected and placed."
+    },
+    {
+      "key": "interview",
+      "title": "Your interview",
+      "text": "H P S E D C interviews every applicant. When your interview is scheduled, you are notified, and it appears in My Application with the date, time and place, or a meeting link for a video interview. Click Confirm attendance so H P S E D C know you will come. If the time does not suit you, use Reschedule to explain why and suggest another time. If you can no longer attend, choose Decline. You can also add the interview to your calendar."
+    },
+    {
+      "key": "documents",
+      "title": "Selected: upload documents",
+      "text": "If you are selected, your dashboard lists the documents H P S E D C now need: a police clearance certificate, a medical fitness certificate, your passport, identity proof, education and experience certificates, and any document your trade or the destination country requires. Click Complete your travel documents. Upload a photo or scan of each one in P D F, J P G or P N G format. H P S E D C then check them. On the last page, Before you travel, tell H P S E D C how far you have got with your police clearance, medical test and insurance, then click Save my progress. Replies from H P S E D C appear on your Help page."
+    },
+    {
+      "key": "offer",
+      "title": "Accept your offer",
+      "text": "When H P S E D C upload your signed appointment letter, your offer is ready. Open it from My Application. It shows the salary, the start date and the country, and you can view or print the offer letter. Read it carefully. Click Accept Offer to confirm, or Decline and give a reason. Offers have a deadline, so do not wait too long. Once you accept, you are placed, and your dashboard tracks the remaining pre-departure steps until you travel."
+    },
+    {
+      "key": "help",
+      "title": "Help, grievances and safety",
+      "text": "Help is always one click away. Ask H P S E D C opens a message thread with the placement team. They reply during working hours. For a formal complaint, use Grievances. Choose a category, such as someone asking you for money, a problem at your workplace abroad, or a problem with your application, then describe what happened. The bell at the top shows your notifications. Remember: H P S E D C never asks for money to register or to get you a job. If anyone does, report it immediately."
+    }
+  ],
+  "admin": [
+    {
+      "key": "overview",
+      "title": "Sign in and the Admin Console",
+      "text": "H P S E D C officers sign in with an administrator account. The Admin Console is the oversight and configuration centre for the portal. Along the top are one-click C S V exports of candidates, jobs, applications and placements. The left menu is grouped into overview and analytics, people, operations, risk and compliance, communication, and system settings. The overview shows registrations, open vacancies and placements, the application pipeline, candidates by district, and jobs by destination country."
+    },
+    {
+      "key": "import",
+      "title": "Import government job batches",
+      "text": "Government vacancies usually arrive as an Excel or C S V file. Open Import Jobs and choose the file. HireStream reads the columns and maps them automatically to job title, country, company, salary, number of vacancies and last date. You can correct any mapping. Every row is checked before anything is saved. Valid rows are green, warnings are amber, and rows with errors, such as a missing country, are red and will be skipped. Click Import to post the valid rows as live jobs under H P S E D C. Recent imports are listed for audit."
+    },
+    {
+      "key": "professions",
+      "title": "Professions and eligibility",
+      "text": "Professions controls the trades candidates choose from, and what each trade must hold. For each profession you can edit the English and Hindi names, the job categories it covers, the qualifications accepted, the specific skills list, the required and optional documents, and the note the candidate sees. Changes are live straight away, with no software release. Removing a profession only hides it. Candidates who already chose it keep it."
+    },
+    {
+      "key": "formfields",
+      "title": "Application form fields",
+      "text": "Form Fields lets H P S E D C decide what the application form asks. Each field can be shown or hidden, and marked must fill or optional. Fields with a padlock cannot be switched off, because the portal depends on them. A hidden field is never compulsory. Name, date of birth, gender, mobile, email and permanent address are always asked. Two entries are options rather than fields: the I do not have a passport yet choice, and the I am not sure option for E C R status."
+    },
+    {
+      "key": "settings",
+      "title": "System configuration",
+      "text": "System Config changes how the portal behaves, without a code release. Every change is applied immediately and written to the audit log. The recruitment pipeline is set to Direct, four stages: applied, interview, selected and placed, with documents requested only at selection. Screened, six stages, can be switched on later if agencies are brought in. Other settings cover rejection rules, requiring a confirmed email before applying, the maximum number of trades per candidate, notification behaviour, file size limits, session security, and emigration compliance such as offer validity."
+    },
+    {
+      "key": "people",
+      "title": "Users, callbacks and placement support",
+      "text": "Users lists every account, with tabs for candidates, staff and all users. An administrator can disable or re-enable an account. Creating staff accounts and changing roles is done by the super administrator. Callbacks lists candidates who asked H P S E D C to phone them. Mark each one done after calling. Placement Support shows check-ins and problems reported by workers who are already overseas."
+    },
+    {
+      "key": "compliance",
+      "title": "Compliance, readiness and welfare",
+      "text": "Compliance tracks the Emigration Act and M E A requirements across all candidates. It shows passport, E C R, police clearance, medical, orientation and insurance coverage against targets, the visa pipeline, and risk flags, such as a worker placed without orientation or insurance, or a passport expiring within six months. Deployment Readiness shows who is travel ready and who is blocked, with a C S V export. Welfare SLA lists overdue thirty, sixty and ninety day welfare check-ins, so no worker is forgotten after departure."
+    },
+    {
+      "key": "risk",
+      "title": "Audit log, fraud watch and duplicates",
+      "text": "The Audit Log records every important action: status changes, setting changes and compliance updates, with who did it and when. You can filter it by resource and action. Fraud Watch collects reports from candidates who were asked for money, and highlights sudden spikes in grievances. Duplicates finds candidates who share an Aadhaar number, phone or email, so duplicate registrations can be merged."
+    },
+    {
+      "key": "communication",
+      "title": "Messages, grievances and notifications",
+      "text": "Messages is the shared Ask H P S E D C inbox. Administrators can read and reply to candidates, as the placement team can. Grievances shows every complaint across the portal. Each moves from submitted, to under review, to action taken, and the complainant confirms when it is resolved. Notifications holds the message templates sent to candidates and staff. Each template's title and text can be edited, switched off, or set to hide the employer's name in negative messages."
+    },
+    {
+      "key": "reports",
+      "title": "Reports and other tools",
+      "text": "Reports gives ready-made breakdowns by district, country, placement status, skill and sector, each downloadable as C S V. Funnel shows where candidates drop out between stages. Countries holds the destination information candidates read, such as visa rules, embassy contacts and labour law notes. Lifecycle closes jobs past their deadline every night, and can be run on demand. Drives is where recruitment drives created by the placement team are approved."
+    }
+  ]
+}

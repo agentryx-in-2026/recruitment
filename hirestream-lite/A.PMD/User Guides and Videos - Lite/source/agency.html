@@ -1,0 +1,224 @@
+<h2>About this guide</h2>
+<p>In this release of HireStream, <b>HPSEDC acts as the single super agency</b>. Private recruitment agencies and employer self-registration are switched off. The HPSEDC Overseas Placement Cell receives government job batches, publishes the vacancies, interviews every applicant, selects candidates, and manages their departure and welfare.</p>
+<p>This guide is for Placement Cell staff who do that work every day. Administrator tasks — importing job batches from Excel, configuring the form and professions, system settings and portal-wide oversight — are covered in the <i>Admin User Guide</i>.</p>
+<h3>The recruitment pipeline</h3>
+<p>The portal runs the <b>Direct, four-stage</b> pipeline:</p>
+<div class="flow"><span>Submitted</span><i>→</i><span>Interview</span><i>→</i><span>Selected</span><i>→</i><span>Placed</span><i>·</i><span>Rejected</span><span>Withdrawn</span></div>
+<table>
+  <tr><th>Stage</th><th>Who moves it</th><th>What happens</th></tr>
+  <tr><td><b>Submitted</b></td><td>Candidate applies</td><td>The application appears in your pipeline. No documents are requested.</td></tr>
+  <tr><td><b>Interview</b></td><td>You — <i>Schedule interview</i></td><td>The candidate is notified and can confirm, ask to reschedule, or decline.</td></tr>
+  <tr><td><b>Selected</b></td><td>You — <i>Record outcome → Pass / Select</i></td><td>An offer is created automatically (valid 7 days), the candidate's details are snapshotted, and the candidate is told which documents to upload.</td></tr>
+  <tr><td><b>Placed</b></td><td>Candidate — <i>Accept Offer</i></td><td>Allowed only after you upload the signed appointment letter. Welfare check-ins start.</td></tr>
+  <tr><td><b>Rejected</b></td><td>You — <i>Reject</i> or <i>Fail / Reject</i></td><td>The candidate is notified; the employer's name is hidden in negative messages.</td></tr>
+</table>
+<div class="box tip"><b>Documents are requested only at selection.</b>Around 20,000 people may apply; only the few hundred selected are asked for police clearance, medical, passport, ID, education, experience, trade and country documents. Never ask an applicant for documents before selection.</div>
+<div class="box tip"><b>Watch the video.</b>The <i>HPSEDC Super Agency Walkthrough</i> video shows every task in this guide.</div>
+
+<h2>Signing in</h2>
+<p>Sign in on the HireStream sign-in page with the Placement Cell account <b><code>hpsedc_agency</code></b> (email <code>agency@hpsedc.gov.in</code>) and its password.</p>
+<div class="box warn"><b>Use the HPSEDC agency account.</b>Every vacancy in single-agency mode belongs to this account. Staff signed in with any other agency account will see an empty dashboard and cannot act on applications. Do not share the password outside the Placement Cell, and change it regularly (your name at top right → <i>Change Password</i>).</div>
+<p>Sessions end after 30 minutes without activity. Sign out on shared computers.</p>
+
+<h2>The dashboard</h2>
+<figure><img src="images/agency-02-dashboard.png" alt="Agency dashboard"><figcaption>The Placement Cell dashboard.</figcaption></figure>
+<ul>
+  <li><b>Agency card</b> (top left) — "HPSEDC — Overseas Placement Cell", the licence number, the <i>Verified Agency</i> badge and the <span class="ui">Post Job</span> button.</li>
+  <li><b>Left menu</b> — Dashboard · My Jobs · Applications Pipeline · Open Requisitions · Candidates · Drives · Reports · Activity · Messages (with an unread count).</li>
+  <li><b>Stat cards</b> — candidates in the pool, active jobs, placements.</li>
+  <li><b>Applicant Pipeline</b> — counts of applications at each stage. Click a stage to open the pipeline filtered to it. <span class="ui">Manage Jobs</span> opens My Jobs.</li>
+  <li><b>Recent Jobs</b> and <b>Recent Drives</b>.</li>
+</ul>
+<p>The bell icon at the top shows notifications, for example "New applicant for …", "Record interview outcome", "Placement confirmed" or "Candidate declined — substitute needed".</p>
+
+<h2>Posting and managing jobs</h2>
+<h3>Post a new job</h3>
+<ol class="steps">
+  <li>Click <span class="ui">Post Job</span>. The <b>Post a New Job</b> form opens.</li>
+  <li><b>Role basics</b> — Job title, Employer / company (the overseas employer), Country, City (or <i>Other city…</i>), and <b>Job category</b>. The category decides which trade documents a selected candidate must upload and how the job is grouped and matched — always set it.</li>
+  <li><b>Compensation &amp; experience</b> — choose the currency, period (per month) and the fixed salary amount; add an optional note (e.g. "tax-free, accommodation included"); choose the minimum experience.</li>
+  <li><b>Hiring criteria</b> (optional) — minimum qualification and required languages (CEFR levels).</li>
+  <li><b>Description &amp; skills</b> — the job description (mention accommodation, visa support and benefits) and the required skills (type a skill and press Enter or click <span class="ui">Add</span>).</li>
+  <li>Click <span class="ui">Publish Job</span>. The job is live immediately. <span class="ui">Save as Draft</span> keeps it hidden until you publish it.</li>
+</ol>
+<figure><img src="images/agency-03-post-job-basics.png" alt="Post a new job"><figcaption>Post a New Job — role basics.</figcaption></figure>
+<figure><img src="images/agency-04-post-job-details.png" alt="Post a new job details"><figcaption>Hiring criteria, description and skills, then Publish Job.</figcaption></figure>
+<div class="box tip"><b>Large government batches</b> (tens of vacancies from an Excel sheet) are loaded by an administrator through <i>Import Jobs</i> — see the Admin User Guide. Imported jobs appear in your My Jobs list, owned by the Placement Cell, and can also carry a vacancy count and last date.</div>
+
+<h3>My Jobs</h3>
+<p><b>My Jobs</b> lists every vacancy. Filter by <i>All / Active / Drafts / Closed</i>, search by title, company, location or skill, filter by country or company, and sort by newest, oldest, deadline or priority. Each card shows the number of applicants. Icons on a card let you edit, clone as a new draft, or delete (only when it has no applicants).</p>
+<figure><img src="images/agency-05-my-jobs.png" alt="My Jobs"><figcaption>My Jobs.</figcaption></figure>
+
+<h3>The job page</h3>
+<p>Click a job to manage it.</p>
+<table>
+  <tr><th>Button</th><th>Use</th></tr>
+  <tr><td><span class="ui">Edit</span></td><td>Change any detail of the job.</td></tr>
+  <tr><td><span class="ui">Preview</span></td><td>See the job exactly as candidates see it.</td></tr>
+  <tr><td><span class="ui">Share</span></td><td>Copy a link to the job (for SMS, WhatsApp or notices).</td></tr>
+  <tr><td><span class="ui">Close</span> / <span class="ui">Reopen</span></td><td>Stop or restart applications. Close a job when the batch is filled.</td></tr>
+  <tr><td><span class="ui">Delete</span></td><td>Only possible while the job has no applicants.</td></tr>
+  <tr><td><span class="ui">Export CSV</span></td><td>Download the applicant list for this job.</td></tr>
+  <tr><td><span class="ui">Export ZIP (with docs)</span></td><td>Download the applicant list with each applicant's uploaded documents.</td></tr>
+</table>
+<p>Below are the job details, the job's own applicant list (list or board view, with search, sort and notes on each applicant) and <b>Job Analytics</b>: total applicants, average match score and time to first applicant.</p>
+<figure><img src="images/agency-06-job-page.png" alt="Job page"><figcaption>The job page.</figcaption></figure>
+<div class="box tip"><b>Filled vacancies disappear automatically.</b>When the number of placed candidates reaches the job's vacancy count, the job is hidden from candidates (you still see it). Jobs without a deadline are closed automatically after 60 days by the nightly lifecycle job — reopen them if they are still recruiting.</div>
+
+<h2>The Applications Pipeline</h2>
+<p>Click <b>Applications Pipeline</b> in the menu (or a stage on the dashboard). It shows every application across all jobs on one page. By default it opens on <b>Submitted</b> — new applications waiting for an interview.</p>
+<figure><img src="images/agency-07-pipeline.png" alt="Applications Pipeline"><figcaption>The Applications Pipeline, filtered to Submitted.</figcaption></figure>
+<ul>
+  <li><b>Stage tiles</b> — All, Submitted, Interview, Selected, Placed, Rejected, Withdrawn, with counts. Click one to filter.</li>
+  <li><b>Search</b> — candidate name, job title, company or skill.</li>
+  <li><span class="ui">⏳ Stale</span> — only applications that have waited 7 days or more in their stage (🔥 for 14+ days). Use it daily so nobody is forgotten.</li>
+  <li><b>Sort</b> — newest, oldest, best match, longest in stage. <b>Filters</b> — country, company, job.</li>
+  <li>Each row shows the candidate, match %, stage, days in stage, job and country, and the actions for that stage.</li>
+</ul>
+<h3>The candidate profile</h3>
+<p>Click <span class="ui">View</span> on any row to open the full candidate profile.</p>
+<figure><img src="images/agency-08-candidate-profile.png" alt="Candidate profile"><figcaption>The candidate profile.</figcaption></figure>
+<ul>
+  <li>Contact details with email and <span class="ui">Call</span> buttons, skills, education and experience.</li>
+  <li><b>Your private tags</b> — your own notes, e.g. "good-english", "passport-expires-aug". Visible only to the Placement Cell account.</li>
+  <li><b>Visa / country rejections</b> — record countries that refused this candidate a visa; jobs in those countries are hidden from them.</li>
+  <li><b>Documents</b> — every uploaded document with its type, a <i>Verified</i> badge when checked, and <span class="ui">Preview</span> / download.</li>
+  <li><b>Deployment Readiness</b>, <b>Pre-Departure Compliance</b>, and — once selected — <b>Visa / passport assistance</b>, <b>Appointment &amp; travel</b> and <b>welfare check-ins</b> (see the following sections).</li>
+</ul>
+
+<h2>Interviews</h2>
+<h3>Schedule an interview</h3>
+<ol class="steps">
+  <li>In the pipeline (Submitted), click <span class="ui">Schedule interview</span> on the application.</li>
+  <li>Choose the <b>Date</b> and <b>Time</b>, and the <b>Mode</b> — <i>In-person</i> or <i>Virtual</i>.</li>
+  <li>For in-person, enter the location (e.g. "HPSEDC Office, Nigam Vihar, Shimla"). For virtual, a <b>Meeting link</b> is required.</li>
+  <li>Enter the <b>Interviewer name</b> (shown to the candidate) and, if the interview is part of a recruitment drive, choose the <b>Drive</b>.</li>
+  <li>Click <span class="ui">Schedule &amp; Notify Candidate</span>. The application moves to <b>Interview</b> and the candidate is notified.</li>
+</ol>
+<figure><img src="images/agency-09-schedule-interview.png" alt="Schedule interview"><figcaption>Schedule Interview.</figcaption></figure>
+<p>In the <b>Interview</b> stage each row shows whether the candidate has <i>Confirmed</i> or <i>Declined</i>. A reminder is sent to the candidate before the interview. Interviews can be added to your calendar (.ics).</p>
+<h3>Respond to a reschedule request</h3>
+<p>If a candidate asks to move the interview, an orange <span class="ui">Respond to reschedule</span> button appears. Click it to see the current time, the candidate's reason and the time they proposed, then choose:</p>
+<ul>
+  <li><span class="ui">Accept proposed time</span></li>
+  <li><span class="ui">Set a different time</span> — pick a new date and time, then <span class="ui">Set new time &amp; notify</span></li>
+  <li><span class="ui">Keep original time (decline request)</span></li>
+</ul>
+<p>The candidate is notified of your decision.</p>
+<figure><img src="images/agency-11-reschedule.png" alt="Reschedule request"><figcaption>Responding to a reschedule request.</figcaption></figure>
+<h3>Record the interview outcome</h3>
+<ol class="steps">
+  <li>Click <span class="ui">Outcome</span> on the application.</li>
+  <li>Choose <span class="ui">Pass / Select</span> or <span class="ui">Fail / Reject</span>.</li>
+  <li>Optionally give a <b>rating</b> (1 Poor – 5 Excellent). Add notes — <b>notes are required when rejecting</b>.</li>
+  <li>Click <span class="ui">Select Candidate</span> (or <span class="ui">Reject Candidate</span>).</li>
+</ol>
+<figure><img src="images/agency-12-record-outcome.png" alt="Record outcome"><figcaption>Record Interview Outcome.</figcaption></figure>
+<p>On <b>Select</b>, HireStream automatically: moves the application to <i>Selected</i>; creates the offer (valid 7 days); snapshots the candidate's details as they were at selection; and notifies the candidate of the documents now required.</p>
+<h3>Reject without an interview</h3>
+<p>Click <span class="ui">Reject</span> on any row. You can type optional feedback for the candidate. The candidate is told the application did not go ahead; the employer's name is not shown.</p>
+
+<h2>After selection: pre-departure</h2>
+<p>Open a selected candidate from the pipeline (<b>Selected</b> tile → <span class="ui">View</span>).</p>
+<h3>Deployment Readiness</h3>
+<p>Lists what is done and what is still missing: offer accepted, passport, police clearance, medical, visa, pre-departure orientation (PDO), PBBY insurance, emigration clearance, appointment letter and travel.</p>
+<figure><img src="images/agency-14-readiness.png" alt="Deployment readiness"><figcaption>Deployment Readiness on the candidate profile.</figcaption></figure>
+<h3>Pre-Departure Compliance (MEA / Emigration Act)</h3>
+<p>Record the confirmed results: ECR status, Police Clearance (Submitted / Pending / Not required), Medical Fitness (Fit / Pending / Unfit), IELTS band, PDO completed with date, and PBBY insurance (Enrolled / Pending / Not required) with policy number. Passport number and expiry can be corrected here; the Aadhaar number is shown masked and cannot be edited. Click <span class="ui">Save compliance</span>. Every change is written to the audit log.</p>
+<figure><img src="images/agency-15-compliance.png" alt="Pre-departure compliance"><figcaption>Pre-Departure Compliance.</figcaption></figure>
+<div class="box warn"><b>ECR candidates.</b>For ECR passport holders travelling to ECR countries, PDO and PBBY must be completed before the travel date.</div>
+<h3>Visa / passport assistance</h3>
+<p>Choose the status — <i>Not applied yet</i>, <i>Application submitted</i>, <i>Approved</i>, <i>Rejected</i> — add an optional note to the candidate (e.g. "Embassy appointment on 12 June") and click <span class="ui">Update &amp; notify</span>. Every change is kept in the <b>History</b> list and the candidate is notified.</p>
+<h3>Appointment &amp; travel</h3>
+<ul>
+  <li><b>Travel / start date</b> — choose the date and click the save icon. For an <b>ECR</b> candidate the date is refused ("Couldn't save start date") until PDO and PBBY have been recorded in Pre-Departure Compliance — record those first.</li>
+  <li><b>Appointment letter</b> — click <span class="ui">Upload signed file</span> (PDF, JPG or PNG), or paste an external link and save. <span class="ui">View current</span> opens the uploaded letter; <span class="ui">Replace file</span> uploads a new one.</li>
+</ul>
+<figure><img src="images/agency-16-appointment-travel.png" alt="Appointment and travel"><figcaption>Visa assistance, and Appointment &amp; travel.</figcaption></figure>
+<div class="box danger"><b>The candidate cannot accept the offer until the appointment letter is uploaded.</b>Upload it as soon as the employer signs it — the offer expires after 7 days. When the candidate accepts, the application moves to <b>Placed</b> automatically. Staff cannot set "Placed" by hand.</div>
+
+<h2>After placement: welfare</h2>
+<p>For every placed worker there are <b>30-, 60- and 90-day welfare check-ins</b>. Open the candidate (<b>Placed</b> tile → <span class="ui">View</span>) and, under <b>Post-placement welfare check-ins</b>:</p>
+<ol class="steps">
+  <li>Click <span class="ui">Record</span> on the due check-in.</li>
+  <li>Choose <i>OK</i>, <i>Concerns</i>, <i>No response</i> or <i>Not applicable</i>, and add a short note.</li>
+  <li>Click <span class="ui">Save</span>.</li>
+</ol>
+<figure><img src="images/agency-18-welfare.png" alt="Welfare check-ins"><figcaption>Recording a welfare check-in.</figcaption></figure>
+<p>Workers are also prompted automatically at 30/60/90 days and can report problems themselves. Overdue check-ins appear on the administrators' <i>Welfare SLA</i> monitor. Record <i>Concerns</i> honestly — they drive follow-up.</p>
+
+<h2>Candidates and recruitment drives</h2>
+<h3>Candidate pool</h3>
+<p><b>Candidates</b> in the menu lists all registered candidates. Search by name, email or skill; filter by experience (Junior / Mid / Senior), profile complete or incomplete, and candidates open to outreach. Click <span class="ui">View</span> for a quick profile with email and call buttons.</p>
+<h3>Recruitment drives</h3>
+<ol class="steps">
+  <li>Open <b>Drives</b> and click <span class="ui">Create Drive</span>.</li>
+  <li>Enter the title, description, date, location, target roles and expected number of candidates.</li>
+  <li>Submit. The drive goes to an administrator for approval.</li>
+  <li>Once approved, open the drive to <span class="ui">Notify candidates</span>, invite registrants, mark attendance, schedule interviews, and record results (Selected / Hold / Rejected) with feedback.</li>
+</ol>
+<div class="box warn"><b>Selecting through a drive.</b>A drive result of "Selected" records the decision but does not create the offer. To start the offer and document process, also record the outcome from the Applications Pipeline (<span class="ui">Outcome</span> → <span class="ui">Pass / Select</span>).</div>
+<h3>Open Requisitions</h3>
+<p>This screen is for employer requisitions in the marketplace mode. While employer registration is switched off, it shows "No open requisitions".</p>
+
+<h2>Messages and grievances</h2>
+<h3>Messages — Ask HPSEDC</h3>
+<p>Candidates' questions arrive under <b>Messages</b>; the red number shows unread threads. Click a candidate's thread, type your reply in <i>Type your reply…</i> and click the send button. The candidate sees the reply on their Help page. Reply within working hours; keep answers short and in simple language (Hindi where helpful).</p>
+<figure><img src="images/agency-19-messages.png" alt="Messages"><figcaption>Replying to a candidate's message.</figcaption></figure>
+<h3>Grievances</h3>
+<p>Formal complaints are separate from messages. Open <b>Grievances</b> at the top of the page. <i>Assigned to me</i> lists grievances routed to the Placement Cell — complaints about an application are routed here automatically.</p>
+<table>
+  <tr><th>Action</th><th>When</th></tr>
+  <tr><td><span class="ui">Start Review</span></td><td>You have begun looking into it.</td></tr>
+  <tr><td><span class="ui">Mark Action Taken</span></td><td>You have acted; describe what you did — the complainant sees this and confirms whether it is resolved.</td></tr>
+  <tr><td><span class="ui">Internal Note</span></td><td>A note visible only to staff.</td></tr>
+</table>
+<p>Fraud reports ("someone asked me for money") go to the administrators' queue. Grievances not handled within the service level (default 3 days for application issues) are escalated.</p>
+<figure><img src="images/agency-20-grievances.png" alt="Grievances"><figcaption>Grievances.</figcaption></figure>
+
+<h2>Reports</h2>
+<p><b>Reports</b> in the menu gives the Placement Cell its own management view:</p>
+<ul>
+  <li><b>Headline</b> — active jobs, applicants, accepted placements, conversion rate.</li>
+  <li><b>Pipeline health</b> — where candidates drop out, stale applicants, time to placement, this month vs last.</li>
+  <li><b>Operations &amp; SLA</b> — welfare check-ins due at 30/60/90 days, compliance alerts, grievances.</li>
+  <li><b>Strategic insights</b> — top employers, skill gap (demand vs supply), time in stage.</li>
+  <li><b>HPSEDC compliance (Emigration Act 1983)</b> — PBBY and PDO coverage, ECR / non-ECR mix, top destination countries, applications over time.</li>
+</ul>
+<figure><img src="images/agency-21-reports.png" alt="Reports"><figcaption>Reports.</figcaption></figure>
+<p>For per-job applicant lists use <span class="ui">Export CSV</span> on the job page. Portal-wide CSV exports (candidates, jobs, applications, placements) are in the Admin Console.</p>
+
+<h2>Daily checklist and quick reference</h2>
+<h3>Every working day</h3>
+<ol>
+  <li>Check <b>Messages</b> and reply to new questions.</li>
+  <li>Pipeline → <b>Submitted</b> → schedule interviews; use <span class="ui">⏳ Stale</span> to catch anything waiting 7+ days.</li>
+  <li>Pipeline → <b>Interview</b> → respond to reschedule requests; record outcomes for interviews held.</li>
+  <li>Pipeline → <b>Selected</b> → upload appointment letters, update visa status and compliance; chase missing documents.</li>
+  <li>Pipeline → <b>Placed</b> → record due welfare check-ins.</li>
+  <li><b>Grievances</b> → <i>Assigned to me</i>.</li>
+</ol>
+<h3>Where to find it</h3>
+<table>
+  <tr><th>I want to…</th><th>Go to</th></tr>
+  <tr><td>Post a vacancy</td><td>Post Job (left, under the agency card)</td></tr>
+  <tr><td>Close a filled job</td><td>My Jobs → job → Close</td></tr>
+  <tr><td>See new applications</td><td>Applications Pipeline → Submitted</td></tr>
+  <tr><td>Schedule / record interviews</td><td>Applications Pipeline → Schedule interview / Outcome</td></tr>
+  <tr><td>Upload an appointment letter</td><td>Applications Pipeline → Selected → View → Appointment &amp; travel</td></tr>
+  <tr><td>Update visa status</td><td>Candidate profile → Visa / passport assistance</td></tr>
+  <tr><td>Record a welfare check</td><td>Applications Pipeline → Placed → View → welfare check-ins</td></tr>
+  <tr><td>Reply to a candidate</td><td>Messages</td></tr>
+  <tr><td>Download applicants of a job</td><td>Job page → Export CSV / ZIP</td></tr>
+</table>
+
+<h2>Current limitations</h2>
+<p>The following points apply to this release. Please work around them as described until they are addressed.</p>
+<table>
+  <tr><th>Limitation</th><th>Work-around</th></tr>
+  <tr><td>The dashboard <i>Applicant Pipeline</i>, the job page stage tiles and the Reports funnel still show six stages (including <i>Reviewed</i> and <i>Shortlisted</i>), which are always zero in the four-stage pipeline.</td><td>Ignore the Reviewed and Shortlisted columns. The <b>Applications Pipeline</b> page shows the correct four stages.</td></tr>
+  <tr><td>A greyed-out <i>Reviewed</i> button appears on submitted applications; the board view's "Change status" menu offers Reviewed / Shortlisted, which the portal refuses.</td><td>Use <span class="ui">Schedule interview</span>, <span class="ui">Outcome</span> and <span class="ui">Reject</span> only.</td></tr>
+  <tr><td>Documents can be previewed but there is no on-screen button to mark a candidate's document as verified.</td><td>Record compliance results in <i>Pre-Departure Compliance</i>; ask the administrator about document verification.</td></tr>
+  <tr><td>There is no bulk "select" button for many candidates at once.</td><td>Record outcomes one by one.</td></tr>
+  <tr><td>The Post Job form does not ask for the number of vacancies or the last date.</td><td>Use the administrator's <i>Import Jobs</i> for batches that need a vacancy count and deadline.</td></tr>
+</table>

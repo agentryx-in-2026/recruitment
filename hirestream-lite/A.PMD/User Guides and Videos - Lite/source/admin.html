@@ -1,0 +1,205 @@
+<h2>About this guide</h2>
+<p>The <b>Admin Console</b> is the oversight and configuration centre of HireStream. HPSEDC administrators use it to load government job batches, decide what the application form asks, define the eligibility rules for each trade, watch compliance and welfare across all candidates, handle complaints and fraud reports, and change how the portal behaves — all without a software release.</p>
+<p>Day-to-day recruitment work (posting single jobs, interviews, selection, appointment letters, welfare check-ins) is done by the Placement Cell with the HPSEDC agency account — see the <i>HPSEDC as Super Agency User Guide</i>.</p>
+<h3>Roles</h3>
+<table>
+  <tr><th>Role</th><th>Who</th><th>Can do</th></tr>
+  <tr><td><b>Administrator</b> (<i>admin</i>)</td><td>HPSEDC officers</td><td>Everything in the Admin Console described in sections 2–9: oversight, reports, job import, professions, form fields, system configuration, complaints, enabling/disabling accounts. Can act on any application.</td></tr>
+  <tr><td><b>Super Administrator</b> (<i>superadmin</i>)</td><td>System owner / technical lead</td><td>The separate Super Admin console (section 10): creating users and assigning roles, feature flags, maintenance mode, system controls, backups, data reset, logs.</td></tr>
+  <tr><td><b>Agency</b> (<i>hpsedc_agency</i>)</td><td>Placement Cell staff</td><td>Recruitment operations (separate guide).</td></tr>
+  <tr><td><b>Candidate</b></td><td>Applicants</td><td>Registration, applying, documents, offers (Applicant guide).</td></tr>
+</table>
+<div class="box tip"><b>Watch the video.</b>The <i>Admin Walkthrough</i> video shows the Admin Console sections in this guide.</div>
+
+<h2>Signing in and the console</h2>
+<p>Sign in on the HireStream sign-in page with your administrator username or email and password. The <b>Admin Console</b> opens.</p>
+<figure><img src="images/admin-01-overview.png" alt="Admin Console overview"><figcaption>The Admin Console — Overview.</figcaption></figure>
+<ul>
+  <li><b>Header buttons</b> — one-click downloads: <span class="ui">Candidates CSV</span>, <span class="ui">Jobs CSV</span>, <span class="ui">Applications CSV</span>, <span class="ui">Placements CSV</span>.</li>
+  <li><b>Left menu</b>, in groups:
+    <ul>
+      <li><i>Overview &amp; Analytics</i> — Overview, Reports, Funnel</li>
+      <li><i>People &amp; Orgs</i> — Users, Callbacks, Placement Support</li>
+      <li><i>Operations</i> — Import Jobs, Lifecycle, Drives, Matching Engine, Professions, Form Fields, Deployment Readiness, Welfare SLA</li>
+      <li><i>Risk &amp; Compliance</i> — Compliance, Audit Log, Fraud Watch, Duplicates</li>
+      <li><i>Communication</i> — Messages, Grievances, Notifications</li>
+      <li><i>System</i> — Architecture, Integrations, Countries, System Config</li>
+    </ul></li>
+</ul>
+<div class="box tip"><b>Agencies, Employers and Leaderboard</b> menu items are hidden while agency and employer self-registration are switched off (single-agency mode). They reappear if those capabilities are enabled in System Config.</div>
+<p><b>Security:</b> sessions end after 30 minutes of inactivity. Change your password from your name (top right) → <i>Change Password</i>. Never share administrator credentials.</p>
+
+<h2>Overview and analytics</h2>
+<h3>Overview</h3>
+<p>Tiles for registered candidates, open job vacancies and placements; the <b>Application Pipeline</b> (registered, applied, placed) with a chart by stage; <b>Candidates by District</b>; <b>Jobs by Destination Country</b>; <b>Pending Verifications</b> (drive approvals, open grievances); top skills in demand; and recent activity.</p>
+<h3>Reports</h3>
+<p>Six ready-made reports, each with a CSV download: by district, by country, by placement status, by agency, by skill, and by sector / company.</p>
+<figure><img src="images/admin-23-reports.png" alt="Reports"><figcaption>Reports.</figcaption></figure>
+<h3>Funnel</h3>
+<p>Shows how many candidates reach each stage and the drop-off from the previous stage, optionally filtered by country.</p>
+
+<h2>Importing government job batches</h2>
+<p>Government vacancies usually arrive as an Excel or CSV sheet. The <b>Smart Job Importer</b> (Operations → <b>Import Jobs</b>) turns the sheet into live jobs in a few clicks.</p>
+<ol class="steps">
+  <li>Click <span class="ui">Choose file</span> and select the <b>.csv</b> or <b>.xlsx</b> file (maximum 5 MB, 2,000 rows).</li>
+  <li>HireStream reads the column headings and <b>maps them automatically</b> to job fields — Job title, Company / Employer, Country, Location, Category, Salary, Vacancies, Last date, Experience, Qualification, Description, Requirements, Skills. Correct any mapping with the drop-downs; choose <i>— Ignore —</i> for columns you do not need.</li>
+  <li>Every row is checked and marked <b>Valid</b> (green), <b>Warning</b> (amber — will be imported, but read the note, e.g. unknown category left blank, or a similar job already posted) or <b>Error</b> (red — will be skipped, e.g. country missing).</li>
+  <li>Click <span class="ui">Import N jobs</span>. Valid and warning rows become live jobs owned by the HPSEDC Placement Cell. Error rows are skipped.</li>
+  <li>The import is listed under <b>Recent imports</b> (file name, jobs posted, rows skipped).</li>
+</ol>
+<figure><img src="images/admin-03-import-preview.png" alt="Import preview"><figcaption>Column mapping and row-by-row validation.</figcaption></figure>
+<div class="box tip"><b>Preparing the sheet.</b>Use one row per vacancy with clear headings, e.g. <code>Job Title, Country, Company, Location, Category, Monthly Salary, Vacancies, Last Date, Job Description, Experience</code>. Use the portal's category names (e.g. <i>Construction Worker, Healthcare, Driver, Electrician, Hospitality Staff</i>) so that trade documents are requested correctly. Dates as YYYY-MM-DD. Nothing is saved until you click Import.</div>
+
+<h2>Professions and the application form</h2>
+<h3>Professions &amp; eligibility</h3>
+<p>Operations → <b>Professions</b> defines the trades candidates choose from, and what each trade must hold. Changes are live for candidates immediately.</p>
+<figure><img src="images/admin-05-professions.png" alt="Professions"><figcaption>Professions &amp; eligibility.</figcaption></figure>
+<p>Click <span class="ui">Edit</span> on a profession (or <span class="ui">Add a profession</span>) to change:</p>
+<ul>
+  <li><b>Name (English)</b> and <b>Name (Hindi)</b>, and the order in the list.</li>
+  <li><b>Job categories</b> — which job categories this trade answers. A selected candidate is asked for this trade's documents only for jobs in these categories.</li>
+  <li><b>Accepted qualifications</b> — any one of them satisfies the trade.</li>
+  <li><b>Ask "what specifically can you do?"</b> and the list of specific skills.</li>
+  <li><b>Required documents</b> and <b>Optional documents</b> — picked from the portal's document list (documents marked <i>after selection</i>, such as PCC and medical, are always asked later).</li>
+  <li><b>What the candidate is told</b> (English and Hindi) — shown the moment they pick the trade.</li>
+</ul>
+<figure><img src="images/admin-06-profession-edit-crop.png" alt="Edit profession"><figcaption>Editing a profession.</figcaption></figure>
+<ul>
+  <li>The <b>key</b> of a profession cannot be changed after creation (candidates' records point to it).</li>
+  <li>The extra questions of <i>Nurse, Caregiver, Driver, Electrician, Welder</i> are part of the portal itself and cannot be edited here.</li>
+  <li>The eye icon <b>hides</b> a profession from new candidates. Nothing is deleted — candidates who already chose it keep it. Click the eye again to show it.</li>
+</ul>
+<h3>Form Fields</h3>
+<p>Operations → <b>Form Fields</b> decides what the application form asks, page by page.</p>
+<figure><img src="images/admin-07-form-fields.png" alt="Form Fields"><figcaption>Registration form fields.</figcaption></figure>
+<ul>
+  <li><b>Shown / Hidden</b> — whether the field appears on the form.</li>
+  <li><b>Must fill / Optional</b> — whether it is compulsory. A hidden field is never compulsory.</li>
+  <li>A <b>padlock</b> means the field cannot be switched off (e.g. passport expiry), because the portal depends on it.</li>
+  <li>Full name, date of birth, gender, mobile, email and permanent address are always asked and are not listed.</li>
+  <li>Two rows are <b>options</b> rather than fields: <i>"I do not have a passport yet"</i> (on by default) and the <i>"I am not sure"</i> choice for ECR status (off by default).</li>
+</ul>
+<p>Changes apply to candidates immediately.</p>
+
+<h2>System configuration</h2>
+<p>System → <b>System Config</b> changes how the portal behaves without a code release. Settings are grouped into cards; each shows its current value and a <i>Default</i> badge when unchanged. Every change is applied immediately and recorded in the audit log.</p>
+<figure><img src="images/admin-09-pipeline-setting.png" alt="System Config"><figcaption>System Config — the Recruitment pipeline setting.</figcaption></figure>
+<h3>Key settings for this release</h3>
+<table>
+  <tr><th>Setting</th><th>Current / default</th><th>Meaning</th></tr>
+  <tr><td><b>Recruitment pipeline</b></td><td>Direct — 4 stages</td><td>Applied → Interview → Selected → Placed; documents requested at selection. <i>Screened — 6 stages</i> adds a desk review and shortlist, for when individual agencies are enabled.</td></tr>
+  <tr><td>Agency operating mode</td><td>Single agency (HPSEDC)</td><td>All jobs belong to the HPSEDC Placement Cell. <i>Marketplace</i> = many agencies.</td></tr>
+  <tr><td>Allow employers / agencies to self-register</td><td>Off</td><td>Keep off for phase 1.</td></tr>
+  <tr><td>Require a confirmed email before applying</td><td>On</td><td>Candidates must enter the 6-digit email code before applying. Requires a working email service.</td></tr>
+  <tr><td>Maximum professions a candidate may select</td><td>3</td><td>1–10.</td></tr>
+  <tr><td>Block job browsing until the application is submitted</td><td>Off</td><td>If on, candidates must finish the form before seeing jobs.</td></tr>
+  <tr><td>Passport number is hard-mandatory</td><td>Off</td><td>Use Form Fields → "I do not have a passport yet" instead.</td></tr>
+  <tr><td>Require reason on rejection / Allow un-rejecting</td><td>Off / On</td><td>Rejection rules.</td></tr>
+  <tr><td>Terminal (locked) statuses</td><td>none</td><td>Statuses only an admin can change. Recommended for go-live: <i>placed</i>.</td></tr>
+  <tr><td>Hide employer name in negative messages</td><td>On</td><td>Candidates never see the employer's name on a rejection.</td></tr>
+  <tr><td>Offer validity (days)</td><td>7</td><td>After this an offer expires.</td></tr>
+  <tr><td>Require appointment letter before offer accept</td><td>On</td><td>Candidates cannot accept until the letter is uploaded.</td></tr>
+  <tr><td>ECR: require PDO + PBBY before travel</td><td>On</td><td>Emigration Act safeguard.</td></tr>
+  <tr><td>Block applications on &lt;6-month passport validity</td><td>Off</td><td>Off = warning only.</td></tr>
+  <tr><td>Auto-close jobs without deadline (days)</td><td>60</td><td>Nightly lifecycle closes older jobs — set a deadline or reopen jobs that are still recruiting.</td></tr>
+  <tr><td>Max file size (MB) · Session timeout (minutes)</td><td>5 · 30</td><td>Uploads and security.</td></tr>
+  <tr><td>HPSEDC helpline number / hours</td><td>(blank)</td><td><b>Fill in before launch</b> — shown to candidates on the Help page.</td></tr>
+</table>
+<div class="box warn"><b>Change settings carefully.</b>Settings take effect for every user immediately. Prefer changing one setting at a time and note the reason; the audit log records who changed what.</div>
+
+<h2>People</h2>
+<h3>Users</h3>
+<p>People &amp; Orgs → <b>Users</b> lists all accounts with tabs <i>Candidates, Agencies, Employers, Staff, All</i>, showing username, email, role, whether active, and last login. Click <span class="ui">Disable</span> to block an account from signing in, or <span class="ui">Enable</span> to restore it.</p>
+<figure><img src="images/admin-11-users.png" alt="Users"><figcaption>Users.</figcaption></figure>
+<div class="box warn"><b>Take care when disabling accounts.</b>Do not disable your own account, the HPSEDC agency account or a super administrator. Creating staff accounts and changing roles is done by the super administrator.</div>
+<h3>Callbacks</h3>
+<p>Candidates who asked HPSEDC to phone them (when the assisted-callback option is switched on). Call the candidate, then mark the request done.</p>
+<h3>Placement Support</h3>
+<p>Monthly check-ins ("I'm fine" / "I need help") and problems reported by workers already overseas — salary not paid, contract differences, safety or harassment, health, passport held. Follow up and update the status of each.</p>
+
+<h2>Deployment, compliance and welfare</h2>
+<h3>Compliance</h3>
+<p>Risk &amp; Compliance → <b>Compliance</b> tracks Emigration Act / MEA compliance across all candidates:</p>
+<ul>
+  <li><b>Coverage against targets</b> — passport on file, ECR/ECNR declared, PCC submitted, medical fit, PDO completed, PBBY enrolled, IELTS recorded.</li>
+  <li><b>Visa pipeline</b> — deployed workers by visa status (not applied, applied, approved, rejected).</li>
+  <li><b>Risk flags</b> — placed without PDO, placed without PBBY, placed without passport on file, passport expiring in under 6 months, placed with visa not yet approved, visa rejected.</li>
+</ul>
+<figure><img src="images/admin-14-compliance.png" alt="Compliance"><figcaption>Compliance Oversight.</figcaption></figure>
+<h3>Deployment Readiness</h3>
+<p>Operations → <b>Deployment Readiness</b>: how many selected candidates are travel-ready, in compliance or blocked, by stage, with <span class="ui">Export CSV</span> for follow-up.</p>
+<h3>Welfare SLA</h3>
+<p>Operations → <b>Welfare SLA</b> lists every overdue 30/60/90-day welfare check-in (candidate, placement, country, milestone, days overdue), and placements without a start date. Ask the Placement Cell to record the check-ins. "All welfare check-ins up to date" means nothing is overdue.</p>
+<figure><img src="images/admin-16-welfare-sla.png" alt="Welfare SLA"><figcaption>Welfare SLA monitor.</figcaption></figure>
+
+<h2>Audit, fraud and duplicates</h2>
+<h3>Audit Log</h3>
+<p>The latest 200 recorded actions — status changes, settings changes, compliance and visa updates, profile changes — with when, who, action, resource and details (including from → to). Filter by resource or by action text. Click Refresh for the newest entries.</p>
+<figure><img src="images/admin-17-audit-log.png" alt="Audit Log"><figcaption>Audit Log.</figcaption></figure>
+<h3>Fraud Watch</h3>
+<p>Recent fraud reports from candidates ("someone asked me for money") and any agency with a spike of grievances in the last 30 days. Treat every fraud report as urgent.</p>
+<h3>Duplicates</h3>
+<p>Groups of candidate records that share an Aadhaar number, phone number or email. Review each group and merge duplicates so a person has one record.</p>
+
+<h2>Messages, grievances and notifications</h2>
+<h3>Messages</h3>
+<p>The shared <b>Ask HPSEDC</b> inbox. Administrators can read and answer candidates' messages in the same way as the Placement Cell; the unread count shows on the menu.</p>
+<figure><img src="images/admin-20-messages.png" alt="Messages"><figcaption>Messages — Ask HPSEDC.</figcaption></figure>
+<h3>Grievances</h3>
+<p>Opens the Grievances page with the <b>All grievances</b> tab (administrators only) in addition to <i>My grievances</i> and <i>Assigned to me</i>. Fraud reports are routed to the administrators' queue.</p>
+<div class="flow"><span>Submitted</span><i>→</i><span>Start Review</span><i>→</i><span>Under review</span><i>→</i><span>Mark Action Taken</span><i>→</i><span>Complainant confirms → Resolved</span></div>
+<p>When marking <i>Action Taken</i>, describe what you did — the complainant sees it and confirms whether the problem is resolved, or reopens it. Use <i>Internal Note</i> for staff-only notes. Service levels per category (default 2 days for fraud, 3 for application and technical issues, 7 otherwise) and automatic escalation are set in System Config.</p>
+<h3>Notifications</h3>
+<p>Communication → <b>Notifications</b> lists the message templates sent for each event to each role (candidate, agency, admin). Click <span class="ui">Edit template</span> to change the title and text, switch a template off, or set it to hide the employer's company name in negative messages.</p>
+<figure><img src="images/admin-22-notification-templates.png" alt="Notification templates"><figcaption>Notification templates.</figcaption></figure>
+
+<h2>Other operations and system tools</h2>
+<table>
+  <tr><th>Menu item</th><th>What it does</th></tr>
+  <tr><td><b>Lifecycle</b></td><td>Every night at 02:00 IST jobs past their deadline (or older than the auto-close period) are closed and deadline reminders are sent. <span class="ui">Run Lifecycle Now</span> runs it immediately and shows how many jobs were closed or nudged.</td></tr>
+  <tr><td><b>Drives</b></td><td>Approve or reject recruitment drives created by the Placement Cell.</td></tr>
+  <tr><td><b>Matching Engine</b></td><td>Engine version, the recommendation threshold, how missing criteria are scored, and whether candidates see their match breakdown. Use <i>Run preview</i> before saving.</td></tr>
+  <tr><td><b>Countries</b></td><td>Destination information candidates read: embassy contacts, visa rules, minimum wage and labour-law notes, and which countries are active in the job form.</td></tr>
+  <tr><td><b>Integrations</b></td><td>Email gateway (e.g. SMTP2GO, Brevo, SendGrid, Amazon SES) and SMS gateway (e.g. MSG91, NIC SMS) settings, with test buttons. Enabling or disabling an integration asks for your password.</td></tr>
+  <tr><td><b>Architecture</b></td><td>Read-only description of the matching engine, technology and infrastructure.</td></tr>
+</table>
+<div class="box danger"><b>Email must be working before launch.</b>Candidates need the 6-digit email code to apply, and password-reset and selection messages are sent by email. Configure and test the email gateway under Integrations. If email cannot be guaranteed, switch off "Require a confirmed email before applying" in System Config.</div>
+
+<h2>Super Administrator</h2>
+<p>The super administrator signs in to a separate <b>Super Admin</b> console. Super administrators cannot use demo quick-login. Every super-administrator change is recorded in the audit log.</p>
+<table>
+  <tr><th>Area</th><th>What it does</th></tr>
+  <tr><td><b>User Management</b></td><td>Search all users; <span class="ui">Create User</span> (username, email, password, role — including admin and super admin); change a user's role ("Set as …"); disable or enable a user.</td></tr>
+  <tr><td><b>Roles &amp; Access</b></td><td>Read-only matrix of what each role can do.</td></tr>
+  <tr><td><b>Feature Flags</b></td><td>Captcha, registration, dark mode and other features. <b>Quick login</b> (one-click demo logins) <b>must be OFF in production</b>. <b>Maintenance Mode</b> shows a message and blocks everyone except administrators.</td></tr>
+  <tr><td><b>System Controls</b></td><td>Critical operations, each needing a typed confirmation: full lockdown (with a bypass key and message), pause / resume the applications pipeline, pause / resume job posting.</td></tr>
+  <tr><td><b>Audit &amp; Security, Logs</b></td><td>System-wide audit trail and application logs; operator console with health status.</td></tr>
+  <tr><td><b>Backups</b></td><td>Create, download and delete database backups; backup schedule settings.</td></tr>
+  <tr><td><b>Data Management (Danger Zone)</b></td><td>Testing utilities: <i>Clear demo accounts only</i>, <i>Activity-only reset</i>, per-entity reset, <i>Full wipe</i>, <i>Wipe + Reseed</i>. Each needs two confirmations.</td></tr>
+</table>
+<div class="box danger"><b>Never use the Danger Zone on the production portal.</b>Data resets permanently delete candidates, applications and jobs. They exist for test environments only. Take a backup before any risky operation.</div>
+
+<h2>Go-live checklist</h2>
+<ol>
+  <li><b>Feature flag "Quick login" OFF</b> (Super Admin → Feature Flags). Confirm the sign-in page shows no demo logins.</li>
+  <li><b>Email gateway configured and tested</b> (Integrations) — or switch off "Require a confirmed email before applying".</li>
+  <li><b>Helpline number and hours</b> filled in (System Config → contact).</li>
+  <li><b>Passwords</b>: super administrator, administrators and the <code>hpsedc_agency</code> account changed from any test values; demo accounts removed.</li>
+  <li><b>System Controls lockdown bypass key</b> changed from its default.</li>
+  <li><b>Terminal statuses</b>: consider locking <i>placed</i>.</li>
+  <li><b>Jobs</b>: active, with deadlines, so the nightly lifecycle does not close them unexpectedly.</li>
+  <li><b>Professions and Form Fields</b> reviewed and agreed by HPSEDC.</li>
+  <li><b>Notification templates</b> reviewed (English and Hindi text).</li>
+  <li><b>Backups</b> scheduled and a test restore done.</li>
+</ol>
+
+<h2>Current limitations</h2>
+<table>
+  <tr><th>Limitation</th><th>Work-around</th></tr>
+  <tr><td>There is no Applications tab in the Admin Console.</td><td>Administrators can open <code>/agent/applicants</code> to see the Applications Pipeline across all jobs, or ask the Placement Cell.</td></tr>
+  <tr><td>Two-factor authentication exists in the server but is not yet available on screen.</td><td>Use strong, unique passwords.</td></tr>
+  <tr><td>The MEA / eMigrate CSV export has no button.</td><td>Download it from <code>/api/v1/admin/reports/export/mea-emigrate.csv</code> while signed in as an administrator.</td></tr>
+  <tr><td>Announcements and FAQ content cannot be edited from the console.</td><td>Ask the technical team.</td></tr>
+  <tr><td>The Professions panel note still says documents are asked "once shortlisted"; under the Direct pipeline they are asked at <b>selection</b>.</td><td>Read "shortlisted" as "selected".</td></tr>
+  <tr><td>Some System Config cards (capability, registration, contact) show their internal key as the heading.</td><td>None needed.</td></tr>
+</table>

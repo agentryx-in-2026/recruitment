@@ -1,0 +1,289 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Applicant User Guide — HireStream</title><style>
+:root{--ink:#0f172a;--muted:#475569;--line:#e2e8f0;--brand:#1e3a8a;--brand2:#2563eb;--ok:#047857;--warn:#b45309;--bad:#b91c1c;--soft:#f1f5f9}
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;background:#f8fafc;color:var(--ink);font:15px/1.6 "Segoe UI",Roboto,"Noto Sans","Noto Sans Devanagari",Helvetica,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;background:#fff;padding:0 56px 64px}
+.cover{min-height:100vh;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:64px 56px;margin:0 -56px 40px;
+  background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#065f46 100%);color:#fff;break-after:page}
+.cover .kicker{letter-spacing:3px;text-transform:uppercase;font-size:13px;opacity:.75}
+.cover h1{font-size:44px;line-height:1.15;margin:0}
+.cover .sub{font-size:20px;opacity:.9;max-width:640px}
+.cover dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin-top:40px;font-size:14px;opacity:.9}
+.cover dt{opacity:.7}.cover dd{margin:0}
+.cover .tricolour{display:flex;gap:6px;margin:6px 0 10px}.cover .tricolour span{width:42px;height:5px;border-radius:3px}
+nav.toc{break-after:page;padding-top:24px}
+nav.toc h2{border:0;margin-top:0}
+nav.toc ol{padding-left:22px;columns:1}
+nav.toc li{margin:4px 0}
+nav.toc a{color:var(--ink);text-decoration:none}
+nav.toc a:hover{color:var(--brand2)}
+h2{font-size:26px;color:var(--brand);border-bottom:3px solid var(--brand);padding-bottom:6px;margin:48px 0 16px;break-after:avoid}
+h2 .num{display:inline-block;min-width:38px;color:var(--brand2)}
+h3{font-size:19px;margin:28px 0 8px;color:#1e293b;break-after:avoid}
+h4{font-size:16px;margin:18px 0 6px;break-after:avoid}
+p{margin:8px 0}
+a{color:var(--brand2)}
+ol,ul{padding-left:24px}li{margin:3px 0}
+figure{margin:18px 0 22px;break-inside:avoid;text-align:center}
+figure img{width:100%;max-height:200mm;object-fit:cover;object-position:top;border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 18px rgba(15,23,42,.08)}
+figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+table{border-collapse:collapse;width:100%;margin:12px 0 18px;font-size:14px;break-inside:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:600}
+tr{break-inside:avoid}
+.box{border-radius:10px;padding:12px 16px;margin:14px 0;border:1px solid;break-inside:avoid}
+.box b:first-child{display:block;margin-bottom:2px}
+.tip{background:#eff6ff;border-color:#bfdbfe}
+.warn{background:#fffbeb;border-color:#fde68a}
+.danger{background:#fef2f2;border-color:#fecaca}
+.ok{background:#ecfdf5;border-color:#a7f3d0}
+kbd,.ui{font:600 13px/1 "Segoe UI",Roboto,sans-serif;background:var(--soft);border:1px solid #cbd5e1;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.steps{counter-reset:s;list-style:none;padding-left:0}
+.steps>li{counter-increment:s;position:relative;padding-left:40px;margin:10px 0}
+.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--brand2);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.flow span{background:var(--soft);border:1px solid #cbd5e1;border-radius:999px;padding:4px 12px;font-weight:600;font-size:14px}
+.flow i{color:var(--muted);font-style:normal}
+footer.doc{margin-top:56px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+@media print{body{background:#fff}main{max-width:none;padding:0}.cover{margin:0;min-height:0;height:255mm}}
+@media (max-width:640px){main{padding:0 16px 40px}.cover{margin:0 -16px 32px;padding:48px 16px}.cover h1{font-size:32px}}
+</style></head><body><main>
+<section class="cover">
+  <div class="kicker">HPSEDC · Government of Himachal Pradesh</div>
+  <div class="tricolour"><span style="background:#f97316"></span><span style="background:#fff"></span><span style="background:#16a34a"></span></div>
+  <h1>HireStream<br>Applicant User Guide</h1>
+  <div class="sub">Registering, applying and preparing to travel</div>
+  <dl><dt>Portal</dt><dd>HireStream — HPSEDC Overseas Placement Portal</dd>
+      <dt>For</dt><dd>Candidates seeking overseas employment through HPSEDC</dd>
+      <dt>Release</dt><dd>HireStream Lite v1.0.0</dd>
+      <dt>Issued</dt><dd>17 October 2026</dd></dl>
+</section>
+<nav class="toc"><h2>Contents</h2><ol><li><a href="#welcome-to-hirestream">Welcome to HireStream</a></li><li><a href="#create-your-account">Create your account</a></li><li><a href="#fill-in-your-application">Fill in your application</a></li><li><a href="#your-dashboard">Your dashboard</a></li><li><a href="#find-a-job-and-apply">Find a job and apply</a></li><li><a href="#your-interview">Your interview</a></li><li><a href="#if-you-are-selected">If you are selected</a></li><li><a href="#your-offer">Your offer</a></li><li><a href="#help-messages-and-complaints">Help, messages and complaints</a></li><li><a href="#frequently-asked-questions">Frequently asked questions</a></li></ol></nav>
+<h2 id="welcome-to-hirestream"><span class="num">1.</span>Welcome to HireStream</h2>
+<p>HireStream is the official overseas placement portal of <b>HPSEDC</b> (Himachal Pradesh State Electronics Development Corporation), Government of Himachal Pradesh. Through it you can register once, apply for verified overseas jobs, attend interviews, and get ready to travel — safely and legally.</p>
+<div class="box danger"><b>HPSEDC never asks for money.</b>Registering, applying and being selected are free. If anyone asks you for money to register, to get you a job, or to "speed up" your application, do not pay. Report it on the portal (see <a href="#help-messages-and-complaints">Help, messages and complaints</a>).</div>
+<h3>How the process works</h3>
+<p>Every application goes through four stages:</p>
+<div class="flow"><span>1 · Applied</span><i>→</i><span>2 · Interview</span><i>→</i><span>3 · Selected</span><i>→</i><span>4 · Placed</span></div>
+<ul>
+  <li><b>Applied</b> — you have applied for a job. HPSEDC reviews it.</li>
+  <li><b>Interview</b> — HPSEDC interviews every applicant. You confirm the date or ask to change it.</li>
+  <li><b>Selected</b> — you passed the interview. <b>Only now</b> do you upload documents (police clearance, medical and so on).</li>
+  <li><b>Placed</b> — you have accepted the offer. HPSEDC helps you with visa and travel, and keeps in touch after you start work.</li>
+</ul>
+<div class="box tip"><b>Nothing to upload when you register.</b>You do not need any scanned documents to register or to apply. Documents are asked for only if you are selected for a job.</div>
+<h3>What you need</h3>
+<ul>
+  <li>A mobile phone or computer with internet. The portal works on phones.</li>
+  <li>An <b>email address</b> you can open — a 6-digit code is sent there before you can apply.</li>
+  <li>Your <b>passport</b> (if you have one) and your <b>Aadhaar card</b>, to copy the details exactly.</li>
+  <li>Details of your education and your work experience.</li>
+</ul>
+<p>Filling in the application takes about five minutes. Your answers are saved on every page, so you can stop and come back later.</p>
+<div class="box tip"><b>Watch the video.</b>The <i>Applicant Walkthrough</i> video shows every step in this guide on screen, with narration.</div>
+
+<h2 id="create-your-account"><span class="num">2.</span>Create your account</h2>
+<ol class="steps">
+  <li>Open the HireStream portal in your browser. The sign-in page opens.</li>
+  <li>To use the portal in Hindi, click the <span class="ui">हिं</span> button at the top. Click <span class="ui">EN</span> to return to English. You can switch at any time.</li>
+  <li>Click the <span class="ui">Create Account</span> tab.</li>
+  <li>Enter your <b>Full Name</b>, your <b>Email Address</b>, and a <b>Password</b>. The password must have at least 8 characters, including a capital letter, a small letter, a number and a symbol (for example <code>Rajesh@2026</code>). Type it again in <b>Confirm Password</b>.</li>
+  <li>Click <span class="ui">Create Account</span>. You are signed in and the application form opens.</li>
+</ol>
+<figure><img src="images/applicant-03-create-account.png" alt="Create Account form"><figcaption>The Create Account tab on the sign-in page.</figcaption></figure>
+<figure><img src="images/applicant-02-hindi.png" alt="Sign-in page in Hindi"><figcaption>The same page in Hindi — use the हिं / EN button to switch language.</figcaption></figure>
+<h3>Signing in next time</h3>
+<p>On the <span class="ui">Sign In</span> tab, enter your <b>email address or username</b> and your password, tick <span class="ui">I'm not a robot</span>, and click <span class="ui">Sign In</span>.</p>
+<figure><img src="images/applicant-01-signin.png" alt="Sign in page"><figcaption>Sign in with your email address (or username) and password.</figcaption></figure>
+<div class="box warn"><b>Forgot your password?</b>Click <span class="ui">Forgot password?</span> on the sign-in page and enter your email address to receive a reset link. If you do not receive it, contact the HPSEDC helpline.</div>
+
+<h2 id="fill-in-your-application"><span class="num">3.</span>Fill in your application</h2>
+<p>The application form has <b>four pages</b>. The bar at the top shows each page and how much of it is complete, the overall percentage, and the time spent. On a computer, the menu on the left lets you go back to an earlier page and has quick help links.</p>
+<p>When you start, a <b>Before you start</b> box reminds you what to keep ready. Click <span class="ui">I have these — start</span>.</p>
+<figure><img src="images/applicant-04-before-you-start.png" alt="Before you start checklist"><figcaption>The "Before you start" checklist — there is nothing to upload today.</figcaption></figure>
+<p>Fields marked with a blue <b>*</b> must be filled in. Click <span class="ui">Next</span> at the bottom of each page — your answers are saved each time.</p>
+<div class="box tip"><b>Speak instead of typing.</b>Many text boxes have a blue microphone button. Tap it and speak your answer (for example your name or address).</div>
+
+<h3>Page 1 — About you</h3>
+<p>Keep your passport and Aadhaar card in front of you. Copy every detail <b>exactly as printed</b>.</p>
+<table>
+  <tr><th>Section</th><th>What to enter</th></tr>
+  <tr><td><b>1. Identity documents</b></td><td>Passport number, date of expiry, date of issue, place of issue, and your <b>ECR / ECNR status</b> (look on your passport: does it say "Emigration Check Required"?). Your <b>Aadhaar number</b> is checked as you type — if a digit is wrong you will see a message.<br>No passport yet? Tick <span class="ui">I don't have a passport yet</span>. You can still apply, but you will need a passport before you can be selected.</td></tr>
+  <tr><td><b>2. Personal details</b></td><td>Full name (as on your passport), date of birth (you must be 18 or older), gender, father's name, mother's name, and whether you have a disability.</td></tr>
+  <tr><td><b>3. Contact</b></td><td>Mobile number (choose the country code first — useful if you are already working abroad), WhatsApp number (tick <i>Same as mobile number</i> if it is the same), and email.</td></tr>
+  <tr><td><b>4. Address</b></td><td>Home town, permanent address, state, district and 6-digit PIN code. If your address for letters is different, untick <i>My correspondence address is the same…</i> and enter it.</td></tr>
+</table>
+<figure><img src="images/applicant-05-page1-top.png" alt="Page 1 About you"><figcaption>Page 1 — the progress bar at the top and the Identity documents section.</figcaption></figure>
+<div class="box warn"><b>Passport expiry.</b>If your passport has already expired, the form will not let you continue — renew it first, or tick "I don't have a passport yet".</div>
+
+<h3>Page 2 — Your skills</h3>
+<ol>
+  <li>Click the trades you can <b>actually do</b> — for example <i>Driver</i>, <i>Electrician</i> or <i>Nurse</i>. You can choose up to 3. If your work is not listed, choose <i>Other</i> and type what your work is called.</li>
+  <li>Under <b>Languages</b>, click each language you speak (Hindi, English, Urdu, Arabic). For each one, choose how well you <b>speak</b> and <b>write</b> it. For another language, type it in the box and click <span class="ui">Add</span>.</li>
+</ol>
+<p>You must choose at least one trade and one language to continue.</p>
+<figure><img src="images/applicant-08-page2-filled.png" alt="Page 2 skills and languages"><figcaption>Page 2 — trades and languages.</figcaption></figure>
+
+<h3>Page 3 — Qualifications and experience</h3>
+<ul>
+  <li><b>Education</b> — choose your highest qualification. For 5th to 12th class choose your <b>Board</b> (for example HPBOSE). For ITI, diploma or degree choose your <b>University / College</b>. If yours is not in the list, choose <i>Other (type it in)</i>. Add the school or institution and year of passing if you wish.</li>
+  <li><b>One card for each trade you chose.</b> Some trades ask extra questions:
+    <ul>
+      <li><i>Driver</i> — licence number, licence class, valid until, badge / PSV licence, driving abroad.</li>
+      <li><i>Nurse</i> — nursing qualification, college, year, Nursing Council registration number and council.</li>
+      <li><i>Caregiver</i> — training certificate and institution.</li>
+      <li><i>Electrician, Welder</i> — trade qualification, ITI name, year, certificate body or trade test.</li>
+    </ul></li>
+  <li><b>Months of experience</b> — use the <span class="ui">+</span> and <span class="ui">−</span> buttons (6 months at a time) or type the number.</li>
+  <li><b>What specifically can you do?</b> — tap the skills you have. This helps match you to the right job.</li>
+  <li><b>Last employer</b> and <b>country</b> — optional.</li>
+</ul>
+<p>You will be asked to prove these details with certificates only if you are selected.</p>
+<figure><img src="images/applicant-09-page3-filled.png" alt="Page 3 qualifications"><figcaption>Page 3 — education, the Driver questions and experience.</figcaption></figure>
+
+<h3>Page 4 — Check and submit</h3>
+<p>Page 4 shows your whole application in four sections. Read it carefully. Click <span class="ui">Edit</span> on any section to correct it. Your Aadhaar number is shown masked (only the last 4 digits).</p>
+<ul>
+  <li><span class="ui">Print / Save PDF</span> prints the application as an A4 form, or saves it as a PDF for your records.</li>
+  <li>When everything is correct, click <span class="ui">Submit application</span>. You will see the message <i>"Application submitted"</i>.</li>
+</ul>
+<figure><img src="images/applicant-10-review.png" alt="Review page"><figcaption>Page 4 — check everything, then submit.</figcaption></figure>
+<div class="box tip"><b>You can update your details later.</b>Click <span class="ui">Edit my details</span> on your dashboard (or <i>My Profile</i> in the menu under your name) to change any answer. After a change, click <span class="ui">Submit application</span> again.</div>
+
+<h2 id="your-dashboard"><span class="num">4.</span>Your dashboard</h2>
+<p>After submitting, open your <b>Dashboard</b>. It shows:</p>
+<ul>
+  <li><b>Your HPSEDC registration number</b> (for example HP-948651). Quote it whenever you call HPSEDC.</li>
+  <li><b>Profile completion</b> and buttons to <span class="ui">Find a Job</span> or <span class="ui">Edit my details</span>.</li>
+  <li><b>My application</b> — the status of your most important application.</li>
+  <li><b>Your travel readiness</b> — what is still needed before you can travel.</li>
+  <li><b>Need help? Ask HPSEDC</b> and the warning about money.</li>
+</ul>
+<p>The menu on the left has <b>My Home</b>, <b>Find a Job</b>, <b>My Application</b> and <b>My Documents</b>. A red dot on <i>My Documents</i> means documents are needed. <span class="ui">Switch to Full dashboard</span> shows a more detailed view (saved jobs, recruitment drives, your journey and more); you can switch back to the Simple view at any time.</p>
+
+<h3>Confirm your email address</h3>
+<p>Before you can apply for any job you must confirm your email. HPSEDC sends a <b>6-digit code</b> to your email when you create your account.</p>
+<ol class="steps">
+  <li>Open your email and find the message from HireStream with the code. Check the spam folder too.</li>
+  <li>On your dashboard, type the code into the <b>6-digit code</b> box under <i>Confirm your email address</i>.</li>
+  <li>Click <span class="ui">Confirm</span>. You will see <i>"Email confirmed — You can apply for jobs now"</i>.</li>
+</ol>
+<p>The code is valid for 5 minutes. If it has expired, click <span class="ui">Send a new code</span>.</p>
+<figure><img src="images/applicant-11-dashboard-verify.png" alt="Confirm email banner"><figcaption>Type the 6-digit code from your email and click Confirm.</figcaption></figure>
+
+<h2 id="find-a-job-and-apply"><span class="num">5.</span>Find a job and apply</h2>
+<ol class="steps">
+  <li>Click <span class="ui">Find a Job</span>. All open HPSEDC vacancies are listed. Jobs that are already filled are not shown.</li>
+  <li>Search by job title, company or skill, or use the filters: <i>Country</i>, <i>Category</i>, <i>Experience</i>, <i>Salary</i>. Sort by <i>Best Match</i>, <i>Newest</i> or salary.</li>
+  <li>Each job shows the employer, country, monthly salary and a <b>match percentage</b> — how well it fits your profile. Click the bookmark icon to save a job for later.</li>
+  <li>Click a job to read the details on the right: description, requirements, required skills, and the documents you would need if selected.</li>
+  <li>Click <span class="ui">Apply Now</span> (or <span class="ui">Apply now</span> on the job card).</li>
+</ol>
+<figure><img src="images/applicant-14-job-detail.png" alt="Job detail"><figcaption>Search results on the left, job details on the right.</figcaption></figure>
+<p>Your application now appears under <b>My Application</b>. Click it to see its stage (Submitted → Interview → Selected → Placed), your match score and the date you applied.</p>
+<figure><img src="images/applicant-15-my-application.png" alt="My Application"><figcaption>My Application — the stage of each application.</figcaption></figure>
+<div class="box warn"><b>Why can't I apply?</b>The most common reasons: your email is not confirmed yet; you have already applied for this job; the vacancy has been filled or closed; or the job is in a country you have marked as having refused you a visa.</div>
+
+<h2 id="your-interview"><span class="num">6.</span>Your interview</h2>
+<p>HPSEDC interviews every applicant. When your interview is arranged you receive a notification, and the application shows <b>Interview scheduled</b> with the date, time and place — or a meeting link for an online interview — and the interviewer's name.</p>
+<p>Open <b>My Application</b> and click the application. Then:</p>
+<ul>
+  <li><span class="ui">Confirm attendance</span> — tell HPSEDC you will come. Please always do this.</li>
+  <li><span class="ui">Reschedule</span> — if the time does not suit you, give a reason and (optionally) a preferred time. HPSEDC will accept your time, set a new one, or keep the original, and you will be told.</li>
+  <li><span class="ui">Decline</span> — if you no longer want this job. A reason is required.</li>
+  <li><span class="ui">Add to calendar (.ics)</span> — saves the interview in your phone or computer calendar.</li>
+</ul>
+<figure><img src="images/applicant-17-interview-panel.png" alt="Interview panel"><figcaption>The interview details, with Confirm attendance, Reschedule and Decline.</figcaption></figure>
+
+<h2 id="if-you-are-selected"><span class="num">7.</span>If you are selected</h2>
+<p>Congratulations! When HPSEDC select you after the interview:</p>
+<ul>
+  <li>Your application moves to <b>Selected</b> and you are notified.</li>
+  <li>Your dashboard shows <b>Documents needed before you travel</b>, with each document marked <i>Needed</i> or <i>Received</i>.</li>
+  <li>The application form gains two more pages: <b>Documents</b> and <b>Compliance</b> (Before you travel).</li>
+</ul>
+<figure><img src="images/applicant-18-selected-home.png" alt="Selected dashboard"><figcaption>After selection the dashboard lists the documents HPSEDC need.</figcaption></figure>
+
+<h3>Upload your documents (page 5)</h3>
+<p>Click <span class="ui">Complete your travel documents →</span> (or <span class="ui">Add documents — take a photo</span>). Page 5, <b>Your documents</b>, lists everything needed for each job you were selected for, and why. Usually:</p>
+<table>
+  <tr><th>Document</th><th>Why it is asked</th></tr>
+  <tr><td>Police Clearance Certificate (PCC), Medical fitness certificate</td><td>Needed before you travel</td></tr>
+  <tr><td>ID proof (Aadhaar / Voter ID), Passport (photo page), Education certificate, Work experience letter</td><td>Needed for every overseas job</td></tr>
+  <tr><td>Trade documents — e.g. nursing certificate and Nursing Council registration, driving licence, ITI certificate</td><td>Required for your trade</td></tr>
+  <tr><td>Country documents — e.g. trade test (Saudi Arabia), IELTS and CV (UK, Canada, Australia…)</td><td>Required by the destination country</td></tr>
+</table>
+<ol class="steps">
+  <li>Click <span class="ui">Upload</span> next to a document.</li>
+  <li>Choose a clear photo or scan — <b>PDF, JPG or PNG</b>, up to <b>5 MB</b>. On a phone you can take a photo directly.</li>
+  <li>The row changes to <i>"Uploaded — HPSEDC are checking it"</i>. When HPSEDC accept it, it shows <i>"HPSEDC have checked and accepted this"</i>.</li>
+  <li>To send a clearer copy, click <span class="ui">Replace</span>. Replacing a document that was already accepted sends it back for checking.</li>
+</ol>
+<figure><img src="images/applicant-20-page5-uploaded.png" alt="Documents page"><figcaption>Page 5 — upload each document; its status is shown on the row.</figcaption></figure>
+<div class="box tip"><b>Some details lock after checking.</b>Once HPSEDC have checked your passport, the details printed on it (name, date of birth, passport dates) can no longer be changed in the form. To correct them, upload a new passport copy. After selection, your ECR/ECNR status is confirmed by HPSEDC — contact them if it looks wrong.</div>
+
+<h3>Before you travel (page 6)</h3>
+<p>Tell HPSEDC how far you have got with the steps required under the Emigration Act. HPSEDC confirm each one when it is done.</p>
+<ul>
+  <li><b>Police Clearance Certificate</b> — <i>Applied for it</i> or <i>Submitted to HPSEDC</i>.</li>
+  <li><b>Medical fitness test</b> — <i>Booked / done</i>. The clinic sends the result to HPSEDC.</li>
+  <li><b>PBBY insurance</b> (Pravasi Bharatiya Bima Yojana — mandatory for ECR emigrants) — <i>Applied for it</i>, and the policy number.</li>
+  <li><b>Pre-departure orientation</b> — recorded by HPSEDC after you attend.</li>
+</ul>
+<p>Click <span class="ui">Save my progress</span>. Values marked <i>"recorded by HPSEDC"</i> have been confirmed by HPSEDC and cannot be changed by you.</p>
+<figure><img src="images/applicant-21-page6-before-travel.png" alt="Before you travel"><figcaption>Page 6 — Before you travel.</figcaption></figure>
+
+<h2 id="your-offer"><span class="num">8.</span>Your offer</h2>
+<p>When HPSEDC upload your signed <b>appointment letter</b>, your offer is ready. Your dashboard shows <span class="ui">You have a job offer — make a decision</span>.</p>
+<ol class="steps">
+  <li>Click it, then click the job in <b>My Application</b>.</li>
+  <li>The <b>Offer received</b> box shows the salary, start date and country. Click <span class="ui">View / print offer letter (PDF)</span> and read it carefully.</li>
+  <li>Click <span class="ui">Accept Offer</span> to accept. Or click <span class="ui">Decline</span> and give a reason.</li>
+</ol>
+<figure><img src="images/applicant-23-offer.png" alt="Offer received"><figcaption>The offer, with Accept Offer and Decline.</figcaption></figure>
+<div class="box warn"><b>Offers have a deadline.</b>An offer is valid for a limited time (7 days unless HPSEDC say otherwise). After that it expires and cannot be accepted. If you cannot accept yet — for example, the appointment letter is not uploaded — contact HPSEDC.</div>
+<p>Once you accept, your application becomes <b>Placed</b>. Your dashboard then tracks the remaining pre-departure steps — visa, orientation, insurance and travel — and HPSEDC will tell you about every change in your visa status.</p>
+
+<h3>After you start work abroad</h3>
+<p>HPSEDC stay in touch. At about 30, 60 and 90 days after you start, HPSEDC will check on your welfare. You can also open <b>Working overseas? Get support →</b> on your dashboard to send a monthly check-in (<i>I'm fine</i> / <i>I need help</i>) or report a problem — salary not paid, contract different from what was promised, safety or harassment, health, passport or documents held, or anything else.</p>
+
+<h2 id="help-messages-and-complaints"><span class="num">9.</span>Help, messages and complaints</h2>
+<h3>Ask HPSEDC</h3>
+<p>Click <span class="ui">Need help? Ask HPSEDC</span> or <span class="ui">Send a Message</span> on your dashboard. The <b>Help</b> page has common questions, the HPSEDC helpline, and a message box. Type your question and send it. This is not a live chat — HPSEDC reply during working hours, and a red number shows when there is a new reply.</p>
+<figure><img src="images/applicant-22-help-reply.png" alt="Help page"><figcaption>The Help page — your messages and HPSEDC's replies.</figcaption></figure>
+<h3>Grievances (formal complaints)</h3>
+<p>For a formal complaint, click <b>Grievances</b> at the top, then <span class="ui">New Grievance</span>. Choose a category, write a short subject and describe what happened, then click <span class="ui">Submit Grievance</span>. Categories include:</p>
+<ul>
+  <li>Someone asked me for money / Fraud</li>
+  <li>Problem at my workplace abroad (unpaid, passport held, unsafe)</li>
+  <li>Problem with my recruitment or placement</li>
+  <li>Application issue · Technical problem · Question about the scheme / policy · Other</li>
+</ul>
+<p>You can follow each grievance on the same page. When HPSEDC have acted, you can mark it <i>Resolved</i>, or <i>Reopen</i> it if the problem is not solved.</p>
+<figure><img src="images/applicant-26-grievance.png" alt="Grievance form"><figcaption>Submitting a grievance.</figcaption></figure>
+<h3>Notifications</h3>
+<p>The bell icon at the top shows your notifications — application received, interview scheduled, selected, documents needed, offer available, visa updates and more. Some important notifications, such as selection, are also sent by email.</p>
+<h3>Other settings</h3>
+<ul>
+  <li><b>Change password</b> — click your name at the top right, then <i>Change Password</i>.</li>
+  <li><b>Text size and dark mode</b> — use the <span class="ui">A A A</span> buttons and the moon icon at the top.</li>
+  <li><b>Sign out</b> — click your name at the top right, then <i>Sign Out</i>. Always sign out on a shared computer or in a cyber café.</li>
+</ul>
+
+<h2 id="frequently-asked-questions"><span class="num">10.</span>Frequently asked questions</h2>
+<table>
+  <tr><th>Question</th><th>Answer</th></tr>
+  <tr><td>Do I have to pay anything?</td><td>No. Registration, applying and selection through HPSEDC are free. Report anyone who asks for money.</td></tr>
+  <tr><td>I don't have a passport. Can I register?</td><td>Yes. Tick "I don't have a passport yet" on page 1. You will need a passport before you can be selected.</td></tr>
+  <tr><td>Do I need to upload certificates to apply?</td><td>No. Documents are requested only after you are selected for a job.</td></tr>
+  <tr><td>How many trades can I choose?</td><td>Up to 3. Choose only work you can actually do.</td></tr>
+  <tr><td>I did not get the email code.</td><td>Check spam, wait a minute, then click "Send a new code". Make sure the email address in your profile is correct.</td></tr>
+  <tr><td>Can I change my details after submitting?</td><td>Yes — use "Edit my details". Details from documents HPSEDC have already checked (e.g. passport) are locked; upload a new document to change them.</td></tr>
+  <tr><td>How will I know about my interview?</td><td>You get a notification and an email, and it appears in My Application. Please confirm attendance.</td></tr>
+  <tr><td>What is ECR / ECNR?</td><td>"Emigration Check Required" or "Not Required", printed on your passport. ECR passport holders need emigration clearance for certain countries; HPSEDC handle this with you.</td></tr>
+</table>
+
+<footer class="doc">HireStream — Applicant User Guide · HireStream Lite v1.0.0 · 17 October 2026. Screens shown are from the current release; sample names and data are fictitious.</footer>
+</main></body></html>

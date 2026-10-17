@@ -1,0 +1,240 @@
+1
+00:00:10,400 --> 00:00:14,241
+HPSEDC staff sign in with the Overseas Placement Cell account.
+
+2
+00:00:14,301 --> 00:00:23,679
+In this version of HireStream, HPSEDC works as the single super agency: every vacancy belongs to this account, and every applicant comes to this team.
+
+3
+00:00:23,739 --> 00:00:31,733
+The dashboard opens with the agency card, the verified badge, and the Applicant Pipeline, which counts applicants at each stage.
+
+4
+00:00:31,793 --> 00:00:35,320
+Below it are the most recent jobs and recruitment drives.
+
+5
+00:00:35,380 --> 00:00:38,970
+The Post Job button is always at the top of the left menu.
+
+6
+00:00:46,080 --> 00:00:48,094
+To add a vacancy, click Post Job.
+
+7
+00:00:48,154 --> 00:00:55,261
+Enter the job title and the overseas employer, then choose the destination country, the city and the job category.
+
+8
+00:00:55,321 --> 00:01:00,857
+The category matters: it decides which trade documents a selected candidate is asked for.
+
+9
+00:01:00,917 --> 00:01:09,847
+Set the monthly salary as a fixed amount in the local currency, the minimum experience, and optionally the qualification and language criteria.
+
+10
+00:01:09,907 --> 00:01:13,682
+Add a description and the key skills, then click Publish Job.
+
+11
+00:01:13,742 --> 00:01:16,763
+The vacancy is live for candidates straight away.
+
+12
+00:01:16,823 --> 00:01:19,970
+Save as Draft keeps it private until you are ready.
+
+13
+00:02:29,960 --> 00:02:37,982
+My Jobs lists every vacancy, with filters for active, draft and closed jobs, a search box, and sorting by date or deadline.
+
+14
+00:02:38,042 --> 00:02:39,559
+Open a job to manage it.
+
+15
+00:02:39,619 --> 00:02:49,087
+From the job page you can edit it, preview it exactly as a candidate sees it, copy a share link, close it when the batch is filled, or reopen it.
+
+16
+00:02:49,147 --> 00:02:54,673
+Export CSV downloads the applicant list, and the ZIP export includes their documents.
+
+17
+00:02:54,733 --> 00:02:59,470
+Further down are the job analytics and the applicants for this job alone.
+
+18
+00:03:09,160 --> 00:03:14,326
+The Applications Pipeline shows every application across all jobs on one page.
+
+19
+00:03:14,386 --> 00:03:23,103
+HPSEDC runs the direct, four stage process: Submitted, Interview, Selected and Placed, with Rejected and Withdrawn kept separately.
+
+20
+00:03:23,163 --> 00:03:24,912
+Click a stage to filter it.
+
+21
+00:03:24,972 --> 00:03:29,602
+The Stale chip finds applications that have waited seven days or more.
+
+22
+00:03:29,662 --> 00:03:35,632
+You can search by candidate, job, company or skill, and filter by country, company or job.
+
+23
+00:03:35,692 --> 00:03:43,740
+Click View to open the candidate's full profile: their trades, education, experience, documents and pre-departure status.
+
+24
+00:03:50,800 --> 00:03:56,474
+HPSEDC interviews every applicant, so the next step for a new application is Schedule interview.
+
+25
+00:03:56,534 --> 00:04:01,013
+Choose the date and time, whether it is in person or virtual, and the venue.
+
+26
+00:04:01,073 --> 00:04:04,119
+For a virtual interview, a meeting link is required.
+
+27
+00:04:04,179 --> 00:04:08,838
+Add the interviewer's name, and link it to a recruitment drive if there is one.
+
+28
+00:04:08,898 --> 00:04:13,736
+Schedule and Notify Candidate saves the interview and tells the candidate at once.
+
+29
+00:04:13,796 --> 00:04:19,710
+The application moves to the Interview stage, where you can see whether the candidate has confirmed.
+
+30
+00:04:41,400 --> 00:04:45,431
+Candidates can confirm, decline, or ask to move their interview.
+
+31
+00:04:45,491 --> 00:04:49,330
+A request shows up as an orange Respond to reschedule button.
+
+32
+00:04:49,390 --> 00:04:54,764
+The dialog shows the current time, the candidate's reason and the time they proposed.
+
+33
+00:04:54,824 --> 00:04:59,686
+You can accept the proposed time, set a different time, or keep the original.
+
+34
+00:04:59,746 --> 00:05:03,650
+Whichever you choose, the candidate is notified automatically.
+
+35
+00:05:09,520 --> 00:05:11,762
+After the interview, click Outcome.
+
+36
+00:05:11,822 --> 00:05:14,591
+Choose Pass and Select, or Fail and Reject.
+
+37
+00:05:14,651 --> 00:05:17,222
+Add a rating out of five and your notes.
+
+38
+00:05:17,282 --> 00:05:20,380
+Notes are required when a candidate is rejected.
+
+39
+00:05:20,440 --> 00:05:29,591
+When you select a candidate, HireStream moves them to Selected, creates their offer, and tells them which documents they now need to upload.
+
+40
+00:05:29,651 --> 00:05:33,670
+Before selection, a candidate is never asked for any document.
+
+41
+00:05:48,160 --> 00:05:51,230
+Open a selected candidate to manage their departure.
+
+42
+00:05:51,290 --> 00:05:59,719
+The Deployment Readiness panel lists what is still missing, such as the passport, police clearance, medical, visa, orientation and insurance.
+
+43
+00:05:59,779 --> 00:06:08,208
+The Pre-Departure Compliance section records their emigration details under the Emigration Act, and every change is written to the audit log.
+
+44
+00:06:08,268 --> 00:06:12,302
+Under Visa and passport assistance, set the visa status with a note.
+
+45
+00:06:12,362 --> 00:06:14,469
+The candidate is notified each time.
+
+46
+00:06:14,529 --> 00:06:19,948
+Under Appointment and travel, set the travel date and upload the signed appointment letter.
+
+47
+00:06:20,008 --> 00:06:24,463
+The candidate can accept the offer only once this letter has been uploaded.
+
+48
+00:06:24,523 --> 00:06:26,329
+Accepting it marks them Placed.
+
+49
+00:06:36,440 --> 00:06:39,602
+HPSEDC's duty of care continues after departure.
+
+50
+00:06:39,662 --> 00:06:45,039
+For every placed worker there are thirty, sixty and ninety day welfare check-ins.
+
+51
+00:06:45,099 --> 00:06:51,282
+Click Record, choose OK, Concerns, No response or Not applicable, add a short note, and save.
+
+52
+00:06:51,342 --> 00:06:55,780
+Missed check-ins appear on the administrator's Welfare SLA monitor.
+
+53
+00:07:12,920 --> 00:07:16,043
+Candidates can message HPSEDC from their dashboard.
+
+54
+00:07:16,103 --> 00:07:20,474
+These messages arrive under Messages, with an unread count in the menu.
+
+55
+00:07:20,534 --> 00:07:23,033
+Open a thread, type a reply, and send it.
+
+56
+00:07:23,093 --> 00:07:26,653
+Formal complaints are handled separately under Grievances.
+
+57
+00:07:26,713 --> 00:07:35,079
+Problems with an application are routed to this team automatically, and each grievance moves from review, to action taken, to resolved.
+
+58
+00:07:57,600 --> 00:08:00,530
+Reports gives the cell its own management view.
+
+59
+00:08:00,590 --> 00:08:11,349
+It shows jobs, applicants, placements and the conversion rate, then pipeline health, operations and service levels, including welfare check-ins due and compliance alerts.
+
+60
+00:08:11,409 --> 00:08:19,940
+At the bottom is the HPSEDC compliance section, with orientation and insurance coverage, the ECR mix and the top destination countries.
+
