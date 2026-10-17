@@ -1371,7 +1371,7 @@
       "education": "Education",
       "educationHint": "Your highest completed qualification.",
       "highest": "Highest qualification",
-      "board": "Board / University",
+      "board": "Board",
       "institution": "School / institution",
       "year": "Year of passing",
       "passed": "I passed / completed this",
@@ -1382,7 +1382,11 @@
       "lastEmployer": "Last employer (optional)",
       "lastEmployerCountry": "Country (optional)",
       "less6": "Six months less",
-      "more6": "Six months more"
+      "more6": "Six months more",
+      "institution2": "University / College",
+      "boardOther": "Other (type it in)",
+      "boardOtherPh": "Type your board's name",
+      "institutionOtherPh": "Type your university or college name"
     },
     "p4": {
       "tab": "Review",

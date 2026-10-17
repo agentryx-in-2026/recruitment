@@ -126,7 +126,21 @@ export interface PickedProfession {
 const LANGS = ["Hindi", "English", "Urdu", "Arabic"];
 const LANG_LEVELS = ["elementary", "intermediate", "professional", "native"] as const;
 const EDU_LEVELS = ["none", "class5", "class8", "class10", "class12", "iti", "diploma", "degree"];
-const BOARDS = ["HPBOSE", "CBSE", "ICSE", "NIOS", "Other State Board"];
+// The board/institution list depends on the qualification. Class 5 to Class 12
+// come from a SCHOOL BOARD; ITI, Diploma and a Degree come from a university or
+// a technical board — offering "HPBOSE / CBSE" for a degree was simply wrong.
+// "Other" reveals a free-text box, because there are far too many universities
+// to enumerate. (Tester feedback, 2026-07-20.)
+const SCHOOL_LEVELS = ["class5", "class8", "class10", "class12"];
+const SCHOOL_BOARDS = ["HPBOSE", "CBSE", "ICSE", "NIOS", "Other State Board", "Other"];
+const HIGHER_INSTITUTIONS = [
+  "Himachal Pradesh University (HPU), Shimla",
+  "Himachal Pradesh Technical University (HPTU), Hamirpur",
+  "CSK HP Agricultural University, Palampur",
+  "HP Takniki Shiksha Board (HPTSB) — ITI / Diploma",
+  "Other",
+];
+const OTHER_SENTINEL = "__other__";
 
 export default function RegisterPage() {
   const { t, i18n } = useTranslation();
@@ -662,7 +676,7 @@ export default function RegisterPage() {
         type: ["iti", "diploma"].includes(eduLevel) ? "diploma" : eduLevel === "degree" ? "university" : "school",
         degree: t(`reg.edu.${eduLevel}`, { lng: "en" }),
         institution: eduInstitution.trim() || "—",
-        board: eduBoard || undefined,
+        board: eduBoard.trim() || undefined,
         year: eduYear || undefined,
         isPassed: eduPassed,
       };
@@ -1188,6 +1202,14 @@ function QualificationsPage({
   const patch = (k: string, p: Partial<PickedProfession>) =>
     setPicked(picked.map((x: PickedProfession) => x.professionKey === k ? { ...x, ...p } : x));
 
+  // School boards for Class 5–12; universities / technical boards for
+  // ITI / Diploma / Degree. A stored value that is in neither list is a
+  // free-text "Other" entry, so the field re-opens in that mode on return.
+  const isSchool = SCHOOL_LEVELS.includes(eduLevel);
+  const boardOptions = isSchool ? SCHOOL_BOARDS : HIGHER_INSTITUTIONS;
+  const boardIsCustom = Boolean(eduBoard) && !boardOptions.includes(eduBoard);
+  const boardLabel = isSchool ? t("reg.p3.board") : t("reg.p3.institution2");
+
   return (
     <>
       <Section n={1} icon={GraduationCap} title={t("reg.p3.education")} onAutofill={testMode ? onFillEducation : undefined} autofillLabel={t("reg.test.fillSection")} hint={t("reg.p3.educationHint")}>
@@ -1203,14 +1225,26 @@ function QualificationsPage({
             <>
               {on("eduBoard") && (
               <div>
-                {/* UAT-05 item 17: the HP board is HPBOSE — Himachal Pradesh Board of
-                    School Education is HPBOSE; the old placeholder had it wrong
-                    in three places. */}
-                <Label className="text-sm font-medium text-slate-700">{t("reg.p3.board")}</Label>
-                <Select value={eduBoard} onValueChange={setEduBoard}>
+                <Label className="text-sm font-medium text-slate-700">{boardLabel}</Label>
+                <Select
+                  value={boardIsCustom ? OTHER_SENTINEL : eduBoard}
+                  onValueChange={(v) => setEduBoard(v === OTHER_SENTINEL ? " " : v)}>
                   <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{BOARDS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {boardOptions.map((b) => (
+                      <SelectItem key={b} value={b === "Other" ? OTHER_SENTINEL : b}>
+                        {b === "Other" ? t("reg.p3.boardOther") : b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
+                {/* "Other" -> type it in. eduBoard is briefly " " (a marker the
+                    Select reads as Other) until they type the real name. */}
+                {(boardIsCustom || eduBoard === " ") && (
+                  <Input className="h-11 mt-2" maxLength={120}
+                    placeholder={isSchool ? t("reg.p3.boardOtherPh") : t("reg.p3.institutionOtherPh")}
+                    value={eduBoard.trim()} onChange={(e) => setEduBoard(e.target.value)} autoFocus />
+                )}
               </div>
               )}
               {on("eduInstitution") && (
