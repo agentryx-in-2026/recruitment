@@ -233,3 +233,47 @@ pmRouter.delete("/documents/:id", requireAuth, async (req, res) => {
   await db.insert(auditLog).values({ reviewerId: admin.id, action: "pm.delete", meta: { id: d.id, title: d.title } });
   res.json({ ok: true });
 });
+
+// GET /api/pm/overview — project status for the Product management page (admin + delivery).
+// Built from live data only: builds, UAT progress, the defect log, findings,
+// questions, automated runs and recent releases (git history of each app).
+pmRouter.get("/overview", requireAuth, async (req, res) => {
+  const r = await me(req);
+  if (!r || !ADMIN_ROLES.has(r.role)) return res.status(403).json({ error: "Admins only" });
+  const { pool } = await import("../config/db");
+  const { execFileSync } = await import("child_process");
+  const ROOT = path.resolve(process.cwd(), "..");
+  const APP_DIR: Record<string, string> = { "hirestream-lite": "hirestream-lite", "hirestream-mobile-v1.0": "hirestream-mobile" };
+
+  const projects = (await pool.query("select id, slug, name, build_ref, contractor, client from projects where visible_to_non_admin order by sort_order")).rows;
+  const out = [];
+  for (const p of projects) {
+    const cases = (await pool.query(
+      `select count(*)::int total,
+              count(*) filter (where s.decision = 'accepted')::int passed,
+              count(*) filter (where s.decision = 'rejected')::int failed,
+              count(*) filter (where s.decision = 'waived')::int waived,
+              count(*) filter (where r.status = 'not_delivered')::int not_built
+         from requirements r left join signoffs s on s.requirement_id = r.id and s.level = 'agentryx'
+        where r.project_id = $1`, [p.id])).rows[0];
+    const defects = (await pool.query(
+      `select short_id, severity, status, description, resolution, updated_at from issues where project_id = $1
+        order by (status in ('open','in_progress')) desc, case severity when 'blocker' then 0 when 'major' then 1 else 2 end, short_id`, [p.id])).rows;
+    const findings = (await pool.query(
+      `select count(*) filter (where status not in ('shipped','declined','duplicate','closed'))::int open, count(*)::int total from feedback_items where project_id = $1`, [p.id])).rows[0];
+    const dir = APP_DIR[p.slug];
+    let version: string | null = null, releases: { hash: string; date: string; subject: string }[] = [];
+    if (dir) {
+      try { version = JSON.parse(fs.readFileSync(path.join(ROOT, dir, "package.json"), "utf8")).version ?? null; } catch { /* */ }
+      try {
+        releases = execFileSync("git", ["-C", ROOT, "log", "-8", "--date=iso-strict", "--format=%h%x09%ad%x09%s", "--", dir], { timeout: 5000 })
+          .toString().trim().split("\n").filter(Boolean).map((l) => { const [hash, date, subject] = l.split("\t"); return { hash, date, subject }; });
+      } catch { /* */ }
+    }
+    out.push({ ...p, version, cases, defects, findings, releases });
+  }
+  const questions = (await pool.query("select count(*) filter (where status = 'open')::int waiting, count(*)::int total from ask_questions")).rows[0];
+  const run = (await pool.query("select scope, status, passed, failed, started_at, finished_at from auto_runs order by started_at desc limit 1")).rows[0] ?? null;
+  const docs = (await pool.query("select category, count(*)::int n, max(updated_at) as updated from pm_documents group by 1")).rows;
+  res.json({ projects: out, questions, lastRun: run, docs });
+});

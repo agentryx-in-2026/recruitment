@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Shell } from "../components/Shell";
+import { PmStatus } from "../components/PmStatus";
+import { useSearch, useLocation } from "wouter";
 import { useRequireAuth } from "../lib/useRequireAuth";
 import { FileText, FileVideo, FileImage, FileCode, File as FileIcon, ExternalLink, Upload, Trash2, Lock, Users, Globe } from "lucide-react";
 
@@ -35,6 +37,8 @@ async function call(url: string, init?: RequestInit) {
 
 export function ProductManagement() {
   const { reviewer, loading } = useRequireAuth();
+  const tabParam = new URLSearchParams(useSearch()).get("tab");
+  const [, navigate] = useLocation();
   const [data, setData] = useState<{ isAdmin: boolean; categories: string[]; documents: Doc[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,18 +73,29 @@ export function ProductManagement() {
     finally { setBusy(false); }
   };
 
+  const tab = tabParam ?? (data?.isAdmin ? "status" : "documents");
   if (loading || !data) return <Shell title="Documents"><div className="p-10 text-slate-400">{error ?? "Loading…"}</div></Shell>;
 
   return (
-    <Shell title="Documents">
+    <Shell title={data.isAdmin ? "Product management" : "Documents"}>
       <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-start gap-3">
           <div>
-            <h1 className="font-serif text-[26px] font-bold text-slate-900">Documents</h1>
-            <p className="text-slate-600 mt-1">Contract, requirements, design and training documents for HireStream Lite and the mobile app.
-              {data.isAdmin ? " You decide who can open each document." : " Documents shared with you by the project admin."}</p>
+            <h1 className="font-serif text-[26px] font-bold text-slate-900">{data.isAdmin ? "Product management" : "Documents"}</h1>
+            <p className="text-slate-600 mt-1">{data.isAdmin
+              ? "Where the project stands — builds, UAT progress, defects and releases — and the library of contract, requirements, architecture, plans and training documents."
+              : "Contract, requirements, design and training documents for HireStream Lite and the mobile app. Documents shared with you by the project admin."}</p>
           </div>
         </div>
+        {data.isAdmin && (
+          <div className="mt-5 flex gap-1 border-b border-slate-200">
+            {([["status", "Status"], ["documents", "Documents"]] as const).map(([k, l]) => (
+              <button key={k} onClick={() => navigate(`/product?tab=${k}`)}
+                className={`px-4 py-2 text-sm -mb-px border-b-2 ${tab === k ? "border-[#14213D] text-slate-900 font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"}`}>{l}</button>
+            ))}
+          </div>
+        )}
+        {data.isAdmin && tab === "status" ? <div className="mt-6"><PmStatus onDocs={() => navigate("/product?tab=documents")} /></div> : (<>
 
         {error && <div className="mt-6 rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">{error}</div>}
 
@@ -167,6 +182,7 @@ export function ProductManagement() {
             </button>
           </form>
         )}
+        </>)}
       </div>
     </Shell>
   );

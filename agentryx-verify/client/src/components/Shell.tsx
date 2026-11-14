@@ -189,13 +189,14 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
       </Group>
       <Group title="Resources">
         <NavLink href="/resources" label="Guides & videos" />
-        <NavLink href="/product" label="Documents" />
+        <NavLink href="/product?tab=documents" label="Documents" />
       </Group>
       {data.me.isAdmin && (
         <>
           <div className={`mt-5 mx-2 pt-3 border-t ${T.rule} text-[11px] font-bold tracking-[0.14em] uppercase ${T.group}`}>Admin</div>
           <Group title="Manage">
             <NavLink href="/questions" label="Questions inbox" />
+            <NavLink href="/product?tab=status" label="Product management" />
             <NavLink href="/projects" label="Projects" />
             <NavLink href="/admin/roadmap" label="Verify roadmap" />
             <NavLink href="/settings" label="Settings" />
