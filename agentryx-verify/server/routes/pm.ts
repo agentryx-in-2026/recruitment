@@ -175,19 +175,24 @@ pmRouter.get("/documents/:id/file", authOrLogin, async (req, res) => {
   const r = await me(req);
   const [d] = await db.select().from(pmDocuments).where(eq(pmDocuments.id, req.params.id));
   if (!d || !canSee(r?.role, d.audience)) return res.status(404).type("text/plain").send("Not found");
+  // Opened directly as a page (old links, Ask sources): show it inside the portal's document viewer.
+  // The viewer's own frame, "Open in new tab" (?raw=1) and downloads get the file itself.
+  if (req.get("sec-fetch-dest") === "document" && !req.query.raw) return res.redirect(`/docs/${d.id}`);
   const full = path.join(PM_DIR, path.basename(d.fileName));
   if (!fs.existsSync(full)) return res.status(404).type("text/plain").send("File missing");
   const safeName = d.originalName.replace(/[^\w.\- ()]+/g, "_");
+  // May be shown in Verify's own viewer frame, never inside another site.
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  const pageCsp = "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src data: 'self'; frame-ancestors 'self'";
   if (d.mimeType === "text/markdown") {
+    res.setHeader("Content-Security-Policy", pageCsp);
     return res.type("html").send(MD_PAGE(d.title, mdToHtml(fs.readFileSync(full, "utf8"))));
   }
-  if (d.mimeType === "text/html") {
-    // Self-contained report pages may pull Google Fonts; allow just that.
-    res.setHeader("Content-Security-Policy",
-      "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src data: 'self'; frame-ancestors 'none'");
-  }
+  // Self-contained report pages may pull Google Fonts; allow just that.
+  res.setHeader("Content-Security-Policy", d.mimeType === "text/html" ? pageCsp : "default-src 'self'; frame-ancestors 'self'");
   const inlineTypes = ["application/pdf", "text/html", "text/plain", "image/png", "image/jpeg", "video/mp4"];
-  res.setHeader("Content-Disposition", `${inlineTypes.includes(d.mimeType) ? "inline" : "attachment"}; filename="${safeName}"`);
+  const asDownload = req.query.download === "1" || !inlineTypes.includes(d.mimeType);
+  res.setHeader("Content-Disposition", `${asDownload ? "attachment" : "inline"}; filename="${safeName}"`);
   res.type(d.mimeType);
   res.sendFile(full); // supports Range, so videos can seek
 });

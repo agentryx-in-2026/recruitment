@@ -14,6 +14,7 @@ import { Questions } from "./pages/Questions";
 import { Settings } from "./pages/Settings";
 import { TeamQuestions } from "./pages/TeamQuestions";
 import { Findings } from "./pages/Findings";
+import { DocViewer } from "./pages/DocViewer";
 
 export function App() {
   return (
@@ -28,6 +29,7 @@ export function App() {
       <Route path="/team-questions" component={TeamQuestions} />
       <Route path="/findings/:id" component={Findings} />
       <Route path="/findings" component={Findings} />
+      <Route path="/docs/:id" component={DocViewer} />
       <Route path="/login" component={Login} />
       <Route path="/projects" component={Home} />
       <Route path="/admin/roadmap" component={Roadmap} />

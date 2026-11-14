@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { docHref } from "../lib/docs";
 import { X, Send, Search, ArrowLeft, BookOpen, Film, FileText, ListChecks } from "lucide-react";
 
 /**
@@ -50,7 +51,7 @@ function SourceLink({ s }: { s: Source }) {
     </span>
   );
   return s.url
-    ? <a href={s.url} target={s.url.startsWith("/cases/") ? undefined : "_blank"} rel="noreferrer" className="block rounded-md border border-slate-200 px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50/40">{inner}</a>
+    ? <a href={docHref(s.url)} target={s.url.startsWith("/") ? undefined : "_blank"} rel="noreferrer" className="block rounded-md border border-slate-200 px-3 py-2 hover:border-indigo-300 hover:bg-indigo-50/40">{inner}</a>
     : <div className="rounded-md border border-slate-200 px-3 py-2">{inner}</div>;
 }
 

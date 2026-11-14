@@ -3,6 +3,7 @@ import { Shell } from "../components/Shell";
 import { PmStatus } from "../components/PmStatus";
 import { useSearch, useLocation } from "wouter";
 import { useRequireAuth } from "../lib/useRequireAuth";
+import { docHref } from "../lib/docs";
 import { FileText, FileVideo, FileImage, FileCode, File as FileIcon, ExternalLink, Upload, Trash2, Lock, Users, Globe } from "lucide-react";
 
 /**
@@ -124,7 +125,7 @@ export function ProductManagement() {
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <k.Icon className="w-5 h-5 text-agentryx-600 shrink-0 mt-0.5" />
                         <div className="min-w-0">
-                          <a href={`/api/pm/documents/${d.id}/file`} target="_blank" rel="noreferrer" className="font-semibold text-slate-900 hover:text-agentryx-700 hover:underline">{d.title}</a>
+                          <a href={`/docs/${d.id}`} className="font-semibold text-slate-900 hover:text-agentryx-700 hover:underline">{d.title}</a>
                           {d.description && <p className="text-sm text-slate-600 mt-0.5">{d.description}</p>}
                           <p className="text-xs text-slate-400 mt-1">{k.label} · {size(d.sizeBytes)} · updated {new Date(d.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
                         </div>
@@ -140,9 +141,9 @@ export function ProductManagement() {
                             <DeleteButton onConfirm={(ok) => remove(d, ok)} />
                           </>
                         ) : null}
-                        <a href={`/api/pm/documents/${d.id}/file`} target="_blank" rel="noreferrer"
+                        <a href={`/docs/${d.id}`}
                           className="inline-flex items-center gap-1.5 text-xs font-medium text-agentryx-700 border border-agentryx-100 hover:bg-agentryx-50 rounded-md px-3 py-1.5">
-                          Open <ExternalLink className="w-3.5 h-3.5" />
+                          Open
                         </a>
                       </div>
                     </div>

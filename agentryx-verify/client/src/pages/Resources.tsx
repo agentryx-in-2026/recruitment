@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { BookOpen, Film, FileText, ExternalLink, PlayCircle } from "lucide-react";
+import { docHref } from "../lib/docs";
 import { Shell } from "../components/Shell";
 
 /** Guides & videos — the training material, with every video chapter one click away. */
@@ -27,7 +28,7 @@ function Body() {
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2"><BookOpen className="w-4 h-4" /> User guides</h2>
         <div className="grid sm:grid-cols-3 gap-4">
           {guides.map((g) => (
-            <a key={g.id} href={`/api/pm/documents/${g.id}/file`} target="_blank" rel="noreferrer" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-400">
+            <a key={g.id} href={`/docs/${g.id}`} className="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-400">
               <div className="font-semibold text-slate-900">{g.title}</div>
               {g.description && <p className="text-sm text-slate-600 mt-1">{g.description}</p>}
               <div className="text-xs text-indigo-700 mt-3 inline-flex items-center gap-1">Open PDF <ExternalLink className="w-3 h-3" /></div>
@@ -46,7 +47,7 @@ function Body() {
                 {v.chapters.map((c) => (
                   <li key={c.heading}>
                     {c.url
-                      ? <a href={c.url} target="_blank" rel="noreferrer" className="flex items-start gap-2 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50"><PlayCircle className="w-4 h-4 mt-0.5 shrink-0 text-indigo-600" />{c.heading.replace(/^Chapter \d+: /, "")}</a>
+                      ? <a href={docHref(c.url)} className="flex items-start gap-2 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50"><PlayCircle className="w-4 h-4 mt-0.5 shrink-0 text-indigo-600" />{c.heading.replace(/^Chapter \d+: /, "")}</a>
                       : <span className="block px-5 py-2 text-sm text-slate-500">{c.heading}</span>}
                   </li>
                 ))}
@@ -61,7 +62,7 @@ function Body() {
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2"><FileText className="w-4 h-4" /> Reference documents</h2>
           <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
             {other.map((d) => (
-              <a key={d.id} href={`/api/pm/documents/${d.id}/file`} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50">
+              <a key={d.id} href={`/docs/${d.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50">
                 <span><span className="block text-sm font-medium text-slate-900">{d.title}</span><span className="block text-xs text-slate-500">{d.category}</span></span>
                 <ExternalLink className="w-4 h-4 text-slate-400 shrink-0" />
               </a>

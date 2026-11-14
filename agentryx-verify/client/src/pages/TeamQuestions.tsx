@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { Search, Send, BookOpen, Film, FileText, ListChecks } from "lucide-react";
+import { docHref } from "../lib/docs";
 import { Shell, Page, useWorkspace } from "../components/Shell";
 
 /**
@@ -110,7 +111,7 @@ function Body() {
                   {current.sources.slice(0, 6).map((s) => {
                     const I = ICON[s.type] ?? FileText;
                     const inner = <span className="flex items-start gap-2"><I className="w-4 h-4 mt-0.5 shrink-0 text-indigo-600" /><span><span className="block text-xs text-slate-500">[{s.n}] {TYPE_LABEL[s.type] ?? s.type} · {s.title}</span><span className="block text-sm text-slate-800">{s.heading}</span></span></span>;
-                    return s.url ? <a key={s.n} href={s.url} target={s.url.startsWith("/") ? undefined : "_blank"} rel="noreferrer" className="block rounded-md border border-slate-200 px-3 py-2 hover:border-slate-400">{inner}</a> : <div key={s.n} className="rounded-md border border-slate-200 px-3 py-2">{inner}</div>;
+                    return s.url ? <a key={s.n} href={docHref(s.url)} target={s.url.startsWith("/") ? undefined : "_blank"} rel="noreferrer" className="block rounded-md border border-slate-200 px-3 py-2 hover:border-slate-400">{inner}</a> : <div key={s.n} className="rounded-md border border-slate-200 px-3 py-2">{inner}</div>;
                   })}
                 </div>
               )}
