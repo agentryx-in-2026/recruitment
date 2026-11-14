@@ -177,7 +177,13 @@ pmRouter.get("/documents/:id/file", authOrLogin, async (req, res) => {
   if (!d || !canSee(r?.role, d.audience)) return res.status(404).type("text/plain").send("Not found");
   // Opened directly as a page (old links, Ask sources): show it inside the portal's document viewer.
   // The viewer's own frame, "Open in new tab" (?raw=1) and downloads get the file itself.
-  if (req.get("sec-fetch-dest") === "document" && !req.query.raw) return res.redirect(`/docs/${d.id}`);
+  // Only ?raw=1 (the viewer frame, its video player, Open in new tab, Download) gets the bare file.
+  // Any other visit by a browser — however the link was opened — lands in the viewer.
+  if (!req.query.raw) {
+    if (req.accepts(["html", "json"]) !== "json") return res.redirect(302, `/docs/${d.id}`);
+    return res.status(400).json({ error: "Use ?raw=1 for the file" });
+  }
+  res.setHeader("Cache-Control", "private, no-store");
   const full = path.join(PM_DIR, path.basename(d.fileName));
   if (!fs.existsSync(full)) return res.status(404).type("text/plain").send("File missing");
   const safeName = d.originalName.replace(/[^\w.\- ()]+/g, "_");
