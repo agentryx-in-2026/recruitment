@@ -59,7 +59,7 @@ function Answer({ text }: { text: string }) {
   return (
     <div className="text-sm text-slate-800 leading-relaxed space-y-1.5">
       {text.split(/\n+/).map((line, i) => (
-        <p key={i} dangerouslySetInnerHTML={{ __html: line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>") }} />
+        <p key={i} dangerouslySetInnerHTML={{ __html: line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>") }} />
       ))}
     </div>
   );
@@ -175,6 +175,14 @@ export function AskPanel({ ai, isAdmin, contextRef, command, onClose, clearConte
               </div>
             )}
             {current.mine && current.status !== "closed" && current.answer && <button onClick={() => close(current)} className="text-sm font-medium text-emerald-700 hover:underline">This answered it — close</button>}
+            {ai && current.status === "open" && (current.mine || isAdmin) && (
+              <button disabled={busy} onClick={async () => {
+                setBusy(true); setError(null);
+                try { const r = await fetch(`/api/ask/${current.id}/retry`, { method: "POST", credentials: "include" }); const j = await r.json(); if (!r.ok) throw new Error(j.error); setCurrent({ ...current, ...j }); load(); }
+                catch (e: any) { setError(e.message); } finally { setBusy(false); }
+              }} className="block text-sm font-medium text-indigo-700 hover:underline disabled:opacity-50">{busy ? "Looking it up…" : "Try again with Ask Agentryx"}</button>
+            )}
+            {error && <div className="text-xs text-rose-700">{error}</div>}
           </div>
         </div>
       )}
@@ -196,7 +204,7 @@ export function AskPanel({ ai, isAdmin, contextRef, command, onClose, clearConte
           <div className="mt-3 flex justify-end">
             <button onClick={ask} disabled={busy || text.trim().length < 3}
               className="inline-flex items-center gap-2 rounded-md bg-[#14213D] text-white text-sm font-semibold px-4 py-2 disabled:opacity-50">
-              <Send className="w-4 h-4" /> {busy ? "Sending…" : "Ask"}
+              <Send className="w-4 h-4" /> {busy ? "Looking it up…" : "Ask"}
             </button>
           </div>
         </div>

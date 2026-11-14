@@ -67,7 +67,7 @@ function Body() {
           <textarea id="tq-new" rows={2} value={text} onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } }}
             placeholder="e.g. Which account do I use to schedule an interview?" className="flex-1 resize-none rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <button onClick={ask} disabled={busy || text.trim().length < 3} className="self-start inline-flex items-center gap-2 rounded-md bg-[#14213D] text-white text-sm font-semibold px-4 py-2 disabled:opacity-50"><Send className="w-4 h-4" /> {busy ? "Sending…" : "Ask"}</button>
+          <button onClick={ask} disabled={busy || text.trim().length < 3} className="self-start inline-flex items-center gap-2 rounded-md bg-[#14213D] text-white text-sm font-semibold px-4 py-2 disabled:opacity-50"><Send className="w-4 h-4" /> {busy ? "Looking it up…" : "Ask"}</button>
         </div>
         {err && <p className="text-sm text-rose-700 mt-2">{err}</p>}
         {!data!.ai && <p className="text-xs text-slate-500 mt-2">Written answers are switched off just now: you get the matching guide passages at once, and the team replies here.</p>}
@@ -101,7 +101,7 @@ function Body() {
               <div className="text-xs text-slate-500 mt-1">Asked by {current.mine ? "you" : current.askedBy ?? "a tester"} · {when(current.createdAt)}{current.contextRef ? <> · about case <b>{current.contextRef}</b></> : null}</div>
               <div className="mt-4">
                 {current.answer
-                  ? <div className="rounded-md border border-emerald-200 bg-emerald-50/60 p-4"><div className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{current.answer}</div><div className="text-[11px] text-slate-500 mt-2">Answered by {current.answeredBy ?? "the team"}{current.answeredAt ? ` · ${when(current.answeredAt)}` : ""}</div></div>
+                  ? <div className="rounded-md border border-emerald-200 bg-emerald-50/60 p-4"><div className="text-sm text-slate-800 leading-relaxed space-y-1.5">{current.answer.split(/\n+/).map((line, i) => <p key={i} dangerouslySetInnerHTML={{ __html: line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>") }} />)}</div><div className="text-[11px] text-slate-500 mt-2">Answered by {current.answeredBy ?? "the team"}{current.answeredAt ? ` · ${when(current.answeredAt)}` : ""}</div></div>
                   : <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700">Waiting for an answer from the Agentryx team.{current.sources?.length ? " Meanwhile, these passages look relevant:" : ""}</div>}
               </div>
               {current.sources?.length > 0 && (
@@ -115,6 +115,13 @@ function Body() {
                 </div>
               )}
               {current.mine && current.status === "answered" && <button onClick={() => close(current)} className="mt-4 text-sm font-medium text-emerald-700 hover:underline">This answered it — close</button>}
+              {data!.ai && current.status === "open" && (current.mine || data!.me.isAdmin) && (
+                <button disabled={busy} onClick={async () => {
+                  setBusy(true); setErr(null);
+                  try { const r = await fetch(`/api/ask/${current.id}/retry`, { method: "POST", credentials: "include" }); const j = await r.json(); if (!r.ok) throw new Error(j.error); await load(); }
+                  catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+                }} className="mt-4 block text-sm font-medium text-indigo-700 hover:underline disabled:opacity-50">{busy ? "Looking it up…" : "Try again with Ask Agentryx"}</button>
+              )}
             </div>
           )}
         </div>

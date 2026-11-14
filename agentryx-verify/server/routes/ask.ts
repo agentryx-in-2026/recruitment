@@ -7,7 +7,8 @@ import { reviewers, auditLog } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
 import { anthropicKey, getSetting } from "../services/settings";
-import { searchKb, rebuildKnowledgeBase, type KbHit } from "../services/kb";
+import { answerAgent } from "../services/askAgent";
+import { searchKb, rebuildKnowledgeBase } from "../services/kb";
 
 /**
  * Ask Agentryx — testers ask how to do something; the answer comes from the
@@ -33,32 +34,6 @@ async function me(req: Request) {
   return r ?? null;
 }
 
-const SYSTEM = `You are Ask Agentryx, the testing assistant for HireStream Lite (the HPSEDC overseas placement portal) and its mobile app.
-Testers ask how to run a test case, where a feature is, or what the expected behaviour is.
-
-Answer only from the numbered sources provided with each question. Cite them inline as [1], [2]. If the sources do not cover the question, say so plainly in one sentence and suggest the tester send it to the admin; do not guess.
-
-Keep answers short and practical: the steps to follow, the test account to use, and what should happen. Use a numbered list for steps. Mention the matching test case ID (e.g. L2.6) and, when a video chapter covers it, point to that chapter.`;
-
-function sourcesBlock(hits: KbHit[]) {
-  return hits.map((h, i) => `[${i + 1}] (${h.source_type}: ${h.source_title} — ${h.heading})\n${h.body}`).join("\n\n");
-}
-
-async function answerWithClaude(question: string, hits: KbHit[]): Promise<string | null> {
-  const response: any = await (ai().beta.messages.create as any)({
-    model: model(),
-    max_tokens: 16000,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    output_config: { effort: getSetting("ai.effort") },
-    system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
-    messages: [{ role: "user", content: `Sources:\n\n${sourcesBlock(hits)}\n\nQuestion: ${question}` }],
-  });
-  if (response.stop_reason === "refusal") return null;
-  const text = (response.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").trim();
-  return text || null;
-}
-
 const publicQ = (q: any) => ({
   id: q.id, question: q.question, answer: q.answer, status: q.status, contextRef: q.context_ref,
   answeredBy: q.answered_by === "ai" ? "Ask Agentryx" : q.answered_by_name ?? null,
@@ -74,7 +49,51 @@ askRouter.get("/search", requireAuth, async (req, res) => {
   const r = await me(req);
   const q = String(req.query.q || "").trim().slice(0, 300);
   if (!q) return res.json([]);
-  res.json(await searchKb(q, !!r && INTERNAL.has(r.role), 10));
+  res.json(await searchKb(q, !!r && INTERNAL.has(r.role), 10, !!r && ADMIN.has(r.role)));
+});
+
+type Asker = { id: string; role: string; name: string };
+/** Ask the agent (or, with AI off, return the best passages). Shared by ask and retry. */
+async function answerQuestion(question: string, contextRef: string | null, r: Asker) {
+  const internal = INTERNAL.has(r.role), admin = ADMIN.has(r.role);
+  let sources: any[] = [];
+  let answer: string | null = null, status = "open", answeredBy: string | null = null, aiError: string | null = null;
+  if (aiEnabled()) {
+    // Claude looks things up itself (knowledge base, testing data, live portal) — see services/askAgent.ts.
+    try {
+      const out = await answerAgent(ai(), { model: model(), effort: getSetting("ai.effort"), question, contextRef, internal, admin, asker: r.name });
+      sources = out.sources;
+      if (out.answer) {
+        const needsTeam = out.answer.startsWith("[NEEDS_TEAM]");
+        answer = out.answer.replace(/^\[NEEDS_TEAM\]\s*/, "");
+        answeredBy = "ai";
+        status = needsTeam ? "open" : "answered";
+      }
+    } catch (e: any) {
+      aiError = e instanceof Anthropic.APIError ? `AI unavailable (${e.status})` : "AI unavailable";
+      console.error("[ask] agent failed", e?.message);
+    }
+  }
+  if (!answer) {
+    const hits = await searchKb(contextRef ? `${contextRef} ${question}` : question, internal, 8, admin);
+    sources = hits.map((h, i) => ({ n: i + 1, type: h.source_type, title: h.source_title, heading: h.heading, url: h.url, excerpt: h.body.slice(0, 280) }));
+  }
+  return { sources, answer, status, answeredBy, aiError };
+}
+
+// POST /api/ask/:id/retry — run Ask Agentryx again on a waiting question (the asker or an admin)
+askRouter.post("/:id/retry", requireAuth, async (req, res) => {
+  const r = await me(req);
+  if (!r) return res.status(401).json({ error: "Not authenticated" });
+  const q = (await pool.query("select a.*, rr.role as asker_role, rr.name as asker_name from ask_questions a join reviewers rr on rr.id = a.reviewer_id where a.id = $1", [req.params.id])).rows[0];
+  if (!q) return res.status(404).json({ error: "Not found" });
+  if (q.reviewer_id !== r.id && !ADMIN.has(r.role)) return res.status(403).json({ error: "Not your question" });
+  if (!aiEnabled()) return res.status(400).json({ error: "AI answers are switched off in Settings" });
+  const out = await answerQuestion(q.question, q.context_ref, { id: q.reviewer_id, role: q.asker_role, name: q.asker_name });
+  if (!out.answer) return res.status(502).json({ error: out.aiError ?? "No answer" });
+  await pool.query("update ask_questions set answer=$1, answered_by=$2, status=$3, sources=$4, answered_at=now() where id=$5",
+    [out.answer, out.answeredBy, out.status, JSON.stringify(out.sources), q.id]);
+  res.json({ id: q.id, question: q.question, answer: out.answer, status: out.status, sources: out.sources, answeredBy: "Ask Agentryx" });
 });
 
 // POST /api/ask { question, contextRef? } — ask; AI answers immediately when configured
@@ -84,18 +103,7 @@ askRouter.post("/", requireAuth, async (req, res) => {
   const question = String(req.body?.question || "").trim().slice(0, 2000);
   if (question.length < 3) return res.status(400).json({ error: "Type a question first" });
   const contextRef = req.body?.contextRef ? String(req.body.contextRef).slice(0, 40) : null;
-  const hits = await searchKb(contextRef ? `${contextRef} ${question}` : question, INTERNAL.has(r.role), 8);
-  const sources = hits.map((h, i) => ({ n: i + 1, type: h.source_type, title: h.source_title, heading: h.heading, url: h.url, excerpt: h.body.slice(0, 280) }));
-
-  let answer: string | null = null, status = "open", answeredBy: string | null = null, aiError: string | null = null;
-  if (aiEnabled() && hits.length) {
-    try {
-      answer = await answerWithClaude(question, hits);
-      if (answer) { status = "answered"; answeredBy = "ai"; }
-    } catch (e: any) {
-      aiError = e instanceof Anthropic.APIError ? `AI unavailable (${e.status})` : "AI unavailable";
-    }
-  }
+  const { sources, answer, status, answeredBy, aiError } = await answerQuestion(question, contextRef, r);
   const id = nanoid();
   await pool.query(
     `insert into ask_questions (id, reviewer_id, question, context_ref, answer, answered_by, status, sources, answered_at)

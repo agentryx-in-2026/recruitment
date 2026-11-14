@@ -1,4 +1,6 @@
 import fs from "fs";
+import path from "path";
+import { execFileSync } from "child_process";
 import { pool } from "../config/db";
 
 /**
@@ -9,6 +11,8 @@ import { pool } from "../config/db";
  *   frs    → the contracted FRS, by heading                (link: FRS PDF)
  *   plan   → FRS coverage map rows, demo steps, fix list   (internal only)
  *   case   → every visible test case: steps + expected     (link: the case)
+ *   doc    → other Documents-library files (SRS, architecture, plans), by
+ *            heading or page, with the document's own audience (admin/internal/all)
  * Rebuild after guides, videos or cases change: scripts/build-kb.ts or the
  * admin "Rebuild knowledge" action.
  */
@@ -119,6 +123,42 @@ export async function rebuildKnowledgeBase(): Promise<Record<string, number>> {
     }
   }
 
+  // Documents library — anything not already covered above (guides, FRS, plan, videos, images)
+  const covered = new Set(["Applicant User Guide", "HPSEDC as Super Agency — User Guide", "Admin User Guide", "Functional Requirements Specification (FRS)", "Lite FRS coverage & phase-1 demo plan"]);
+  const docs = await pool.query("select id, title, mime_type, audience, file_name from pm_documents order by category, title");
+  for (const d of docs.rows) {
+    if (covered.has(d.title) || /^(video|image)\//.test(d.mime_type)) continue;
+    const file = path.join(process.cwd(), "uploads", "verify", "pm", path.basename(d.file_name));
+    if (!fs.existsSync(file)) continue;
+    let text = "";
+    try {
+      if (d.mime_type === "application/pdf") text = execFileSync("pdftotext", ["-layout", file, "-"], { maxBuffer: 64 * 1024 * 1024 }).toString();
+      else if (d.mime_type === "text/html") text = strip(fs.readFileSync(file, "utf8"));
+      else text = fs.readFileSync(file, "utf8");
+    } catch { continue; }
+    const url = `/api/pm/documents/${d.id}/file`;
+    if (d.mime_type === "application/pdf") {
+      // PDFs: one passage per page (pdftotext separates pages with form feeds).
+      text.split("\f").forEach((pg, i) => {
+        const body = pg.replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
+        if (body.length >= 80) chunks.push({ source_type: "doc", source_title: d.title, heading: `Page ${i + 1}: ${body.split("\n").find((l) => l.trim().length > 12 && !/htistelecom|^\d+$/i.test(l))?.trim().slice(0, 90) ?? ""}`, body: body.slice(0, 3000), url: `${url}#page=${i + 1}`, audience: d.audience });
+      });
+      continue;
+    }
+    // Text documents: split at markdown or numbered headings; long sections in ~2,500-character windows.
+    const parts = text.split(/\n(?=#{1,3} |\d+(?:\.\d+)*\.?\s+[A-Z][^\n]{3,90}\n)/);
+    for (const part of parts) {
+      const lines = part.trim().split("\n");
+      const heading = lines[0].replace(/^#+\s*/, "").trim().slice(0, 120);
+      const body = lines.slice(1).join("\n").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
+      for (let i = 0; i < body.length; i += 2500) {
+        const piece = body.slice(i, i + 2500);
+        if (piece.length < 60) continue;
+        chunks.push({ source_type: "doc", source_title: d.title, heading: i ? `${heading} (cont.)` : heading, body: piece, url, audience: d.audience });
+      }
+    }
+  }
+
   // Test cases of the projects testers can see
   const cases = await pool.query(`
     select r.id, r.item_ref, r.section_title, r.description, r.test_steps, r.expected_result, r.notes, p.name as project
@@ -150,8 +190,8 @@ export async function rebuildKnowledgeBase(): Promise<Record<string, number>> {
 export type KbHit = { id: number; source_type: string; source_title: string; heading: string; body: string; url: string | null };
 
 /** Full-text retrieval, filtered to what the reader may see. Falls back to OR-matching. */
-export async function searchKb(q: string, internal: boolean, limit = 8): Promise<KbHit[]> {
-  const aud = internal ? ["all", "internal"] : ["all"];
+export async function searchKb(q: string, internal: boolean, limit = 8, admin = false): Promise<KbHit[]> {
+  const aud = admin ? ["all", "internal", "admin"] : internal ? ["all", "internal"] : ["all"];
   const run = (tsq: string) => pool.query(
     `select id, source_type, source_title, heading, body, url, ts_rank_cd(tsv, query) as rank
        from kb_chunks, ${tsq} query
