@@ -24,6 +24,7 @@ const EmployerDashboard = lazy(() => import("@/pages/employer-dashboard"));
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
 const SuperAdminDashboard = lazy(() => import("@/pages/superadmin-dashboard"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
+const ResetPasswordPage = lazy(() => import("@/pages/reset-password"));
 const FaqPage = lazy(() => import("@/pages/faq-page"));
 const GrievancePage = lazy(() => import("@/pages/grievance-page"));
 const RegisterPage = lazy(() => import("@/pages/register"));
@@ -208,6 +209,14 @@ function Router() {
             <Masthead />
             <Header />
             <main className="flex-1"><AuthPage /></main>
+          </div>
+        </Route>
+        {/* HL-002: target of the password-reset email link. */}
+        <Route path="/reset-password">
+          <div className="min-h-screen flex flex-col">
+            <Masthead />
+            <Header />
+            <main className="flex-1"><ResetPasswordPage /></main>
           </div>
         </Route>
         <Route path="/faq">

@@ -41,7 +41,7 @@ curl -s "localhost:$PORT/api/v1/version" >/dev/null || { echo "✗ Portal copy d
 
 case "$SCOPE" in
   all) PATTERN="auto" ;;
-  admin|agency|applicant) PATTERN="$SCOPE.auto" ;;
+  admin|agency|applicant|defects) PATTERN="$SCOPE.auto" ;;
   *) echo "Unknown scope $SCOPE"; exit 2 ;;
 esac
 

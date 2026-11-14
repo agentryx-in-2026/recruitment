@@ -3,6 +3,7 @@ import { useFormTimer } from "./useFormTimer";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { ArrowLeft, ArrowRight, Loader2, Landmark, ShieldCheck, AlertTriangle, PhoneCall, Clock, CheckCircle2, HelpCircle, Pause, Play, RotateCcw, Save, Wand2 } from "lucide-react";
 
 /**
@@ -141,6 +142,10 @@ export function RegisterShell({
   maxStepReached?: number;
 }) {
   const { t } = useTranslation();
+  // HL-009: the footer "need help" link is the third callback entry point.
+  const { capabilities: footerCaps, isLoading: footerCapsLoading } = useCapabilities();
+  // HL-009: offer the callback only while HPSEDC staff the queue.
+  const { capabilities } = useCapabilities();
   // "Time spent" is not a nag — it is evidence for the candidate that this form
   // is short. HPSEDC's whole complaint was that registration felt endless; a
   // visible four-minute clock is the counter-argument, and it is the one number a
@@ -350,9 +355,11 @@ export function RegisterShell({
               <AlertTriangle className="w-3.5 h-3.5" /> {t("shell.reportFraud")}
             </a>
           </div>
-          <a href="/start?mode=assisted" className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-800 font-medium">
+          {!footerCapsLoading && footerCaps.assistedCallbackEnabled !== false && (
+          <a href="/callback" className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-800 font-medium">
             <PhoneCall className="w-3.5 h-3.5" /> {t("reg.needHelp")}
           </a>
+          )}
         </div>
       </div>
     </div>
@@ -378,6 +385,8 @@ function FormSidebar({
   step, totalSteps, stepLabels, stepIcons, stepProgress, overallProgress,
   mmss, showTimer, onNavigate, maxStepReached, t,
 }: any) {
+  // HL-009: offer the callback only while HPSEDC staff the queue.
+  const { capabilities, isLoading: capsLoading } = useCapabilities();
   return (
     <aside className="hidden lg:block w-[264px] shrink-0 print:hidden">
       <div className="sticky top-6 space-y-4">
@@ -427,12 +436,14 @@ function FormSidebar({
           <p className="px-3 pt-2 pb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
             {t("reg.nav.help")}
           </p>
+          {!capsLoading && capabilities.assistedCallbackEnabled !== false && (
           <a href="/callback" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 hover:bg-emerald-50 transition-colors group">
             <span className="shrink-0 w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-100">
               <PhoneCall className="w-4 h-4" />
             </span>
             <span className="text-[14px] font-semibold text-slate-700">{t("reg.nav.callback")}</span>
           </a>
+          )}
           <a href="/faq" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 hover:bg-slate-50 transition-colors">
             <span className="shrink-0 w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
               <HelpCircle className="w-4 h-4" />

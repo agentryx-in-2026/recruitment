@@ -7,10 +7,11 @@ import { Shell, useWorkspace } from "../components/Shell";
 type Run = { id: string; scope: string; status: string; started_at: string; finished_at: string | null; passed: number; failed: number; started_by: string | null; log_tail: string };
 
 const SCOPES: [string, string, string][] = [
-  ["all", "Everything", "Admin, Placement Cell and Applicant checks in demo order (about 10–15 minutes)"],
+  ["all", "Everything", "Admin, Placement Cell, Applicant and defect retests in demo order (about 10–15 minutes)"],
   ["admin", "Admin", "Acts 1–2: configuration, job import, drives"],
   ["agency", "Placement Cell", "Acts 2, 4–6: post job, pipeline, interviews, selection, departure, welfare"],
   ["applicant", "Applicant", "Acts 3–6: register, apply, interview, documents, offer, help"],
+  ["defects", "Known defects", "Retest the fixed defects: reset password, Demo button, callback switch, four-stage views"],
 ];
 
 function Body() {

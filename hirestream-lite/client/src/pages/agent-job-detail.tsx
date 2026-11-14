@@ -1,6 +1,7 @@
 import { useParams, useLocation, Link } from "wouter";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useState, useEffect, useRef } from "react";
+import { stageOrder, TERMINAL_STATUSES } from "@shared/pipeline";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -29,12 +30,13 @@ async function fetchJson(url: string) {
   return res.json();
 }
 
-const PIPELINE = [
+const ALL_PIPELINE = [
   { key: "submitted",           label: "Submitted",  color: "bg-blue-100 text-blue-700" },
   { key: "reviewed",            label: "Reviewed",   color: "bg-amber-100 text-amber-700" },
   { key: "shortlisted",         label: "Shortlisted", color: "bg-purple-100 text-purple-700" },
   { key: "interview_scheduled", label: "Interview",  color: "bg-cyan-100 text-cyan-700" },
   { key: "selected",            label: "Selected",   color: "bg-emerald-100 text-emerald-700" },
+  { key: "placed",              label: "Placed",     color: "bg-green-100 text-green-700" },
   { key: "rejected",            label: "Rejected",   color: "bg-red-100 text-red-700" },
 ];
 
@@ -189,6 +191,12 @@ export default function AgentJobDetailPage() {
     );
   }
 
+  // HL-010: tiles follow the active pipeline (Direct = 4 stages), but a stage
+  // that still holds applications stays visible so no row becomes unreachable
+  // (same rule as the Applications Pipeline page).
+  const allowedStages = new Set([...stageOrder(activeProfile), ...TERMINAL_STATUSES]);
+  const occupiedStages = new Set(applicants.map((a: any) => a.status));
+  const PIPELINE = ALL_PIPELINE.filter((s) => allowedStages.has(s.key) || occupiedStages.has(s.key));
   const counts: Record<string, number> = {};
   for (const s of PIPELINE) counts[s.key] = 0;
   for (const a of applicants) counts[a.status] = (counts[a.status] || 0) + 1;

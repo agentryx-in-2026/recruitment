@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { useCapabilities } from "@/hooks/use-capabilities";
@@ -31,6 +31,18 @@ export default function AuthPage() {
   // Demo panel is collapsed by default so the real Sign-in / Create-account
   // form is what visitors see first. "Demo Mode" pulls the cast panel down.
   const [demoOpen, setDemoOpen] = useState(false);
+  // HL-004: show Demo Mode only while feature.quick_login_enabled is on.
+  // The server already refuses /dev-login when it is off; a button that then
+  // fails looks broken to a Secretary-level audience, so hide it entirely.
+  const [quickLogin, setQuickLogin] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/v1/auth/dev-login", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setQuickLogin(!!d?.data?.enabled); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   if (user) {
     setTimeout(() => setLocation("/"), 0);
@@ -100,6 +112,7 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-8">
+            {quickLogin && (<>
             {/* Demo Mode toggle — collapsed by default; pulls the cast panel down */}
             <button
               type="button"
@@ -117,6 +130,7 @@ export default function AuthPage() {
                 <QuickLoginPanel />
               </div>
             </div>
+            </>)}
 
             <TestAccountButton />
 

@@ -87,6 +87,24 @@ test("Applicant", async ({ page }) => {
     await choose(page, page, "Highest qualification", "12th pass");
   });
 
+  await check(page, "L6.7", "Board 'Other' box stays open when cleared; changing qualification group clears the old board", async () => {
+    // Fixed 14 Nov 2026 (HL-007).
+    const board = field(page, "Board").locator('button[role="combobox"]').first();
+    await board.click();
+    await page.getByRole("option", { name: /Other \(type it in\)/ }).click();
+    const box = page.getByPlaceholder("Type your board's name");
+    await box.fill("Punjab School Education Board");
+    await box.fill("");
+    await expect(box, "box still open after clearing").toBeVisible();
+    await board.click();
+    await page.getByRole("option", { name: "HPBOSE" }).click();
+    await choose(page, page, "Highest qualification", "College degree");
+    await expect(field(page, "University / College").locator('button[role="combobox"]').first(), "old board cleared").not.toContainText("HPBOSE");
+    await choose(page, page, "Highest qualification", "12th pass");
+    await field(page, "Board").locator('button[role="combobox"]').first().click();
+    await page.getByRole("option", { name: "HPBOSE" }).click();
+  });
+
   await check(page, "L1.9", "Driver questions are required before Next; experience stepper works", async () => {
     await typeIn(page, "Driving licence number", "HP31 20140012345");
     await choose(page, page, "Licence class", /^HMV/);
@@ -109,6 +127,11 @@ test("Applicant", async ({ page }) => {
     await page.getByRole("button", { name: /Submit application/ }).last().click();
     await page.waitForTimeout(2500);
     expect(sql(`select profile_complete from candidates c join users u on u.id=c.user_id where u.email='${EMAIL}'`), "saved as submitted").toBe("t");
+    expect(new URL(page.url()).pathname, "page after submit").not.toMatch(/^\/register/);
+  });
+
+  await check(page, "L6.1", "Retest: first Submit lands on the dashboard, not page 1 of the form", async () => {
+    // Fixed 14 Nov 2026 (HL-001) — same moment as L1.11, recorded against the defect case.
     expect(new URL(page.url()).pathname, "page after submit").not.toMatch(/^\/register/);
   });
 
@@ -146,6 +169,15 @@ test("Applicant", async ({ page }) => {
     await waitIdle(page);
     await page.getByText("Heavy Truck Driver", { exact: true }).first().click();
     await expect(page.getByText("Submitted").filter({ visible: true }).first()).toBeVisible();
+  });
+
+  await check(page, "L6.6", "Simple dashboard: a new application fills only the 'Applied' segment", async () => {
+    // Fixed 14 Nov 2026 (HL-006). Direct pipeline: Applied · Interview · Selected · Placed.
+    await page.goto("/"); await waitIdle(page, 1500);
+    const bar = page.locator("div.flex.gap-1\\.5").filter({ has: page.locator("div.h-2\\.5") }).filter({ visible: true }).first();
+    await expect(bar).toBeVisible();
+    expect(await bar.locator("div.h-2\\.5").count(), "segments").toBe(4);
+    expect(await bar.locator("div.bg-emerald-500").count(), "filled segments").toBe(1);
   });
 
   await check(page, "L1.23", "Request a callback is accepted and reaches the admin queue", async () => {

@@ -99,13 +99,13 @@ async function finishRun(runId: string, status: "finished" | "error", log: strin
   active = null;
 }
 
-// POST /api/testing/auto/run { scope } — scope: all | applicant | agency | admin
+// POST /api/testing/auto/run { scope } — scope: all | applicant | agency | admin | defects
 testingRouter.post("/auto/run", requireAuth, async (req, res) => {
   const r = await me(req);
   if (!r) return res.status(401).json({ error: "Not authenticated" });
   if (!(ADMIN.has(r.role) || r.role === "agentryx")) return res.status(403).json({ error: "Only Agentryx testers and admins can start automated runs" });
   const scope = String(req.body?.scope || "all");
-  if (!["all", "applicant", "agency", "admin"].includes(scope)) return res.status(400).json({ error: "Unknown scope" });
+  if (!["all", "applicant", "agency", "admin", "defects"].includes(scope)) return res.status(400).json({ error: "Unknown scope" });
   if (active) return res.status(409).json({ error: "An automated run is already in progress", runId: active });
   const runId = nanoid();
   active = runId;

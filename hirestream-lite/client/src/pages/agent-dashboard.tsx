@@ -1,3 +1,5 @@
+import { useCapabilities } from "@/hooks/use-capabilities";
+import { stageOrder } from "@shared/pipeline";
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -1260,6 +1262,9 @@ function AgentPipelineFunnel({ allJobs, setActiveView }: { allJobs: any[]; setAc
   });
   const all: any[] = queries.data ?? [];
 
+  // HL-010: show only the stages of the active pipeline (Direct = 4 stages).
+  const { capabilities: funnelCaps } = useCapabilities();
+  const activeStages = stageOrder(funnelCaps.pipelineProfile);
   const funnel = [
     { key: "submitted",           label: "New",         color: "bg-blue-50 text-blue-700",       dot: "bg-blue-500" },
     { key: "reviewed",            label: "Reviewed",    color: "bg-amber-50 text-amber-700",     dot: "bg-amber-500" },
@@ -1267,7 +1272,7 @@ function AgentPipelineFunnel({ allJobs, setActiveView }: { allJobs: any[]; setAc
     { key: "interview_scheduled", label: "Interview",   color: "bg-cyan-50 text-cyan-700",       dot: "bg-cyan-500" },
     { key: "selected",            label: "Selected",    color: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
     { key: "placed",              label: "Placed",      color: "bg-green-50 text-green-700",     dot: "bg-green-500" },
-  ];
+  ].filter((f) => activeStages.includes(f.key) || all.some((a) => a.status === f.key));
   const counts: Record<string, number> = {};
   for (const f of funnel) counts[f.key] = 0;
   for (const a of all) counts[a.status] = (counts[a.status] || 0) + 1;

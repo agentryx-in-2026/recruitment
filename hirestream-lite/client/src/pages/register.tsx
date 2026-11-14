@@ -1221,7 +1221,12 @@ function QualificationsPage({
         <FieldGrid>
           <div>
             <Label className="text-sm font-medium text-slate-700">{t("reg.p3.highest")} *</Label>
-            <Select value={eduLevel} onValueChange={setEduLevel}>
+            <Select value={eduLevel} onValueChange={(v) => {
+              // HL-007: a school board is meaningless for a degree and vice
+              // versa, so moving between the two groups clears the old choice.
+              if (SCHOOL_LEVELS.includes(v) !== isSchool) setEduBoard("");
+              setEduLevel(v);
+            }}>
               <SelectTrigger className="h-11 mt-1.5"><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>{EDU_LEVELS.map((k) => <SelectItem key={k} value={k}>{t(`reg.edu.${k}`)}</SelectItem>)}</SelectContent>
             </Select>
@@ -1243,12 +1248,14 @@ function QualificationsPage({
                     ))}
                   </SelectContent>
                 </Select>
-                {/* "Other" -> type it in. eduBoard is briefly " " (a marker the
-                    Select reads as Other) until they type the real name. */}
+                {/* "Other" -> type it in. eduBoard is " " (a marker the Select
+                    reads as Other) until they type the real name — and goes
+                    back to " " when the text is cleared, so the box stays open
+                    (HL-007). Saving trims it to nothing. */}
                 {(boardIsCustom || eduBoard === " ") && (
                   <Input className="h-11 mt-2" maxLength={120}
                     placeholder={isSchool ? t("reg.p3.boardOtherPh") : t("reg.p3.institutionOtherPh")}
-                    value={eduBoard.trim()} onChange={(e) => setEduBoard(e.target.value)} autoFocus />
+                    value={eduBoard.trim()} onChange={(e) => setEduBoard(e.target.value || " ")} autoFocus />
                 )}
               </div>
               )}

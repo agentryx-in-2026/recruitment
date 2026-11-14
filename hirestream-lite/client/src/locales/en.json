@@ -59,7 +59,12 @@
     "resetFailedDesc": "Could not send reset email.",
     "sending": "Sending...",
     "verifiedInitiative": "A verified Government of Himachal Pradesh initiative",
-    "loginId": "Email or username"
+    "loginId": "Email or username",
+    "chooseNewPassword": "Choose a new password for your account.",
+    "newPassword": "New password",
+    "setNewPassword": "Set new password",
+    "passwordChanged": "Your password has been changed. Sign in with the new password.",
+    "resetLinkInvalid": "This reset link is not valid or has expired. Ask for a new one from the sign-in page."
   },
   "roles": {
     "candidate": "Job Seeker",

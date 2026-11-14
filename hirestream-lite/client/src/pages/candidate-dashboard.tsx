@@ -696,6 +696,13 @@ function MinAppStatus({ app, extra, setActiveView, t }: any) {
   const f = MIN_FRIENDLY[key];
   const Icon = f.icon;
   const offered = app.placement?.status === "offered";
+  // HL-006: fill the bar up to the application's own stage in the ACTIVE
+  // pipeline. MIN_FRIENDLY.step counted six-stage positions, so under Direct
+  // (4 stages) a fresh application showed "Interview" already done.
+  const FULL = stageOrder("full");
+  const order = stageOrder(minCaps.pipelineProfile);
+  const at = FULL.indexOf(offered ? "selected" : app.status);
+  const filled = at < 0 ? 0 : order.filter((st) => FULL.indexOf(st) <= at).length;
   return (
     <div>
       <div className="flex items-center gap-4">
@@ -712,7 +719,7 @@ function MinAppStatus({ app, extra, setActiveView, t }: any) {
               the Direct pipeline does not run, on the simple dashboard that
               blue-collar candidates get by default. Driven off the active
               profile now, like the other three. */}
-          <div className="flex gap-1.5">{minSteps.map((_, idx) => <div key={idx} className={`h-2.5 flex-1 rounded-full ${idx < f.step ? "bg-emerald-500" : "bg-slate-200"}`} />)}</div>
+          <div className="flex gap-1.5">{minSteps.map((_, idx) => <div key={idx} className={`h-2.5 flex-1 rounded-full ${idx < filled ? "bg-emerald-500" : "bg-slate-200"}`} />)}</div>
           <div className="flex justify-between mt-1.5 text-xs text-slate-500 font-medium">
             {minSteps.map((label) => <span key={label}>{label}</span>)}
           </div>

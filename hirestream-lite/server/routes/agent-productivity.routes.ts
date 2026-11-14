@@ -25,6 +25,7 @@ import { alias } from "drizzle-orm/pg-core";
 import PDFDocument from "pdfkit";
 import { logger } from "../config/logger.config";
 import { getSetting } from "../services/settings.service";
+import { stageOrder as pipelineStages } from "@shared/pipeline";
 import { notify } from "../services/notification.service";
 import { computeReadiness, readinessSummary } from "../services/deployment.service";
 import { maybeNotifyDeploymentReady, maybeNotifyDeploymentReadyForCandidate } from "../services/deployment-notify.service";
@@ -1188,7 +1189,9 @@ router.get("/reports", async (req, res, next) => {
       .where(ownershipFilter || undefined as any);
 
     // ── Funnel counts (current snapshot) ──────────────────────────────
-    const funnelKeys = ["submitted", "reviewed", "shortlisted", "interview_scheduled", "selected", "placed", "rejected", "withdrawn"];
+    // HL-010: stages follow the active pipeline (Direct = 4 stages), not a fixed six.
+    const stageOrder = pipelineStages(await getSetting<string>("pipeline.profile"));
+    const funnelKeys = [...stageOrder, "rejected", "withdrawn"];
     const funnel: Record<string, number> = {};
     for (const k of funnelKeys) funnel[k] = 0;
     for (const r of allApps) {
@@ -1200,7 +1203,6 @@ router.get("/reports", async (req, res, next) => {
     // Conversion from one stage to the next, measured as the cumulative
     // "reached" count divided by the previous stage's "reached" count.
     // "Reached" = currently in that stage OR any later stage (= got past).
-    const stageOrder = ["submitted", "reviewed", "shortlisted", "interview_scheduled", "selected", "placed"];
     const reached: Record<string, number> = {};
     for (let i = 0; i < stageOrder.length; i++) {
       reached[stageOrder[i]] = stageOrder.slice(i).reduce((sum, k) => sum + (funnel[k] || 0), 0);
