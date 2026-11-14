@@ -51,5 +51,11 @@
  "L6.2": "defects",
  "L6.4": "defects",
  "L6.9": "defects",
- "L6.10": "defects"
+ "L6.10": "defects",
+ "L1.5": "extras",
+ "L1.6": "extras",
+ "L4.10": "extras",
+ "L5.1": "extras",
+ "L5.3": "extras",
+ "L5.5": "extras"
 }

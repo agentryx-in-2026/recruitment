@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Automated E2E run for Agentryx Verify.
-#   run.sh <scope: all|admin|agency|applicant> <runId>
+#   run.sh <scope: all|admin|agency|applicant|defects|extras> <runId>
 # Tests the CURRENT Lite build (dist/) against a disposable copy of the live
 # Lite database, so UAT data is never touched and every run starts from the
 # same states. Writes out/<runId>.json: [{ref, status, detail, screenshot}].
@@ -41,7 +41,7 @@ curl -s "localhost:$PORT/api/v1/version" >/dev/null || { echo "✗ Portal copy d
 
 case "$SCOPE" in
   all) PATTERN="auto" ;;
-  admin|agency|applicant|defects) PATTERN="$SCOPE.auto" ;;
+  admin|agency|applicant|defects|extras) PATTERN="$SCOPE.auto" ;;
   *) echo "Unknown scope $SCOPE"; exit 2 ;;
 esac
 
