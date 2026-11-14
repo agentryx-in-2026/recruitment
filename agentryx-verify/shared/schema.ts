@@ -289,6 +289,7 @@ export const pmDocuments = pgTable("pm_documents", {
   sizeBytes: integer("size_bytes").notNull().default(0),
   audience: varchar("audience", { length: 16 }).notNull().default("admin"),
   sortOrder: integer("sort_order").notNull().default(0),
+  pinned: boolean("pinned").notNull().default(false),   // starred: shown in the sidebar and as key documents
   uploadedById: varchar("uploaded_by_id", { length: 21 }).references(() => reviewers.id),
   createdAt: now(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

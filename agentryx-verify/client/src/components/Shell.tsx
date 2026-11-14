@@ -63,16 +63,16 @@ const SIDE: Record<Theme, { aside: string; brand: string; item: string; active: 
 
 const SideCtx = createContext<{ theme: Theme; closed: Record<string, boolean>; toggle: (g: string) => void; close: () => void }>(null as any);
 
-function NavLink({ href, label, count, tone = "amber" }: { href: string; label: string; count?: number | string; tone?: "amber" | "slate" }) {
+function NavLink({ href, label, count, tone = "amber", alsoActive = false, sub = false }: { href: string; label: string; count?: number | string; tone?: "amber" | "slate"; alsoActive?: boolean; sub?: boolean }) {
   const [loc] = useLocation();
   const { theme, close } = useContext(SideCtx);
   const t = SIDE[theme];
   const search = typeof window !== "undefined" ? window.location.search : "";
   const [path, qs] = href.split("?");
-  const active = qs ? loc === path && search === `?${qs}` : path === "/" ? loc === "/" : path === "/cases" ? loc === "/cases" && !search : loc.startsWith(path);
+  const active = alsoActive || (qs ? loc === path && search === `?${qs}` : path === "/" ? loc === "/" : path === "/cases" ? loc === "/cases" && !search : loc.startsWith(path));
   return (
-    <Link href={href} onClick={close} className={`flex items-center justify-between gap-2 pl-4 pr-3 py-2 rounded-md text-[15px] ${active ? t.active : t.item}`}>
-      <span className="truncate">{label}</span>
+    <Link href={href} onClick={close} title={label} className={`flex items-center justify-between gap-2 rounded-md ${sub ? "pl-6 pr-3 py-1.5 text-[13px]" : "pl-4 pr-3 py-2 text-[15px]"} ${active ? t.active : t.item}`}>
+      <span className="truncate">{sub && <span className="text-amber-500 mr-1.5">★</span>}{label}</span>
       {count !== undefined && <span className={`text-xs font-bold rounded-full min-w-[1.6rem] text-center px-2 py-0.5 ${tone === "amber" ? "bg-amber-400 text-slate-900" : t.badge}`}>{count}</span>}
     </Link>
   );
@@ -81,9 +81,9 @@ function NavButton({ label, onClick }: { label: string; onClick: () => void }) {
   const { theme, close } = useContext(SideCtx);
   return <button onClick={() => { onClick(); close(); }} className={`w-full text-left pl-4 pr-3 py-2 rounded-md text-[15px] ${SIDE[theme].item}`}>{label}</button>;
 }
-function Group({ title, children }: { title: string; children: ReactNode }) {
+function Group({ title, children, here = false }: { title: string; children: ReactNode; here?: boolean }) {
   const { theme, closed, toggle } = useContext(SideCtx);
-  const shut = !!closed[title];
+  const shut = !!closed[title] && !here; // the group holding the current page always shows
   return (
     <div className="mt-4">
       <button onClick={() => toggle(title)} aria-expanded={!shut} className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold tracking-[0.14em] uppercase ${SIDE[theme].group} hover:opacity-80`}>
@@ -132,6 +132,21 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   const [, navigate] = useLocation();
   const clock = useClock();
 
+  const [starred, setStarred] = useState<{ id: string; title: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/pm/documents", { credentials: "include" }).then((r) => r.ok ? r.json() : null)
+      .then((j) => setStarred((j?.documents ?? []).filter((d: any) => d.pinned).map((d: any) => ({ id: d.id, title: d.title }))))
+      .catch(() => {});
+  }, []);
+  const [loc] = useLocation();
+  const onDoc = loc.startsWith("/docs/") ? loc.slice(6) : null;
+  const docStarred = !!onDoc && starred.some((d) => d.id === onDoc);
+  const inGroup = {
+    testing: /^\/(cases|automation|findings)/.test(loc),
+    help: loc.startsWith("/team-questions"),
+    resources: /^\/(resources|docs)/.test(loc) || (loc.startsWith("/product") && !(data?.me.isAdmin)),
+    manage: /^\/(questions|projects|admin|settings|p\/|product)/.test(loc) && !!data?.me.isAdmin,
+  };
   const reload = useCallback(async () => {
     const r = await fetch("/api/testing/overview", { credentials: "include" });
     if (r.status === 401) { navigate("/login", { replace: true }); return; }
@@ -171,7 +186,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
       <div className="flex justify-end mt-2">
         <button onClick={() => setClosed(allShut ? {} : Object.fromEntries(groups.map((g) => [g, true])))} className={`text-xs ${T.muted} hover:underline px-2`}>{allShut ? "Expand all" : "Collapse all"}</button>
       </div>
-      <Group title="Testing">
+      <Group title="Testing" here={inGroup.testing}>
         <NavLink href="/cases" label="All cases" count={all.length} tone="slate" />
         <NavLink href="/cases?show=torun" label="To run" count={toRun} />
         <NavLink href="/cases?show=failed" label="Failed — retest" count={failed} />
@@ -183,20 +198,21 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
         <NavLink href="/automation" label="Automated runs" count={data.running ? "running" : undefined} />
         <NavLink href="/findings" label="Findings" count={data.findingsOpen || undefined} />
       </Group>
-      <Group title="Ask for help">
+      <Group title="Ask for help" here={inGroup.help}>
         <NavButton label="Ask Agentryx" onClick={() => openAsk("new")} />
         <NavLink href="/team-questions" label="Team questions" />
       </Group>
-      <Group title="Resources">
+      <Group title="Resources" here={inGroup.resources}>
         <NavLink href="/resources" label="Guides & videos" />
-        <NavLink href="/product?tab=documents" label="Documents" />
+        <NavLink href="/product?tab=documents" label="Documents" alsoActive={!!onDoc && !docStarred && !data.me.isAdmin} />
+        {starred.map((d) => <NavLink key={d.id} href={`/docs/${d.id}`} label={d.title} sub />)}
       </Group>
       {data.me.isAdmin && (
         <>
           <div className={`mt-5 mx-2 pt-3 border-t ${T.rule} text-[11px] font-bold tracking-[0.14em] uppercase ${T.group}`}>Admin</div>
-          <Group title="Manage">
+          <Group title="Manage" here={inGroup.manage}>
             <NavLink href="/questions" label="Questions inbox" />
-            <NavLink href="/product?tab=status" label="Product management" />
+            <NavLink href="/product?tab=status" label="Product management" alsoActive={!!onDoc && !docStarred} />
             <NavLink href="/projects" label="Projects" />
             <NavLink href="/admin/roadmap" label="Verify roadmap" />
             <NavLink href="/settings" label="Settings" />

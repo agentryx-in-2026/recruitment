@@ -11,7 +11,7 @@ import { FileText, FileVideo, FileImage, FileCode, File as FileIcon, ExternalLin
  * coverage, architecture, plans, training material). Admins upload documents
  * and choose who may open each one; testers see only what is shared with them.
  */
-type Doc = { id: string; title: string; category: string; description: string | null; originalName: string; mimeType: string; sizeBytes: number; audience: "admin" | "internal" | "all"; updatedAt: string };
+type Doc = { id: string; title: string; category: string; description: string | null; originalName: string; mimeType: string; sizeBytes: number; audience: "admin" | "internal" | "all"; pinned?: boolean; updatedAt: string };
 
 const AUDIENCE: Record<Doc["audience"], { label: string; hint: string; cls: string; Icon: any }> = {
   admin:    { label: "Admins only",      hint: "Admin and delivery",                 cls: "bg-slate-100 text-slate-700 border-slate-200",       Icon: Lock },
@@ -58,6 +58,10 @@ export function ProductManagement() {
     try { await call(`/api/pm/documents/${d.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ audience }) }); load(); }
     catch (e: any) { setError(e.message); }
   };
+  const setPinned = async (d: Doc, pinned: boolean) => {
+    try { await call(`/api/pm/documents/${d.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pinned }) }); load(); }
+    catch (e: any) { setError(e.message); }
+  };
   const remove = async (d: Doc, confirmed: boolean) => {
     if (!confirmed) return;
     try { await call(`/api/pm/documents/${d.id}`, { method: "DELETE" }); load(); } catch (e: any) { setError(e.message); }
@@ -88,6 +92,17 @@ export function ProductManagement() {
               : "Contract, requirements, design and training documents for HireStream Lite and the mobile app. Documents shared with you by the project admin."}</p>
           </div>
         </div>
+        {data.documents.some((d) => d.pinned) && (
+          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3">
+            <div className="text-xs font-bold uppercase tracking-wider text-amber-800">★ Key documents</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {data.documents.filter((d) => d.pinned).map((d) => (
+                <a key={d.id} href={`/docs/${d.id}`} className="text-sm bg-white border border-amber-200 rounded-md px-3 py-1.5 text-slate-800 hover:border-amber-400">{d.title}</a>
+              ))}
+            </div>
+            {data.isAdmin && <div className="text-xs text-amber-900/70 mt-2">Starred documents also show in everyone's sidebar under Resources. Star or unstar them in the Documents tab.</div>}
+          </div>
+        )}
         {data.isAdmin && (
           <div className="mt-5 flex gap-1 border-b border-slate-200">
             {([["status", "Status"], ["documents", "Documents"]] as const).map(([k, l]) => (
@@ -125,7 +140,7 @@ export function ProductManagement() {
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <k.Icon className="w-5 h-5 text-agentryx-600 shrink-0 mt-0.5" />
                         <div className="min-w-0">
-                          <a href={`/docs/${d.id}`} className="font-semibold text-slate-900 hover:text-agentryx-700 hover:underline">{d.title}</a>
+                          <a href={`/docs/${d.id}`} className="font-semibold text-slate-900 hover:text-agentryx-700 hover:underline">{d.title}</a>{d.pinned && !data.isAdmin && <span className="ml-1.5 text-amber-500" title="Key document">★</span>}
                           {d.description && <p className="text-sm text-slate-600 mt-0.5">{d.description}</p>}
                           <p className="text-xs text-slate-400 mt-1">{k.label} · {size(d.sizeBytes)} · updated {new Date(d.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
                         </div>
@@ -133,6 +148,8 @@ export function ProductManagement() {
                       <div className="flex items-center gap-2 shrink-0">
                         {data.isAdmin ? (
                           <>
+                            <button onClick={() => setPinned(d, !d.pinned)} title={d.pinned ? "Starred: shown in the sidebar and as a key document. Click to unstar." : "Star: show in the sidebar and as a key document"}
+                              aria-pressed={!!d.pinned} className={`text-lg leading-none px-1.5 ${d.pinned ? "text-amber-500" : "text-slate-300 hover:text-amber-400"}`}>★</button>
                             <label className="sr-only" htmlFor={`aud-${d.id}`}>Who can open</label>
                             <select id={`aud-${d.id}`} value={d.audience} onChange={(e) => setAudience(d, e.target.value as Doc["audience"])}
                               className={`text-xs font-medium rounded-md border px-2 py-1.5 ${AUDIENCE[d.audience].cls}`}>

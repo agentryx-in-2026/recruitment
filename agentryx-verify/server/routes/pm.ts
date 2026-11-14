@@ -95,7 +95,7 @@ const upload = multer({
 const publicRow = (d: any) => ({
   id: d.id, title: d.title, category: d.category, description: d.description,
   originalName: d.originalName, mimeType: d.mimeType, sizeBytes: d.sizeBytes,
-  audience: d.audience, sortOrder: d.sortOrder, updatedAt: d.updatedAt,
+  audience: d.audience, sortOrder: d.sortOrder, pinned: d.pinned, updatedAt: d.updatedAt,
 });
 
 // GET /api/pm/documents — what this reviewer may open (admins: everything).
@@ -236,6 +236,7 @@ pmRouter.patch("/documents/:id", requireAuth, async (req, res) => {
   if (typeof req.body.description === "string") patch.description = req.body.description.trim() || null;
   if (PM_CATEGORIES.includes(req.body.category)) patch.category = req.body.category;
   if (Number.isInteger(req.body.sortOrder)) patch.sortOrder = req.body.sortOrder;
+  if (typeof req.body.pinned === "boolean") { patch.pinned = req.body.pinned; delete patch.updatedAt; }
   const [d] = await db.update(pmDocuments).set(patch).where(eq(pmDocuments.id, req.params.id)).returning();
   if (!d) return res.status(404).json({ error: "Not found" });
   await db.insert(auditLog).values({ reviewerId: admin.id, action: "pm.update", meta: { id: d.id, ...req.body } });
