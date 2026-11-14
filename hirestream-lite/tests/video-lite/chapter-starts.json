@@ -1,0 +1,5 @@
+{
+  "applicant": { "account": 7, "aboutyou": 46, "skills": 180, "qualifications": 208, "review": 305, "verify": 333, "apply": 362, "interview": 399, "documents": 444, "offer": 545, "help": 621 },
+  "agency": { "login": 7, "post": 43, "jobs": 147, "pipeline": 186, "schedule": 228, "reschedule": 278, "outcome": 306, "predeparture": 345, "welfare": 393, "messages": 430, "reports": 475 },
+  "admin": { "overview": 12, "import": 56, "professions": 113, "formfields": 153, "settings": 191, "people": 234, "compliance": 291, "risk": 350, "communication": 409, "reports": 496 }
+}

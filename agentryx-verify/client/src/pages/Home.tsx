@@ -6,7 +6,8 @@ import { api } from "../lib/api";
 import { useRequireAuth } from "../lib/useRequireAuth";
 
 const PROJECT_ORDER: Record<string, { icon: "frs" | "mobile" | "smoke" | "extras"; badge: string; badgeColor: string; tip: string }> = {
-  "hirestream-v1.4":        { icon: "frs",    badge: "START HERE", badgeColor: "bg-emerald-600 text-white",     tip: "Review and sign off the contracted FRS requirements first. This is the primary acceptance gate." },
+  "hirestream-lite":        { icon: "frs",    badge: "START HERE", badgeColor: "bg-emerald-600 text-white",     tip: "The web portal HPSEDC will launch. Test each role, then retest the known defects in §6 once they are fixed." },
+  "hirestream-v1.4":        { icon: "frs",    badge: "ARCHIVE",    badgeColor: "bg-slate-200 text-slate-700",     tip: "Earlier multi-agency build — superseded by HireStream Lite. Hidden from testers." },
   "hirestream-mobile-v1.0": { icon: "mobile", badge: "STEP 2",     badgeColor: "bg-sky-100 text-sky-800",       tip: "Android mobile app testing. Install Expo Go, scan the QR code on the project page, and test candidate features." },
   "hirestream-htis-smoke":  { icon: "smoke",  badge: "STEP 3",     badgeColor: "bg-sky-100 text-sky-800",       tip: "HTIS generic QA smoke checklist (77 rows, 15 sections). Verdicts from the Apr 22 workbook are pre-loaded in the HTIS signoff column." },
   "hirestream-v1.5-extras": { icon: "extras", badge: "STEP 4",     badgeColor: "bg-indigo-100 text-indigo-700", tip: "Beyond-FRS enhancements delivered above the contracted scope. Hidden from non-admin reviewers by default — admin can re-enable." },
@@ -59,8 +60,8 @@ export function Home() {
             <div className="flex items-start gap-3">
               <span className="shrink-0 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shadow">1</span>
               <div>
-                <div className="font-semibold text-amber-900">Open the FRS project</div>
-                <div className="text-amber-700 text-xs mt-0.5">This is the contracted scope — it must be accepted first.</div>
+                <div className="font-semibold text-amber-900">Open HireStream Lite</div>
+                <div className="text-amber-700 text-xs mt-0.5">The web portal HPSEDC will launch — start here.</div>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -73,8 +74,8 @@ export function Home() {
             <div className="flex items-start gap-3">
               <span className="shrink-0 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shadow">3</span>
               <div>
-                <div className="font-semibold text-amber-900">Then Beyond-FRS</div>
-                <div className="text-amber-700 text-xs mt-0.5">Once FRS is done, move to the second project for extra enhancements.</div>
+                <div className="font-semibold text-amber-900">Then the mobile app</div>
+                <div className="text-amber-700 text-xs mt-0.5">Test the Android app the same way, and verify its open issues.</div>
               </div>
             </div>
           </div>

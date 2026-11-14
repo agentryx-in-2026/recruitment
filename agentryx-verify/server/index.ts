@@ -12,6 +12,9 @@ import { projectsRouter } from "./routes/projects";
 import { exportRouter } from "./routes/export";
 import { feedbackRouter } from "./routes/feedback";
 import { sprintsRouter } from "./routes/sprints";
+import { pmRouter } from "./routes/pm";
+import { askRouter } from "./routes/ask";
+import { testingRouter } from "./routes/testing";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -57,6 +60,9 @@ app.get("/health", (_req, res) => res.type("text/plain").send("ok"));
 // API
 app.use("/api/auth", authRouter);
 app.use("/api/projects", projectsRouter);
+app.use("/api/pm", pmRouter);
+app.use("/api/ask", askRouter);
+app.use("/api/testing", testingRouter);
 app.use("/api/export", exportRouter);
 app.use("/api/feedback", feedbackRouter);
 app.use("/api", sprintsRouter);  // exposes /api/projects/:slug/sprints and /api/sprints/:id

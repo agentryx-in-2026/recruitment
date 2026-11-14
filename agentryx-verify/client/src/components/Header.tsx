@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { CheckCircle2, LogOut, Home as HomeIcon, Map } from "lucide-react";
+import { CheckCircle2, LogOut, Home as HomeIcon, Map, FolderOpen } from "lucide-react";
 import { api } from "../lib/api";
 import { ROADMAP } from "@shared/roadmap";
 
@@ -55,6 +55,16 @@ export function Header() {
               title="Product roadmap dashboard (admin only)">
               <Map className="w-3.5 h-3.5" />
               Roadmap
+            </Link>
+          )}
+          {/* Product Management library — every signed-in reviewer; the page
+              itself shows only the documents shared with their role. */}
+          {reviewer && routePath !== "/product" && (
+            <Link href="/product"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-agentryx-700 px-2 py-1 rounded border border-slate-200 hover:border-agentryx-300 hover:bg-slate-50 transition"
+              title="Contract, requirements, design and training documents">
+              <FolderOpen className="w-3.5 h-3.5" />
+              Product Management
             </Link>
           )}
         </div>

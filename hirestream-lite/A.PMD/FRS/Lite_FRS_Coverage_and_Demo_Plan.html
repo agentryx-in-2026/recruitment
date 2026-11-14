@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lite FRS & Demo Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: single reading column (~72ch) with full-width tables in scroll containers; navy institutional ink, status chips carry meaning. */
+:root{
+  --bg:#F5F6F8; --paper:#FFFFFF; --ink:#16213A; --muted:#55607A; --line:#DCE1EA; --accent:#B4530B; --navy:#1D3461;
+  --met:#1E6B45; --met-bg:#E3F2EA; --dorm:#2D4A80; --dorm-bg:#E4EBF7; --part:#8A5A00; --part-bg:#FBF0D9;
+  --pend:#6B4E9B; --pend-bg:#EEE8F7; --gap:#A3261C; --gap-bg:#FBE5E2; --test:#4A5468; --test-bg:#ECEEF2;
+  --serif:"Source Serif 4", Georgia, serif; --sans:"IBM Plex Sans", "Segoe UI", Arial, sans-serif; --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1522; --paper:#161E30; --ink:#E6EAF2; --muted:#A3AEC4; --line:#2A3550; --accent:#F0A35C; --navy:#9DB6E8;
+  --met:#7FD3A6; --met-bg:#173326; --dorm:#9DB6E8; --dorm-bg:#1B2742; --part:#F0C66B; --part-bg:#33290F;
+  --pend:#C7B3EC; --pend-bg:#2A2140; --gap:#F2988E; --gap-bg:#3A1B18; --test:#C1C8D6; --test-bg:#232B3D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1522; --paper:#161E30; --ink:#E6EAF2; --muted:#A3AEC4; --line:#2A3550; --accent:#F0A35C; --navy:#9DB6E8;
+  --met:#7FD3A6; --met-bg:#173326; --dorm:#9DB6E8; --dorm-bg:#1B2742; --part:#F0C66B; --part-bg:#33290F;
+  --pend:#C7B3EC; --pend-bg:#2A2140; --gap:#F2988E; --gap-bg:#3A1B18; --test:#C1C8D6; --test-bg:#232B3D; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15.5px/1.6 var(--sans);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1040px;margin:0 auto;padding-block:40px 72px;display:flex;flex-direction:column;gap:44px}
+.read{max-width:74ch}
+header{display:flex;flex-direction:column;gap:10px;border-bottom:3px solid var(--navy);padding-bottom:22px}
+.eyebrow{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{font-family:var(--serif);font-size:clamp(30px,4.4vw,44px);line-height:1.12;margin:0;text-wrap:balance;color:var(--navy)}
+h2{font-family:var(--serif);font-size:27px;line-height:1.2;margin:0 0 6px;color:var(--navy);text-wrap:balance}
+h3{font-size:16px;margin:18px 0 6px}
+p{margin:0 0 10px} ul,ol{margin:0 0 10px;padding-left:22px} li{margin:4px 0}
+.meta{color:var(--muted);font-size:14px}
+section{display:flex;flex-direction:column;gap:12px}
+.tally{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tally div{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.tally b{font-family:var(--serif);font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.met{color:var(--met);background:var(--met-bg)} .dorm{color:var(--dorm);background:var(--dorm-bg)} .part{color:var(--part);background:var(--part-bg)}
+.pend{color:var(--pend);background:var(--pend-bg)} .gap{color:var(--gap);background:var(--gap-bg)} .test{color:var(--test);background:var(--test-bg)}
+.tablewrap{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg);position:sticky;top:0}
+tr.group td{background:var(--bg);font-weight:600;color:var(--navy);font-size:13px;letter-spacing:.04em}
+td.id,code{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
+td.v{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card h3{margin-top:0;font-family:var(--serif);font-size:19px;color:var(--navy)}
+.act td:first-child{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:18px;width:36px}
+.callout{border-left:4px solid var(--accent);background:var(--paper);padding:14px 18px;border-radius:0 10px 10px 0}
+.decide li{margin:8px 0}
+a{color:var(--navy)}
+@media (max-width:560px){main{padding-block:24px 48px;gap:34px}}
+</style>
+</head>
+<body>
+
+<main>
+<header>
+  <div class="eyebrow">HireStream Lite · UAT preparation</div>
+  <h1>FRS coverage and the phase-1 demo workflow</h1>
+  <p class="meta read">How the contracted FRS (Overseas Placement Portal &amp; Mobile Application, HPSEDC) is met by HireStream Lite v1.1.0, what we add on top to make phase 1 practical, the end-to-end story to show the Secretary, and what to fix before UAT. Checked against the live code and the Lite Verify project, 14 November 2026.</p>
+</header>
+
+<section>
+  <h2>Summary</h2>
+  <div class="read">
+    <p>Phase 1 is an HPSEDC-run operation. Government job batches arrive through the Ministry (for example a few hundred Gulf vacancies), HPSEDC publishes them, applicants register and apply, and HPSEDC interviews, selects and sends workers abroad. Private agencies and overseas employers are dormant in Lite: built, but switched off.</p>
+    <p>Of 50 FRS line items, <b>34 are met</b> on screen today, <b>4 are built but dormant</b> by HPSEDC’s phase-1 choice, and the rest need either credentials from HPSEDC or a small amount of work. Only two are real functional gaps.</p>
+  </div>
+  <div class="tally">
+    <div><b style="color:var(--met)">34</b><span class="chip met">Met</span></div>
+    <div><b style="color:var(--dorm)">4</b><span class="chip dorm">Built, dormant</span></div>
+    <div><b style="color:var(--part)">5</b><span class="chip part">Partial</span></div>
+    <div><b style="color:var(--pend)">3</b><span class="chip pend">Needs credentials</span></div>
+    <div><b style="color:var(--gap)">2</b><span class="chip gap">Gap</span></div>
+    <div><b style="color:var(--test)">2</b><span class="chip test">Not yet tested</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>The three roles in Lite</h2>
+  <div class="cards">
+    <div class="card"><h3>Applicant</h3><p>Self-registers, applies, attends interview, uploads documents only once selected, accepts the offer. Mostly blue-collar, on phones, in Hindi.</p></div>
+    <div class="card"><h3>HPSEDC Placement Cell</h3><p>One login, <code>hpsedc_agency</code>, acting as the single super agency. Two jobs in the demo: <b>publish vacancies</b>, then <b>match, interview and select</b> candidates through to departure.</p></div>
+    <div class="card"><h3>HPSEDC Admin</h3><p>Imports Ministry batches, sets what the form asks and what each trade must hold, switches optional functions on or off, oversees compliance, complaints and reports.</p></div>
+  </div>
+  <div class="callout read">
+    <p><b>Note on “HPSEDC publishes the batch”.</b> Single jobs are posted by the Placement Cell. Bulk Ministry batches from Excel are loaded through <b>Admin → Import Jobs</b>, and the imported jobs belong to the Placement Cell. In the demo, show the import as the Admin, then the Placement Cell working those jobs.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Making it easy for blue-collar applicants</h2>
+  <p class="read">HPSEDC’s final feedback was to make registration very easy. Lite offers these routes today:</p>
+  <div class="cards">
+    <div class="card"><h3>1. Self-registration, simplified</h3><p>One four-page form, about five minutes. Hindi throughout, voice input on text fields, nothing to upload, answers saved on every page, printable A4 copy. <span class="chip met">Live</span></p></div>
+    <div class="card"><h3>2. “HPSEDC will call me”</h3><p>Applicant leaves name, mobile and skills; HPSEDC calls back and fills the form for them. Built, but switched <b>off</b> on Lite (<code>capability.assisted_callback_enabled</code>). <span class="chip part">Turn on to show</span></p></div>
+    <div class="card"><h3>3. Documents by phone photo</h3><p>Certificates are asked only after selection, and can be photographed with the phone camera. The few hundred selected, not the thousands who apply, carry this cost. <span class="chip met">Live</span></p></div>
+    <div class="card"><h3>4. Mobile app</h3><p>Android app (Expo) for candidates. Currently built against the <b>old</b> staging server, not Lite. Must be re-pointed and retested before it is shown. <span class="chip gap">Not ready</span></p></div>
+  </div>
+  <p class="meta read">A CV/resume parser also exists on the server but has no screen in Lite; keep it out of the phase-1 demo.</p>
+</section>
+
+<section>
+  <h2>FRS traceability</h2>
+  <p class="meta read">Verify IDs refer to the <b>HireStream Lite</b> project on verify-stg.agentryx.dev. HL-xxx are the open defects logged there.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Ref</th><th>FRS requirement</th><th>Status</th><th>How Lite meets it</th><th>Verify</th></tr></thead>
+    <tbody>
+    <tr class="group"><td colspan="5">1.2 Scope · 2.1 Product functions</td></tr>
+    <tr><td class="id">S1</td><td>Registration and profile management for job seekers</td><td><span class="chip met">Met</span></td><td>Four-page form, edit any time</td><td class="v">L1.1–L1.10</td></tr>
+    <tr><td class="id">S2</td><td>Registration and profile management for recruiting agencies</td><td><span class="chip dorm">Dormant</span></td><td>Built (agency details, licence, KYB review); off in phase 1, HPSEDC is the agency</td><td class="v">—</td></tr>
+    <tr><td class="id">S3</td><td>Relevant documents uploaded by candidates</td><td><span class="chip met">Met</span></td><td>Requested per job at selection; phone photo; PDF/JPG/PNG ≤ 5 MB</td><td class="v">L1.17–L1.18</td></tr>
+    <tr><td class="id">S4</td><td>Job posting, searching and applying</td><td><span class="chip met">Met</span></td><td>Post Job form and Excel import; search and filters; Apply Now</td><td class="v">L2.2, L4.2, L1.13–14</td></tr>
+    <tr><td class="id">S5</td><td>Scrutiny of candidates; scheduling drives and interviews</td><td><span class="chip met">Met</span></td><td>Applications Pipeline; drives with admin approval; interview scheduling</td><td class="v">L2.5–L2.8, L4.10</td></tr>
+    <tr><td class="id">S6</td><td>Placement details and appointment letters</td><td><span class="chip met">Met</span></td><td>Appointment &amp; travel, visa status, pre-departure compliance</td><td class="v">L2.9–L2.10</td></tr>
+    <tr><td class="id">S7</td><td>Acceptance and confirmation of offers by candidates</td><td><span class="chip met">Met</span></td><td>Accept / decline; letter required first; offer expiry</td><td class="v">L1.20</td></tr>
+    <tr><td class="id">S8</td><td>Dashboards, FAQs, grievances, notifications, information</td><td><span class="chip met">Met</span></td><td>Dashboards per role, FAQ page, country information, bell, grievances</td><td class="v">L1.21–L1.22</td></tr>
+    <tr><td class="id">S9</td><td>Admin tools: content management, approvals, reporting, oversight</td><td><span class="chip part">Partial</span></td><td>Approvals, reports, audit, country content live; FAQ and announcements have no editing screen</td><td class="v">L4.*</td></tr>
+    <tr><td class="id">S10</td><td>Bilingual interface (English + Hindi)</td><td><span class="chip met">Met</span></td><td>Full Hindi, one-tap switch</td><td class="v">L1.3</td></tr>
+
+    <tr class="group"><td colspan="5">2.2 / 2.3 Candidate module and registration workflow</td></tr>
+    <tr><td class="id">C1</td><td>Aadhaar-based or email/mobile verification</td><td><span class="chip part">Partial</span></td><td>Email code built but no mail provider on Lite (HL-003); Aadhaar format + checksum validated; UIDAI API awaits credentials; no mobile OTP at sign-up</td><td class="v">L1.12, L6.3</td></tr>
+    <tr><td class="id">C2</td><td>SSO login (HIM Access)</td><td><span class="chip pend">Credentials</span></td><td>SSO route built (<code>/auth/sso/himaccess</code>); needs HIM client ID and secret from HPSEDC</td><td class="v">—</td></tr>
+    <tr><td class="id">C3</td><td>Personal details, education, work experience</td><td><span class="chip met">Met</span></td><td>Pages 1 and 3, trade-specific questions</td><td class="v">L1.4, L1.8–L1.9</td></tr>
+    <tr><td class="id">C4</td><td>Preference of job roles</td><td><span class="chip met">Met</span></td><td>Up to three trades from the HPSEDC catalogue</td><td class="v">L1.7</td></tr>
+    <tr><td class="id">C5</td><td>Preference of countries</td><td><span class="chip gap">Gap</span></td><td>Not asked in the Lite form (it was in the retired wizard)</td><td class="v">to add</td></tr>
+    <tr><td class="id">C6</td><td>Edit / update profile</td><td><span class="chip met">Met</span></td><td>Edit my details; verified details locked</td><td class="v">L1.10, L5.5</td></tr>
+    <tr><td class="id">C7</td><td>Upload documents (CV, passport, certificates)</td><td><span class="chip met">Met</span></td><td>Page 5 per job; CV via full dashboard</td><td class="v">L1.18</td></tr>
+    <tr><td class="id">C8</td><td>View openings by location, skill, salary</td><td><span class="chip met">Met</span></td><td>Search plus country, category, experience, salary filters</td><td class="v">L1.13</td></tr>
+    <tr><td class="id">C9</td><td>One-click apply; track status</td><td><span class="chip met">Met</span></td><td>Apply Now; My Application stages</td><td class="v">L1.14–L1.15</td></tr>
+    <tr><td class="id">C10</td><td>Email/SMS alerts for matches, drives, interviews, status</td><td><span class="chip part">Partial</span></td><td>In-app notifications live; email not configured; SMS gateway on mock (MSG91 / NIC slots ready)</td><td class="v">L1.22</td></tr>
+
+    <tr class="group"><td colspan="5">2.2 / 2.5 Recruiting agency (HPSEDC Placement Cell in phase 1)</td></tr>
+    <tr><td class="id">A1</td><td>Agency registration: details, licence, past record</td><td><span class="chip dorm">Dormant</span></td><td>HPSEDC account pre-verified (licence HP/GOVT/OEP/001)</td><td class="v">—</td></tr>
+    <tr><td class="id">A2</td><td>Create / edit job openings with criteria</td><td><span class="chip met">Met</span></td><td>Post Job, edit, close, reopen</td><td class="v">L2.2–L2.3</td></tr>
+    <tr><td class="id">A3</td><td>View applicants; download profiles</td><td><span class="chip met">Met</span></td><td>Candidate profile; CSV and ZIP with documents</td><td class="v">L2.4–L2.5</td></tr>
+    <tr><td class="id">A4</td><td>Shortlist candidates</td><td><span class="chip met">Met</span></td><td>Direct pipeline: HPSEDC interviews everyone, so scheduling the interview is the shortlist. An explicit Shortlist stage returns with the Screened pipeline setting</td><td class="v">L2.6</td></tr>
+    <tr><td class="id">A5</td><td>Recruitment drive scheduling; notify candidates</td><td><span class="chip met">Met</span></td><td>Create drive, admin approval, notify registrants</td><td class="v">L4.10</td></tr>
+    <tr><td class="id">A6</td><td>Interview scheduling, notify, upload results</td><td><span class="chip met">Met</span></td><td>Schedule, reschedule handling, record outcome</td><td class="v">L2.6–L2.8</td></tr>
+    <tr><td class="id">A7</td><td>Visa / passport assistance to selected candidates</td><td><span class="chip met">Met</span></td><td>Visa status with history, candidate notified</td><td class="v">L2.10</td></tr>
+    <tr><td class="id">A8</td><td>Analytics on job posting performance</td><td><span class="chip met">Met</span></td><td>Job Analytics; Reports</td><td class="v">L2.13</td></tr>
+
+    <tr class="group"><td colspan="5">2.2 / 2.6 HPSEDC as authority</td></tr>
+    <tr><td class="id">G1</td><td>Approve recruiting agency registrations</td><td><span class="chip dorm">Dormant</span></td><td>Review screen built; hidden while agencies are off</td><td class="v">—</td></tr>
+    <tr><td class="id">G2</td><td>Approve recruitment drive schedules</td><td><span class="chip met">Met</span></td><td>Admin → Drives</td><td class="v">L4.10</td></tr>
+    <tr><td class="id">G3</td><td>Dashboard: applications, placements, vacancies, pending verifications</td><td><span class="chip met">Met</span></td><td>Admin Console overview</td><td class="v">L4.1</td></tr>
+    <tr><td class="id">G4</td><td>Reports by district, agency, skill, placement status</td><td><span class="chip met">Met</span></td><td>Admin → Reports, each with CSV</td><td class="v">L4.1</td></tr>
+    <tr><td class="id">G5</td><td>Verify uploaded documents</td><td><span class="chip gap">Gap</span></td><td>Staff can preview candidate documents but have no Verify / Reject button (HL-008)</td><td class="v">L6.8</td></tr>
+    <tr><td class="id">G6</td><td>Monitor system activities</td><td><span class="chip met">Met</span></td><td>Audit log, Fraud Watch, Duplicates</td><td class="v">L4.8</td></tr>
+    <tr><td class="id">G7</td><td>Handle grievances and support requests</td><td><span class="chip met">Met</span></td><td>Grievances with SLA; Ask HPSEDC inbox</td><td class="v">L2.12, L4.9</td></tr>
+
+    <tr class="group"><td colspan="5">2.7 Recruitment process and overall workflow</td></tr>
+    <tr><td class="id">R1</td><td>Employer reviews applications</td><td><span class="chip dorm">Dormant</span></td><td>Employer accounts off; HPSEDC reviews on the employer’s behalf</td><td class="v">—</td></tr>
+    <tr><td class="id">R2</td><td>Shortlist → interview → results → selection → appointment letter</td><td><span class="chip met">Met</span></td><td>Pipeline end to end</td><td class="v">L2.6–L2.9</td></tr>
+    <tr><td class="id">R3</td><td>Placement and follow-up</td><td><span class="chip met">Met</span></td><td>Welfare check-ins at 30, 60 and 90 days</td><td class="v">L2.11</td></tr>
+
+    <tr class="group"><td colspan="5">2.8 Other features · 2.9 Standards · 3 Specific requirements</td></tr>
+    <tr><td class="id">O1</td><td>Web, responsive on phones and tablets</td><td><span class="chip met">Met</span></td><td>Single-column phone layout</td><td class="v">L5.1</td></tr>
+    <tr><td class="id">O2</td><td>Android and iOS applications</td><td><span class="chip part">Partial</span></td><td>Expo app built; points at the old server, not Lite; 22 cases pending</td><td class="v">Mobile project</td></tr>
+    <tr><td class="id">O3</td><td>DigiLocker integration for documents</td><td><span class="chip pend">Credentials</span></td><td>Integration slot ready; needs DigiLocker API access</td><td class="v">—</td></tr>
+    <tr><td class="id">O4</td><td>Email / SMS gateway integration</td><td><span class="chip pend">Credentials</span></td><td>Admin → Integrations ready (SMTP, MSG91, NIC SMS); nothing configured</td><td class="v">L6.3</td></tr>
+    <tr><td class="id">O5</td><td>MIS dashboard for administrators</td><td><span class="chip met">Met</span></td><td>Overview, Funnel, Reports</td><td class="v">L4.1</td></tr>
+    <tr><td class="id">O6</td><td>HTTPS / TLS encryption</td><td><span class="chip met">Met</span></td><td>Valid certificates on all sites</td><td class="v">—</td></tr>
+    <tr><td class="id">O7</td><td>File upload PDF/JPG, max 5 MB</td><td><span class="chip met">Met</span></td><td>Enforced by the server</td><td class="v">L1.18</td></tr>
+    <tr><td class="id">O8</td><td>Role-based access; PII encryption; vulnerability scans</td><td><span class="chip met">Met</span></td><td>Role guards; Aadhaar masked; OWASP audit July 2026</td><td class="v">L5.2</td></tr>
+    <tr><td class="id">O9</td><td>Accessibility (screen reader), GIGW</td><td><span class="chip part">Partial</span></td><td>Text size, screen-reader link, contrast; no formal GIGW audit yet</td><td class="v">—</td></tr>
+    <tr><td class="id">O10</td><td>Performance: &lt; 3 s pages, 5,000 concurrent users, 99.9% uptime</td><td><span class="chip test">Not tested</span></td><td>Current VM is 2 vCPU / 4 GB; needs a load test and production sizing</td><td class="v">—</td></tr>
+    <tr><td class="id">O11</td><td>Data backups; friendly error messages</td><td><span class="chip met">Met</span></td><td>Super Admin → Backups</td><td class="v">—</td></tr>
+    <tr><td class="id">O12</td><td>User acceptance testing</td><td><span class="chip test">In progress</span></td><td>Verify Lite project, tester assigned</td><td class="v">all</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>What we add beyond the FRS</h2>
+  <p class="read">These are not contracted, but they are what makes phase 1 workable at HPSEDC’s volume and safe for workers. Use them to round out the story, after the FRS items are shown.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Addition</th><th>Why it matters in phase 1</th></tr></thead>
+    <tbody>
+    <tr><td>Documents only when a job is waiting</td><td>Thousands apply; only the selected few pay for police clearance or medicals</td></tr>
+    <tr><td>Smart Job Importer</td><td>A Ministry batch of hundreds of vacancies goes live from one Excel file, every row checked</td></tr>
+    <tr><td>Match score on every job and applicant</td><td>Applicants see best-fit jobs; HPSEDC sorts applicants by best match</td></tr>
+    <tr><td>Configurable form and professions</td><td>HPSEDC changes questions and eligibility rules without a software release</td></tr>
+    <tr><td>Emigration Act compliance tracking</td><td>ECR, PCC, medical, PDO and PBBY recorded; ECR travel blocked until done</td></tr>
+    <tr><td>Welfare follow-up abroad</td><td>30/60/90-day check-ins and a worker’s own “I need help” route</td></tr>
+    <tr><td>Fraud reporting and duplicate detection</td><td>“Someone asked me for money” goes straight to officers; duplicate registrations caught</td></tr>
+    <tr><td>Ask HPSEDC messages</td><td>Applicants get answers without a formal grievance</td></tr>
+    <tr><td>Evidence lock and selection snapshot</td><td>Verified passport details cannot be quietly edited after selection</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>The end-to-end demo, in order</h2>
+  <p class="read">This is the sequence for the Secretary and for UAT. It runs on Lite’s Direct pipeline (Applied → Interview → Selected → Placed), which is how HPSEDC said they will operate.</p>
+  <div class="tablewrap">
+  <table class="act">
+    <thead><tr><th>#</th><th>Role</th><th>Step</th><th>FRS</th><th>Verify</th></tr></thead>
+    <tbody>
+    <tr class="group"><td colspan="5">Act 1 · HPSEDC sets the rules</td></tr>
+    <tr><td>1</td><td>Admin</td><td>Professions: the trades on offer and what each must hold</td><td>S9</td><td class="v">L4.3</td></tr>
+    <tr><td>2</td><td>Admin</td><td>Form Fields: what applicants are asked</td><td>S9</td><td class="v">L4.4</td></tr>
+    <tr><td>3</td><td>Admin</td><td>System Config: Direct pipeline, email confirmation, offer validity</td><td>S9</td><td class="v">L4.5</td></tr>
+    <tr class="group"><td colspan="5">Act 2 · Jobs arrive and are published</td></tr>
+    <tr><td>4</td><td>Admin</td><td>Import the Ministry batch from Excel; bad rows rejected</td><td>S4</td><td class="v">L4.2</td></tr>
+    <tr><td>5</td><td>Placement Cell</td><td>Post one job by hand; edit, preview, close</td><td>A2</td><td class="v">L2.2–L2.3</td></tr>
+    <tr><td>6</td><td>Placement Cell → Admin</td><td>Create a recruitment drive; admin approves; candidates notified</td><td>A5, G2</td><td class="v">L4.10</td></tr>
+    <tr class="group"><td colspan="5">Act 3 · Applicants register and apply</td></tr>
+    <tr><td>7</td><td>Applicant</td><td>Register in Hindi with voice input; four pages; print the form</td><td>S1, C3, C4</td><td class="v">L1.1–L1.11</td></tr>
+    <tr><td>8</td><td>Applicant</td><td>Alternative: “HPSEDC will call me” (if switched on)</td><td>S1</td><td class="v">to add</td></tr>
+    <tr><td>9</td><td>Applicant</td><td>Confirm email with the 6-digit code</td><td>C1</td><td class="v">L1.12</td></tr>
+    <tr><td>10</td><td>Applicant</td><td>Find a job by country, skill, salary; see match score; apply</td><td>C8, C9</td><td class="v">L1.13–L1.14</td></tr>
+    <tr><td>11</td><td>Applicant</td><td>Track the application in My Application</td><td>C9</td><td class="v">L1.15</td></tr>
+    <tr class="group"><td colspan="5">Act 4 · HPSEDC matches, interviews, selects</td></tr>
+    <tr><td>12</td><td>Placement Cell</td><td>Applications Pipeline; sort by best match; open profile; export CSV</td><td>A3</td><td class="v">L2.4–L2.5</td></tr>
+    <tr><td>13</td><td>Placement Cell</td><td>Candidate pool: search by skill, see who is open to outreach, call or email</td><td>A3</td><td class="v">to add</td></tr>
+    <tr><td>14</td><td>Placement Cell</td><td>Schedule interview (this is the shortlist); candidate notified</td><td>A4, A6</td><td class="v">L2.6</td></tr>
+    <tr><td>15</td><td>Applicant → Placement Cell</td><td>Candidate confirms or asks to reschedule; HPSEDC responds</td><td>A6</td><td class="v">L1.16, L2.7</td></tr>
+    <tr><td>16</td><td>Placement Cell</td><td>Record outcome: Pass / Select</td><td>A6, R2</td><td class="v">L2.8</td></tr>
+    <tr class="group"><td colspan="5">Act 5 · Documents and departure</td></tr>
+    <tr><td>17</td><td>Applicant</td><td>Upload the requested documents by phone photo; report PCC, medical, PBBY progress</td><td>S3, C7</td><td class="v">L1.17–L1.19</td></tr>
+    <tr><td>18</td><td>Placement Cell</td><td>Compliance record, visa status, appointment letter, travel date</td><td>S6, A7</td><td class="v">L2.9–L2.10</td></tr>
+    <tr><td>19</td><td>Applicant</td><td>Accept the offer: becomes Placed</td><td>S7</td><td class="v">L1.20</td></tr>
+    <tr class="group"><td colspan="5">Act 6 · After departure, and oversight</td></tr>
+    <tr><td>20</td><td>Placement Cell</td><td>30-day welfare check-in</td><td>R3</td><td class="v">L2.11</td></tr>
+    <tr><td>21</td><td>Applicant → Placement Cell</td><td>Ask HPSEDC message and a grievance; HPSEDC replies and acts</td><td>S8, G7</td><td class="v">L1.21, L2.12</td></tr>
+    <tr><td>22</td><td>Admin</td><td>Compliance, reports by district and skill, audit log, fraud watch</td><td>G3, G4, G6</td><td class="v">L4.1, L4.7–L4.9</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Fix before UAT</h2>
+  <div class="cards">
+    <div class="card">
+      <h3>Must fix (demo breaks without them)</h3>
+      <ol>
+        <li>All vacancies are closed: reopen with deadlines (HL-005)</li>
+        <li>No email delivery: configure a mail provider, or switch off email confirmation (HL-003)</li>
+        <li>First Submit bounces back to page 1 (HL-001)</li>
+        <li>Demo-login button on the sign-in page; turn quick login off (HL-004)</li>
+        <li>Re-point the mobile app to Lite and rebuild, or leave it out of the demo</li>
+        <li>Make the server IP static so DNS cannot break again</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>Should fix (closes FRS gaps)</h3>
+      <ol>
+        <li>Add country preference to the form (C5)</li>
+        <li>Document Verify / Reject for staff (G5, HL-008)</li>
+        <li>Forgot-password page (HL-002)</li>
+        <li>Applicant progress bar off by one stage (HL-006)</li>
+        <li>Agency funnel and reports still show six stages (HL-010)</li>
+        <li>FAQ / announcement editor for admins (S9), if time allows</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>Needs HPSEDC</h3>
+      <ul>
+        <li>HIM Access SSO client credentials (C2)</li>
+        <li>UIDAI / Aadhaar API access (C1)</li>
+        <li>DigiLocker API access (O3)</li>
+        <li>SMS gateway account, e.g. NIC SMS or MSG91 (O4)</li>
+        <li>Production hosting size for 5,000 concurrent users (O10)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Verify test cases</h2>
+  <div class="read">
+    <p>The Lite project holds <b>60 cases</b>: 50 feature cases and 10 known defects (HL-001 to HL-010). Every FRS item that is met has at least one case. Nothing has been signed off yet, so the project can still be reorganised without losing work.</p>
+    <p><b>Recommended changes:</b></p>
+    <ul>
+      <li>Re-order the cases inside each role card to follow the demo steps above, and add the step number to each title so Piyush can run Acts 1–6 in sequence.</li>
+      <li>Add the missing cases: candidate pool outreach (step 13), callback request (step 8, if switched on), and country preference once built.</li>
+      <li>Keep the 10 defect cases in their own section; they are retested after each fix.</li>
+      <li>Mobile project: keep its 47 cases, but only after the app points at Lite; until then mark it “not in phase-1 demo”.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Decisions needed</h2>
+  <ol class="decide read">
+    <li><b>Callback route:</b> switch “HPSEDC will call me” on and show it as the second easy option for applicants?</li>
+    <li><b>Shortlist:</b> present the Direct pipeline (interview everyone, as HPSEDC said), and mention the Screened pipeline with an explicit shortlist as a setting?</li>
+    <li><b>Fix list:</b> approve the must-fix and should-fix items so they can be built and retested before UAT.</li>
+    <li><b>Mobile app:</b> re-point and include it, or keep the demo web-only this round?</li>
+    <li><b>Verify:</b> apply the re-ordering and new cases to the Lite project now?</li>
+  </ol>
+</section>
+</main>
+</body>
+</html>

@@ -270,3 +270,26 @@ export type Signoff = typeof signoffs.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Issue = typeof issues.$inferSelect;
 export type Reviewer = typeof reviewers.$inferSelect;
+
+// ── Product Management library ──────────────────────────────────────
+// Contract, requirements, design and training documents, filed by category.
+// `audience` decides who can open each one:
+//   admin    → admin + delivery only (e.g. the signed Work Order)
+//   internal → + Agentryx testers (e.g. FRS coverage map with open defects)
+//   all      → every reviewer, incl. HTIS and HPSEDC (e.g. user guides)
+// Files live under uploads/pm/ and are served only through the access check.
+export const pmDocuments = pgTable("pm_documents", {
+  id: id(),
+  title: text("title").notNull(),
+  category: varchar("category", { length: 60 }).notNull(),
+  description: text("description"),
+  fileName: text("file_name").notNull(),          // stored name under uploads/pm/
+  originalName: text("original_name").notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  sizeBytes: integer("size_bytes").notNull().default(0),
+  audience: varchar("audience", { length: 16 }).notNull().default("admin"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  uploadedById: varchar("uploaded_by_id", { length: 21 }).references(() => reviewers.id),
+  createdAt: now(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ catIdx: index("pm_documents_category_idx").on(t.category, t.sortOrder) }));
