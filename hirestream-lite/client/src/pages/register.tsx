@@ -718,7 +718,12 @@ export default function RegisterPage() {
     setSaving(true);
     try {
       await apiRequest("PATCH", "/api/v1/candidates/profile", { profileComplete: true });
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/candidates/profile"] });
+      // HL-001: the dashboard guards (App.tsx) redirect to /register while the
+      // cached profile still says profileComplete=false. Mark the cache submitted
+      // now and wait for the fresh profile, so "/" never sees the stale value.
+      queryClient.setQueryData(["/api/v1/candidates/profile"], (old: any) =>
+        old?.data ? { ...old, data: { ...old.data, profileComplete: true } } : old);
+      await queryClient.refetchQueries({ queryKey: ["/api/v1/candidates/profile"] });
       savedSnapshot.current = answersKey;
       toast({ title: t("reg.submitted"), description: t("reg.submittedSub") });
       setLocation("/");
