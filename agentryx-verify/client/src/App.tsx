@@ -15,6 +15,7 @@ import { Settings } from "./pages/Settings";
 import { TeamQuestions } from "./pages/TeamQuestions";
 import { Findings } from "./pages/Findings";
 import { DocViewer } from "./pages/DocViewer";
+import { Run } from "./pages/Run";
 
 export function App() {
   return (
@@ -30,6 +31,7 @@ export function App() {
       <Route path="/findings/:id" component={Findings} />
       <Route path="/findings" component={Findings} />
       <Route path="/docs/:id" component={DocViewer} />
+      <Route path="/run" component={Run} />
       <Route path="/login" component={Login} />
       <Route path="/projects" component={Home} />
       <Route path="/admin/roadmap" component={Roadmap} />

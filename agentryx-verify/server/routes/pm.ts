@@ -30,6 +30,7 @@ export const PM_CATEGORIES = [
   "Plans & status",
   "Testing & quality",
   "Operations & security",
+  "Demo & presentation",
   "Training material",
 ] as const;
 const AUDIENCES = ["admin", "internal", "all"] as const;

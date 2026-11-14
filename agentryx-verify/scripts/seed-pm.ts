@@ -65,6 +65,9 @@ const DOCS: { title: string; category: string; audience: "admin" | "internal" | 
   { title: "Security audit (OWASP), Jul 2026", category: "Operations & security", audience: "admin", src: `${LITE}/Security_Audit_OWASP_2026-07-07.md`, description: "OWASP-based audit of the codebase and the fixes." },
   { title: "Codebase audit, Jul 2026", category: "Operations & security", audience: "admin", src: `${LITE}/Codebase_Audit_2026-07-06.md`, description: "Code quality and risk review." },
   { title: "Security master checklist", category: "Operations & security", audience: "admin", src: `${LITE}/Deployment Package/Security Audit/00_Security_Master_Checklist_HireStream.md`, description: "Controls checklist used before go-live." },
+  // ── Demo & presentation ──
+  { title: "Secretary demo script", category: "Demo & presentation", audience: "internal", src: `${LITE}/Demo/Secretary_Demo_Script.html`, description: "25-minute live demo for the Secretary: nine scenes, accounts, clicks, what to say, likely questions and fallbacks." },
+  { title: "Ministry job batch (demo file)", category: "Demo & presentation", audience: "internal", src: `${LITE}/Demo/Ministry_job_batch_demo.csv`, description: "Six vacancies for the Import Jobs step; one row has no country, so the importer rejects it." },
   // ── Training material ──
   { title: "Applicant User Guide", category: "Training material", audience: "all", src: `${GUIDES}/01_Applicant_User_Guide.pdf`, description: "Registering, applying and preparing to travel." },
   { title: "HPSEDC as Super Agency — User Guide", category: "Training material", audience: "all", src: `${GUIDES}/02_HPSEDC_Super_Agency_User_Guide.pdf`, description: "Day-to-day work of the Overseas Placement Cell." },

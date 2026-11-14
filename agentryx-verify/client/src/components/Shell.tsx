@@ -18,6 +18,7 @@ export type Overview = {
   projects: { id: string; slug: string; name: string; build_ref: string; description: string; cases: Case[] }[];
   running: { id: string; scope: string; started_at: string } | null;
   findingsOpen: number;
+  sessions: { n: number; title: string; role: string; account: string; minutes: number; intro: string; carry?: string }[];
 };
 export type Case = {
   id: string; project_id: string; projectSlug: string; item_ref: string; section: number; section_title: string;
@@ -25,7 +26,10 @@ export type Case = {
   my_decision: "accepted" | "rejected" | "waived" | null; my_comment: string | null; my_at: string | null; comment_count: number;
   auto: { status: "passed" | "failed"; detail: string | null; screenshot: string | null; at: string } | null;
   autoScope: string | null;
+  test_plan: "run" | "with" | "auto" | "blocked" | "later"; plan_note: string | null; session: number | null;
 };
+/** Cases the tester runs by hand (the others are checked together, automated, blocked or later). */
+export const byHand = (c: Case) => c.test_plan === "run";
 
 const Ctx = createContext<{ data: Overview | null; reload: () => Promise<void>; askAbout: (ref: string | null) => void; askRef: string | null } | null>(null);
 export const useWorkspace = () => useContext(Ctx)!;
@@ -142,7 +146,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   const onDoc = loc.startsWith("/docs/") ? loc.slice(6) : null;
   const docStarred = !!onDoc && starred.some((d) => d.id === onDoc);
   const inGroup = {
-    testing: /^\/(cases|automation|findings)/.test(loc),
+    testing: /^\/(cases|automation|findings|run)/.test(loc),
     help: loc.startsWith("/team-questions"),
     resources: /^\/(resources|docs)/.test(loc) || (loc.startsWith("/product") && !(data?.me.isAdmin)),
     manage: /^\/(questions|projects|admin|settings|p\/|product)/.test(loc) && !!data?.me.isAdmin,
@@ -168,11 +172,11 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   const askAbout = (ref: string | null) => openAsk("new", ref);
 
   const all = data?.projects.flatMap((p) => p.cases) ?? [];
-  const testable = all.filter((c) => c.delivery_status !== "not_delivered");
-  const passed = all.filter((c) => caseState(c) === "passed").length;
-  const failed = all.filter((c) => caseState(c) === "failed").length;
-  const toRun = testable.filter((c) => caseState(c) === "notrun").length;
-  const pct = all.length ? Math.round((passed / all.length) * 100) : 0;
+  const hand = all.filter(byHand);
+  const passed = hand.filter((c) => caseState(c) === "passed").length;
+  const failed = all.filter((c) => c.test_plan !== "later" && caseState(c) === "failed").length;
+  const toRun = hand.filter((c) => caseState(c) === "notrun").length;
+  const pct = hand.length ? Math.round((passed / hand.length) * 100) : 0;
   const T = SIDE[theme];
   const groups = ["Testing", "Ask for help", "Resources", "Manage"];
   const allShut = groups.every((g) => closed[g]);
@@ -187,8 +191,9 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
         <button onClick={() => setClosed(allShut ? {} : Object.fromEntries(groups.map((g) => [g, true])))} className={`text-xs ${T.muted} hover:underline px-2`}>{allShut ? "Expand all" : "Collapse all"}</button>
       </div>
       <Group title="Testing" here={inGroup.testing}>
+        <NavLink href="/run" label="Test run — step by step" count={toRun} />
         <NavLink href="/cases" label="All cases" count={all.length} tone="slate" />
-        <NavLink href="/cases?show=torun" label="To run" count={toRun} />
+        <NavLink href="/cases?show=torun" label="To run" count={toRun} tone="slate" />
         <NavLink href="/cases?show=failed" label="Failed — retest" count={failed} />
         <NavLink href="/cases?show=passed" label="Passed" count={passed} tone="slate" />
         {data.projects.map((p) => (
@@ -285,7 +290,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
             {data && (
               <div className="px-4 sm:px-6 lg:px-8 pb-2.5 flex flex-wrap items-center gap-2 text-sm">
                 <span className="font-bold text-white bg-emerald-600 rounded-full px-2.5 py-0.5 text-xs">{pct}%</span>
-                <span className="text-slate-700"><b>{passed}</b> of {all.length} passed</span>
+                <span className="text-slate-700"><b>{passed}</b> of {hand.length} hand-run cases passed</span>
                 <span className="text-slate-300">·</span>
                 <span className="text-slate-600"><b>{toRun}</b> to run</span>
                 <span className="text-slate-300">·</span>

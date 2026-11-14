@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { Search } from "lucide-react";
-import { Shell, useWorkspace, caseState, StatusChip, AutoChip } from "../components/Shell";
+import { Shell, useWorkspace, caseState, StatusChip, AutoChip, byHand } from "../components/Shell";
 
 /** Case list — grouped by act, in run order; filters for project and status. */
 const ROLE: Record<number, string> = { 1: "Applicant", 2: "Placement Cell", 3: "Employer", 4: "Admin" };
@@ -17,15 +17,18 @@ function Body() {
     const projects = data!.projects.filter((p) => project === "all" || p.slug === project);
     return projects.map((p) => {
       let cs = p.cases;
-      if (show === "torun") cs = cs.filter((c) => caseState(c) === "notrun" && c.delivery_status !== "not_delivered");
-      if (show === "failed") cs = cs.filter((c) => caseState(c) === "failed");
+      if (show === "torun") cs = cs.filter((c) => byHand(c) && caseState(c) === "notrun");
+      if (show === "failed") cs = cs.filter((c) => caseState(c) === "failed" && (c.test_plan !== "later" || project !== "all"));
       if (show === "passed") cs = cs.filter((c) => caseState(c) === "passed");
       if (show === "notbuilt") cs = cs.filter((c) => c.delivery_status === "not_delivered");
       if (q.trim()) { const t = q.toLowerCase(); cs = cs.filter((c) => `${c.item_ref} ${c.description} ${c.test_steps ?? ""}`.toLowerCase().includes(t)); }
       const acts: { act: string; cases: typeof cs }[] = [];
       for (const c of cs) {
         const last = acts[acts.length - 1];
-        if (last && last.act === c.section_title) last.cases.push(c); else acts.push({ act: c.section_title, cases: [c] });
+        // Lite cases are grouped by test-run session (the order to do them); others by section.
+        const ses = c.session != null ? data!.sessions.find((x) => x.n === c.session) : null;
+        const label = ses ? `${ses.n <= 12 ? `Session ${ses.n} · ` : ""}${ses.title}${ses.account !== "—" ? ` — ${ses.account}` : ""}` : c.section_title;
+        if (last && last.act === label) last.cases.push(c); else acts.push({ act: label, cases: [c] });
       }
       return { p, acts, count: cs.length };
     }).filter((g) => g.count > 0);
@@ -68,7 +71,7 @@ function Body() {
                       <span className="font-mono text-xs text-slate-500 w-12 pt-0.5 shrink-0">{c.item_ref}</span>
                       <span className="flex-1 min-w-0">
                         <span className="block text-[15px] text-slate-900">{c.description}</span>
-                        <span className="block text-xs text-slate-500 mt-0.5">{ROLE[c.section] ?? "General"}{c.delivery_status === "not_delivered" ? " · not built yet" : c.delivery_status === "partial" ? " · partly built" : ""}{c.comment_count ? ` · ${c.comment_count} comment${c.comment_count > 1 ? "s" : ""}` : ""}</span>
+                        <span className="block text-xs text-slate-500 mt-0.5">{ROLE[c.section] ?? "General"}{c.test_plan === "with" ? " · checked with another case" : c.test_plan === "auto" ? " · proved by automation" : c.test_plan === "blocked" ? " · not ready to test" : c.test_plan === "later" ? " · later" : c.delivery_status === "partial" ? " · partly built" : ""}{c.comment_count ? ` · ${c.comment_count} comment${c.comment_count > 1 ? "s" : ""}` : ""}</span>
                       </span>
                       <span className="flex flex-col items-end gap-1 shrink-0"><StatusChip c={c} /><AutoChip c={c} /></span>
                     </Link>

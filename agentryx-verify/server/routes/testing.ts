@@ -10,6 +10,7 @@ import { requireAuth } from "../middleware/auth";
 import { UPLOAD_DIR } from "../middleware/upload";
 import { aiEnabled } from "./ask";
 import { getSetting } from "../services/settings";
+import { SESSIONS } from "../services/testPlan";
 
 /**
  * Tester workspace API: cases in run order with my result and the latest
@@ -52,7 +53,7 @@ testingRouter.get("/overview", requireAuth, async (req, res) => {
   const ids = projects.map((p: any) => p.id);
   const cases = (await pool.query(
     `select r.id, r.project_id, r.item_ref, r.section, r.section_title, r.description, r.status as delivery_status,
-            r.test_steps, r.expected_result, r.evidence, r.sort_order,
+            r.test_steps, r.expected_result, r.evidence, r.sort_order, r.test_plan, r.plan_note, r.session,
             (select s.decision from signoffs s where s.requirement_id = r.id and s.level = $2) as my_decision,
             (select s.comment from signoffs s where s.requirement_id = r.id and s.level = $2) as my_comment,
             (select s.created_at from signoffs s where s.requirement_id = r.id and s.level = $2) as my_at,
@@ -78,6 +79,7 @@ testingRouter.get("/overview", requireAuth, async (req, res) => {
     projects: projects.map((p: any) => ({ ...p, cases: out.filter((c: any) => c.project_id === p.id) })),
     running,
     findingsOpen,
+    sessions: SESSIONS,
   });
 });
 
@@ -115,7 +117,7 @@ testingRouter.post("/auto/run", requireAuth, async (req, res) => {
   if (!(ADMIN.has(r.role) || r.role === "agentryx")) return res.status(403).json({ error: "Only Agentryx testers and admins can start automated runs" });
   if (!ADMIN.has(r.role) && !getSetting("testing.testers_can_run")) return res.status(403).json({ error: "Automated runs are switched off for testers in Settings" });
   const scope = String(req.body?.scope || "all");
-  if (!["all", "applicant", "agency", "admin", "defects"].includes(scope)) return res.status(400).json({ error: "Unknown scope" });
+  if (!["all", "applicant", "agency", "admin", "defects", "extras"].includes(scope)) return res.status(400).json({ error: "Unknown scope" });
   if (active) return res.status(409).json({ error: "An automated run is already in progress", runId: active });
   const runId = nanoid();
   active = runId;

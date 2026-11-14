@@ -53,6 +53,11 @@ function Body({ id }: { id: string }) {
           <video key={doc.id} controls preload="metadata" src={`${raw}${hash}`} className="w-full max-h-[calc(100vh-260px)] bg-black" />
         ) : doc.mimeType.startsWith("image/") ? (
           <img src={raw} alt={doc.title} className="w-full h-auto" />
+        ) : !["application/pdf", "text/html", "text/markdown", "text/plain"].includes(doc.mimeType) ? (
+          <div className="p-10 text-center">
+            <p className="text-slate-700">This file can't be shown in the browser.</p>
+            <a href={`${raw}&download=1`} className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-[#14213D] rounded-md px-4 py-2"><Download className="w-4 h-4" /> Download {doc.originalName}</a>
+          </div>
         ) : (
           <iframe key={doc.id + hash} title={doc.title} src={`${raw}${hash}`} className={`w-full ${frameH} min-h-[520px] bg-white`} />
         )}

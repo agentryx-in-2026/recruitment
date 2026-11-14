@@ -12,6 +12,7 @@ const SCOPES: [string, string, string][] = [
   ["agency", "Placement Cell", "Acts 2, 4–6: post job, pipeline, interviews, selection, departure, welfare"],
   ["applicant", "Applicant", "Acts 3–6: register, apply, interview, documents, offer, help"],
   ["defects", "Known defects", "Retest the fixed defects: reset password, Demo button, callback switch, four-stage views"],
+  ["extras", "Across the portal", "No-passport applicants, country code and WhatsApp, phone layout, idle timeout, evidence lock, drives and lifecycle"],
 ];
 
 function Body() {

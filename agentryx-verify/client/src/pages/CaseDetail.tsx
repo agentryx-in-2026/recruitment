@@ -90,7 +90,7 @@ function Body({ id }: { id: string }) {
   return (
     <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <div className="flex items-center justify-between gap-3 text-sm">
-        <Link href={`/cases?project=${c.projectSlug}`} className="text-slate-500 hover:text-slate-800 truncate">{c.section_title}</Link>
+        <Link href={c.session != null && c.session <= 12 ? "/run" : `/cases?project=${c.projectSlug}`} className="text-slate-500 hover:text-slate-800 truncate">{(() => { const ses = c.session != null ? data!.sessions.find((x) => x.n === c.session) : null; return ses ? `${ses.n <= 12 ? `Test run · Session ${ses.n} · ` : ""}${ses.title}` : c.section_title; })()}</Link>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-slate-400 tabular-nums">{pos + 1} / {sameProject.length}</span>
           <button disabled={!prev} onClick={() => prev && navigate(`/cases/${prev.id}`)} className="p-1.5 rounded-md border border-slate-200 disabled:opacity-30 hover:bg-white" aria-label="Previous case"><ChevronLeft className="w-4 h-4" /></button>
@@ -106,7 +106,20 @@ function Body({ id }: { id: string }) {
           <StatusChip c={c} />
         </div>
         <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-1 text-balance">{c.description}</h1>
-        {c.delivery_status === "not_delivered" && <p className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Not built yet — this case is expected to fail until the fix is released. Retest when told.</p>}
+        {(() => {
+          // Where this case sits in the test run, and which account to use.
+          const ses = c.session != null ? data!.sessions.find((x) => x.n === c.session) : null;
+          return ses && ses.n <= 12 ? (
+            <Link href="/run" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-[#F1F4FA] border border-[#14213D]/15 px-3 py-2 text-sm hover:border-[#14213D]/40">
+              <span className="font-semibold text-[#14213D]">Session {ses.n} · {ses.title}</span>
+              <span className="text-slate-600">Sign in as <span className="font-mono font-semibold text-slate-900">{ses.account}</span></span>
+            </Link>
+          ) : null;
+        })()}
+        {c.test_plan !== "run" && c.plan_note && (
+          <p className={`mt-2 text-sm rounded-lg px-3 py-2 border ${c.test_plan === "blocked" ? "text-amber-800 bg-amber-50 border-amber-200" : "text-slate-700 bg-slate-50 border-slate-200"}`}>{c.plan_note}</p>
+        )}
+        {c.test_plan === "run" && c.delivery_status === "not_delivered" && <p className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Not built yet — this case is expected to fail until the fix is released. Retest when told.</p>}
         {c.delivery_status === "partial" && <p className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Partly built — check what works and note what doesn’t.</p>}
       </div>
 

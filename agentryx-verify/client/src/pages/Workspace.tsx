@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { ArrowRight, PlayCircle, Flag, Bot, MessageCircleQuestion, ListChecks, History, Bug } from "lucide-react";
-import { Shell, Page, useWorkspace, caseState, StatusChip, AutoChip, type Case } from "../components/Shell";
+import { Shell, Page, useWorkspace, caseState, StatusChip, AutoChip, byHand, type Case } from "../components/Shell";
 import { KIND, Chip, stage } from "./Findings";
 
 /**
@@ -66,10 +66,10 @@ function Body() {
   const mobile = d.projects.find((p) => p.slug !== "hirestream-lite");
   const all = d.projects.flatMap((p) => p.cases);
   const count = (cs: Case[], s: string) => cs.filter((c) => caseState(c) === s).length;
-  const todo = (cs: Case[]) => cs.filter((c) => c.delivery_status !== "not_delivered" && caseState(c) === "notrun");
+  const todo = (cs: Case[]) => cs.filter((c) => byHand(c) && caseState(c) === "notrun");
   const upNext = todo(lite?.cases ?? []);
   const next = upNext[0];
-  const failed = all.filter((c) => caseState(c) === "failed");
+  const failed = all.filter((c) => caseState(c) === "failed" && c.test_plan !== "later");
   const defects = lite?.cases.filter((c) => c.item_ref.startsWith("L6.")) ?? [];
   const recent = all.filter((c) => c.my_at).sort((a, b) => +new Date(b.my_at!) - +new Date(a.my_at!)).slice(0, 6);
   const withAuto = all.filter((c) => c.autoScope);
@@ -79,13 +79,20 @@ function Body() {
   const myQs = qs.filter((q) => q.mine);
   const waiting = qs.filter((q) => q.status === "open").length;
 
-  const tracks = d.projects.map((p) => ({
-    p, label: p.slug === "hirestream-lite" ? "Web portal (Lite)" : "Mobile app",
-    acts: Array.from(new Set(p.cases.map((c) => c.section_title))).map((act) => {
-      const cs = p.cases.filter((c) => c.section_title === act);
-      return { act, total: cs.length, passed: count(cs, "passed"), failed: count(cs, "failed"), first: cs[0] };
-    }),
-  }));
+  // Web portal: progress per test-run session (hand-run cases). Mobile: per section, for later.
+  const tracks = d.projects.map((p) => {
+    const lite = p.slug === "hirestream-lite";
+    const keyOf = (c: Case) => lite ? (c.session ?? 0) : c.section_title;
+    const keys = Array.from(new Set(p.cases.filter((c) => !lite || (byHand(c) && (c.session ?? 99) <= 12)).map(keyOf)));
+    return {
+      p, label: lite ? "Web portal — test-run sessions" : "Mobile app (later)",
+      acts: keys.map((k) => {
+        const cs = p.cases.filter((c) => keyOf(c) === k && (!lite || byHand(c)));
+        const ses = lite ? d.sessions.find((x) => x.n === k) : null;
+        return { act: ses ? `${ses.n}. ${ses.title}` : String(k), total: cs.length, passed: count(cs, "passed"), failed: count(cs, "failed"), first: cs[0] };
+      }),
+    };
+  });
 
   return (
     <Page title="Start here"
@@ -98,11 +105,11 @@ function Body() {
       {next && (
         <section className="rounded-lg border border-[#14213D]/20 bg-[#F1F4FA] p-5 flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[260px]">
-            <div className="text-xs font-bold uppercase tracking-wider text-[#14213D]">Your next case · {next.section_title}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-[#14213D]">Your next case · {(() => { const ses = d.sessions.find((x) => x.n === next.session); return ses ? `Session ${ses.n}: ${ses.title} — sign in as ${ses.account}` : next.section_title; })()}</div>
             <div className="mt-1 text-lg font-semibold text-slate-900"><span className="font-mono text-sm text-slate-500 mr-2">{next.item_ref}</span>{next.description}</div>
             <div className="text-sm text-slate-600 mt-1 line-clamp-1">{next.test_steps}</div>
           </div>
-          <div className="text-sm text-slate-600">{upNext.length - 1} more web cases after this</div>
+          <div className="text-sm text-slate-600">{upNext.length - 1} more after this · <Link href="/run" className="text-indigo-700 hover:underline">see the whole test run</Link></div>
           <Link href={`/cases/${next.id}`} className="inline-flex items-center gap-2 bg-[#14213D] text-white text-sm font-semibold rounded-md px-4 py-2.5">Open the case <ArrowRight className="w-4 h-4" /></Link>
         </section>
       )}
@@ -122,7 +129,7 @@ function Body() {
       </section>
 
       <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] items-start">
-        <Panel title="Up next" icon={ListChecks} link={["/cases?show=torun", "All to run"]} empty="Every web case has a result. 🎉">
+        <Panel title="Up next" icon={ListChecks} link={["/run", "Test run"]} empty="Every hand-run case has a result. 🎉">
           {upNext.length > 0 && <div className="divide-y divide-slate-100 py-1">{upNext.slice(0, 6).map((c) => <CaseRow key={c.id} c={c} />)}</div>}
         </Panel>
 
@@ -178,7 +185,7 @@ function Body() {
           {recent.length > 0 && <div className="divide-y divide-slate-100 py-1">{recent.map((c) => <CaseRow key={c.id} c={c} extra={<span className="block text-xs text-slate-500">{when(c.my_at!)}</span>} />)}</div>}
         </Panel>
 
-        <Panel title="Progress by act" icon={ListChecks} link={["/cases", "All cases"]}>
+        <Panel title="Progress by session" icon={ListChecks} link={["/run", "Test run"]}>
           <div className="py-1">
             {tracks.map((t) => (
               <div key={t.p.id}>
