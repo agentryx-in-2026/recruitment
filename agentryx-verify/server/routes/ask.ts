@@ -60,6 +60,7 @@ const publicQ = (q: any) => ({
   id: q.id, question: q.question, answer: q.answer, status: q.status, contextRef: q.context_ref,
   answeredBy: q.answered_by === "ai" ? "Ask Agentryx" : q.answered_by_name ?? null,
   sources: q.sources, createdAt: q.created_at, answeredAt: q.answered_at, askedBy: q.asked_by_name,
+  _reviewerId: q.reviewer_id,
 });
 
 // GET /api/ask/status — is AI answering switched on?
@@ -115,6 +116,21 @@ askRouter.get("/all", requireAuth, async (req, res) => {
   const r = await me(req);
   if (!r || !ADMIN.has(r.role)) return res.status(403).json({ error: "Admin only" });
   res.json(await list("", []));
+});
+
+// GET /api/ask/team — the team's questions (MGC-style panel list). Everyone
+// signed in sees them so a tester finds an answer someone already got; for
+// non-admins the internal coverage-plan sources are dropped.
+askRouter.get("/team", requireAuth, async (req, res) => {
+  const r = await me(req);
+  if (!r) return res.status(401).json({ error: "Not signed in" });
+  const isAdmin = ADMIN.has(r.role);
+  const rows = await list("", []);
+  res.json(rows.map(({ _reviewerId, ...q }: any) => ({
+    ...q,
+    mine: _reviewerId === r.id,
+    sources: isAdmin ? q.sources : (q.sources ?? []).filter((s: any) => s.type !== "plan"),
+  })));
 });
 
 // PATCH /api/ask/:id { answer?, status? } — admin answers; the asker may close

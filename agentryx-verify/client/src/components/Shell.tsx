@@ -102,6 +102,10 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
         ))}
         <NavLink href="/automation" label="Automated runs" count={data.running ? "running" : undefined} />
       </Group>
+      <Group title="Ask for help">
+        <button onClick={() => { setAskOpen(true); setNavOpen(false); }} className="w-full text-left flex items-center justify-between rounded-md px-3 py-2 text-[15px] text-slate-200 hover:bg-white/10">Ask Agentryx</button>
+        <button onClick={() => { setAskRef(null); setAskOpen(true); setNavOpen(false); }} className="w-full text-left flex items-center justify-between rounded-md px-3 py-2 text-[15px] text-slate-200 hover:bg-white/10">Team questions</button>
+      </Group>
       <Group title="Resources">
         <NavLink href="/resources" label="Guides & videos" />
         <NavLink href="/product" label="Documents" />
@@ -170,9 +174,20 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
           <main className="flex-1 min-w-0">{data ? children : <div className="p-10 text-slate-400">Loading…</div>}</main>
         </div>
         {askOpen && data && (
-          <aside className="hidden md:flex w-[380px] shrink-0 border-l border-slate-200 bg-white sticky top-0 h-screen flex-col">
+          <aside className="hidden md:flex w-[420px] xl:w-[500px] shrink-0 border-l border-slate-200 bg-white sticky top-0 h-screen flex-col">
+            {/* Edge tab, as in the MGC portal: collapses the panel. */}
+            <button onClick={() => setAskOpen(false)} aria-label="Hide Ask Agentryx"
+              className="absolute -left-9 top-1/2 -translate-y-1/2 w-9 py-4 rounded-l-lg bg-[#14213D] text-white text-xs font-semibold flex flex-col items-center gap-2 shadow-md hover:bg-[#1d2d52]">
+              <span className="text-[10px]">▸</span><span className="[writing-mode:vertical-rl] rotate-180">Ask Agentryx</span>
+            </button>
             <AskPanel ai={data.ai} isAdmin={data.me.isAdmin} contextRef={askRef} onClose={() => setAskOpen(false)} clearContext={() => setAskRef(null)} />
           </aside>
+        )}
+        {!askOpen && data && (
+          <button onClick={() => setAskOpen(true)} aria-label="Open Ask Agentryx"
+            className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 w-9 py-4 rounded-l-lg bg-[#14213D] text-white text-xs font-semibold flex-col items-center gap-2 shadow-md hover:bg-[#1d2d52]">
+            <span className="text-[10px]">◂</span><span className="[writing-mode:vertical-rl] rotate-180">Ask Agentryx</span>
+          </button>
         )}
       </div>
     </Ctx.Provider>
