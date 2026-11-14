@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { api } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { Header } from "@/components/Header";
+import { Shell } from "@/components/Shell";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -61,15 +61,14 @@ export function FeedbackInbox() {
     return agg;
   }, [items]);
 
-  if (loading || !me || !project) return <div><Header /><div className="p-10 text-slate-400">Loading…</div></div>;
+  if (loading || !me || !project) return <Shell title="Feedback inbox"><div className="p-10 text-slate-400">Loading…</div></Shell>;
 
   return (
-    <div>
-      <Header />
-      <div className="max-w-6xl mx-auto px-4 py-6">
+    <Shell title="Feedback inbox">
+      <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Link href="/" className="hover:underline hover:text-agentryx-600">Projects</Link>
+            <Link href="/projects" className="hover:underline hover:text-agentryx-600">Projects</Link>
             <span>›</span>
             <Link href={`/p/${slug}`} className="hover:underline hover:text-agentryx-600">{project.name}</Link>
             <span>›</span>
@@ -130,7 +129,7 @@ export function FeedbackInbox() {
         projectId={project.id}
         onSubmitted={() => refresh()}
       />
-    </div>
+    </Shell>
   );
 }
 

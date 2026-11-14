@@ -32,7 +32,7 @@ export const feedbackTypeEnum = pgEnum("feedback_type", [
   "new_feature", "enhancement", "bug", "ux", "similar_sw", "other",
 ]);
 export const feedbackStatusEnum = pgEnum("feedback_status", [
-  "submitted", "triaged", "planned", "in_progress", "shipped", "declined", "duplicate",
+  "submitted", "triaged", "planned", "in_progress", "shipped", "declined", "duplicate", "closed",
 ]);
 export const sprintStatusEnum = pgEnum("sprint_status", [
   "draft", "in_progress", "deployed", "closed",

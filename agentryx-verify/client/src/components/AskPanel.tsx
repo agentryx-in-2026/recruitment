@@ -65,7 +65,7 @@ function Answer({ text }: { text: string }) {
   );
 }
 
-export function AskPanel({ ai, isAdmin, contextRef, onClose, clearContext }: { ai: boolean; isAdmin: boolean; contextRef: string | null; onClose: () => void; clearContext: () => void }) {
+export function AskPanel({ ai, isAdmin, contextRef, command, onClose, clearContext }: { ai: boolean; isAdmin: boolean; contextRef: string | null; command?: { view: "new" | "list"; n: number } | null; onClose: () => void; clearContext: () => void }) {
   const [tab, setTab] = useState<"ask" | "find">("ask");
   const [view, setView] = useState<"list" | "new" | "detail">("list");
   const [text, setText] = useState("");
@@ -79,6 +79,15 @@ export function AskPanel({ ai, isAdmin, contextRef, onClose, clearContext }: { a
   useEffect(() => { load(); }, []);
   // "Ask about this case" on a case page opens the composer with the case attached.
   useEffect(() => { if (contextRef) { setTab("ask"); setView("new"); } }, [contextRef]);
+  // Sidebar "Ask Agentryx" / edge tab: switch view even when the panel is already open, and show it happened.
+  const [flash, setFlash] = useState(false);
+  useEffect(() => {
+    if (!command) return;
+    setTab("ask"); setView(command.view); setError(null); load();
+    setFlash(true); const t = setTimeout(() => setFlash(false), 900);
+    if (command.view === "new") setTimeout(() => document.getElementById("ask-input")?.focus(), 50);
+    return () => clearTimeout(t);
+  }, [command?.n]);
 
   const ask = async () => {
     if (text.trim().length < 3) return;
@@ -102,7 +111,7 @@ export function AskPanel({ ai, isAdmin, contextRef, onClose, clearContext }: { a
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={`flex flex-col h-full transition-shadow ${flash ? "shadow-[inset_0_0_0_3px_#FBBF24]" : ""}`}>
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between gap-3">
@@ -111,7 +120,7 @@ export function AskPanel({ ai, isAdmin, contextRef, onClose, clearContext }: { a
         </div>
         <p className="text-sm text-slate-500 mt-1">
           {ai ? "Answers from the user guides, videos, FRS and test cases, with sources." : "Questions from testers, and your own. Answers come from the guides, videos, FRS and test cases."}
-          {isAdmin && <> <a href="/questions" className="text-indigo-700 font-medium hover:underline">All questions</a></>}
+          <> <a href="/team-questions" className="text-indigo-700 font-medium hover:underline">Open the full list</a></>
         </p>
         <div className="mt-4 grid grid-cols-2 bg-slate-100 rounded-lg p-1 text-sm">
           <button onClick={() => setTab("ask")} className={`rounded-md py-2 font-semibold ${tab === "ask" ? "bg-white shadow-sm text-slate-900" : "text-slate-500"}`}>Ask a question</button>

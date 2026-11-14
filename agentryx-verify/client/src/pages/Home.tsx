@@ -1,195 +1,101 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ClipboardCheck, Sparkles, ArrowRight, Lightbulb, ListChecks, ArrowDown, Eye, EyeOff, Smartphone } from "lucide-react";
-import { Header } from "../components/Header";
+import { Eye, EyeOff, ArrowRight, Smartphone, Globe, Archive, Lightbulb } from "lucide-react";
+import { Shell, Page, useWorkspace } from "../components/Shell";
 import { api } from "../lib/api";
-import { useRequireAuth } from "../lib/useRequireAuth";
 
-const PROJECT_ORDER: Record<string, { icon: "frs" | "mobile" | "smoke" | "extras"; badge: string; badgeColor: string; tip: string }> = {
-  "hirestream-lite":        { icon: "frs",    badge: "START HERE", badgeColor: "bg-emerald-600 text-white",     tip: "The web portal HPSEDC will launch. Test each role, then retest the known defects in §6 once they are fixed." },
-  "hirestream-v1.4":        { icon: "frs",    badge: "ARCHIVE",    badgeColor: "bg-slate-200 text-slate-700",     tip: "Earlier multi-agency build — superseded by HireStream Lite. Hidden from testers." },
-  "hirestream-mobile-v1.0": { icon: "mobile", badge: "STEP 2",     badgeColor: "bg-sky-100 text-sky-800",       tip: "Android mobile app testing. Install Expo Go, scan the QR code on the project page, and test candidate features." },
-  "hirestream-htis-smoke":  { icon: "smoke",  badge: "STEP 3",     badgeColor: "bg-sky-100 text-sky-800",       tip: "HTIS generic QA smoke checklist (77 rows, 15 sections). Verdicts from the Apr 22 workbook are pre-loaded in the HTIS signoff column." },
-  "hirestream-v1.5-extras": { icon: "extras", badge: "STEP 4",     badgeColor: "bg-indigo-100 text-indigo-700", tip: "Beyond-FRS enhancements delivered above the contracted scope. Hidden from non-admin reviewers by default — admin can re-enable." },
+/**
+ * Projects (admin) — every project in Verify, in the workspace layout.
+ * Shows who sees each project (testers or admins only), its build and backlog,
+ * and opens the full project view: sign-off matrix across HTIS / HPSEDC levels,
+ * sprints and re-verify badges, the defect log, exports and the feedback inbox.
+ */
+const NOTE: Record<string, { tag: string; tone: string; tip: string; Icon: any }> = {
+  "hirestream-lite": { tag: "Live UAT", tone: "bg-emerald-50 text-emerald-700 border-emerald-200", tip: "The web portal HPSEDC will launch. Testers work it from Start here.", Icon: Globe },
+  "hirestream-mobile-v1.0": { tag: "Live UAT", tone: "bg-emerald-50 text-emerald-700 border-emerald-200", tip: "Android app. Install Expo Go and scan the QR code on the project page.", Icon: Smartphone },
+  "hirestream-v1.4": { tag: "Archive", tone: "bg-slate-100 text-slate-600 border-slate-200", tip: "Earlier multi-agency build, superseded by HireStream Lite.", Icon: Archive },
+  "hirestream-htis-smoke": { tag: "Reference", tone: "bg-sky-50 text-sky-700 border-sky-200", tip: "HTIS generic QA smoke checklist; verdicts from the 22 Apr workbook pre-loaded.", Icon: Archive },
+  "hirestream-v1.5-extras": { tag: "Beyond FRS", tone: "bg-indigo-50 text-indigo-700 border-indigo-200", tip: "Enhancements delivered above the contracted scope.", Icon: Lightbulb },
 };
 
-export function Home() {
-  const { reviewer, loading } = useRequireAuth();
-  const [projects, setProjects] = useState<any[]>([]);
-  const [toggling, setToggling] = useState<string | null>(null);
+function Body() {
+  const { data, reload: reloadWs } = useWorkspace();
+  const [projects, setProjects] = useState<any[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const load = () => api.listProjects().then(setProjects).catch((e) => setErr(e.message));
+  useEffect(() => { load(); }, []);
+  const isAdmin = data!.me.isAdmin;
 
-  const reload = () => api.listProjects().then(setProjects).catch(() => {});
-  useEffect(() => { if (reviewer) reload(); }, [reviewer]);
+  const toggle = async (slug: string, next: boolean) => {
+    setBusy(slug); setErr(null);
+    try { await api.setProjectVisibility(slug, next); await load(); reloadWs(); }
+    catch (e: any) { setErr(e.message); } finally { setBusy(null); }
+  };
 
-  if (loading) return <div><Header /><div className="p-10 text-slate-400">Loading...</div></div>;
+  const visible = (projects ?? []).filter((p) => p.visibleToNonAdmin);
+  const hidden = (projects ?? []).filter((p) => !p.visibleToNonAdmin);
 
-  const isAdmin = reviewer?.role === "admin" || reviewer?.role === "delivery";
-
-  // Server already filters hidden projects for non-admin. Order defers to the
-  // `sort_order` column from the server (FRS=0, smoke=1, extras=2) so the UI
-  // doesn't need a second opinion on sequence.
-  const sorted = projects;
-
-  async function toggleVisibility(slug: string, next: boolean) {
-    setToggling(slug);
-    try {
-      await api.setProjectVisibility(slug, next);
-      await reload();
-    } catch (e) {
-      alert(`Could not update visibility: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      setToggling(null);
-    }
-  }
-
-  return (
-    <div>
-      <Header />
-      <div className="max-w-4xl mx-auto px-6 py-10">
-        <h1 className="text-3xl font-semibold text-slate-900">Projects under verification</h1>
-        <p className="text-slate-500 mt-1">Reviewer portal for scope-to-delivery sign-off across HTIS, HPSEDC Staging, and HPSEDC Final.</p>
-
-        <div className="mt-6 rounded-xl bg-gradient-to-r from-amber-50 via-amber-50 to-orange-50 border-2 border-amber-300 px-6 py-5 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full bg-amber-400 flex items-center justify-center shadow-sm">
-              <Lightbulb className="w-5 h-5 text-white" />
-            </div>
-            <h2 className="text-lg font-bold text-amber-900">How to review</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-start gap-3">
-              <span className="shrink-0 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shadow">1</span>
-              <div>
-                <div className="font-semibold text-amber-900">Open HireStream Lite</div>
-                <div className="text-amber-700 text-xs mt-0.5">The web portal HPSEDC will launch — start here.</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="shrink-0 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shadow">2</span>
-              <div>
-                <div className="font-semibold text-amber-900">Review each role</div>
-                <div className="text-amber-700 text-xs mt-0.5">Pick a role card (Candidate, Agency, etc.) and sign off its requirements.</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="shrink-0 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shadow">3</span>
-              <div>
-                <div className="font-semibold text-amber-900">Then the mobile app</div>
-                <div className="text-amber-700 text-xs mt-0.5">Test the Android app the same way, and verify its open issues.</div>
-              </div>
+  const Row = ({ p }: { p: any }) => {
+    const n = NOTE[p.slug] ?? { tag: "Project", tone: "bg-slate-100 text-slate-600 border-slate-200", tip: "", Icon: Globe };
+    return (
+      <tr className="hover:bg-slate-50 align-top">
+        <td className="px-5 py-4">
+          <div className="flex items-start gap-3">
+            <n.Icon className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <Link href={`/p/${p.slug}`} className="font-semibold text-slate-900 hover:underline">{p.name}</Link>
+              <div className="text-xs text-slate-500 mt-0.5 line-clamp-2 max-w-2xl">{n.tip || p.description}</div>
             </div>
           </div>
-        </div>
+        </td>
+        <td className="px-5 py-4"><span className={`text-[11px] font-semibold rounded-full border px-2 py-0.5 whitespace-nowrap ${n.tone}`}>{n.tag}</span></td>
+        <td className="px-5 py-4 text-sm text-slate-600 whitespace-nowrap">{p.contractor ?? ""}{p.client ? ` → ${p.client}` : ""}<div className="font-mono text-xs text-slate-500">{p.buildRef ?? ""}</div></td>
+        <td className="px-5 py-4 text-sm whitespace-nowrap">{p.needsFix ? <span className="text-rose-700 font-semibold">{p.needsFix} need fixing</span> : <span className="text-slate-500">—</span>}</td>
+        <td className="px-5 py-4 whitespace-nowrap">
+          {isAdmin ? (
+            <button disabled={busy === p.slug} onClick={() => toggle(p.slug, !p.visibleToNonAdmin)}
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold rounded-md border px-2.5 py-1.5 disabled:opacity-50 ${p.visibleToNonAdmin ? "bg-white text-emerald-700 border-emerald-300" : "bg-slate-50 text-slate-500 border-slate-300"}`}
+              title={p.visibleToNonAdmin ? "Testers can see this project — click to hide" : "Admins only — click to show testers"}>
+              {p.visibleToNonAdmin ? <><Eye className="w-3.5 h-3.5" /> Testers see it</> : <><EyeOff className="w-3.5 h-3.5" /> Admins only</>}
+            </button>
+          ) : null}
+        </td>
+        <td className="px-5 py-4 text-right"><Link href={`/p/${p.slug}`} className="inline-flex items-center gap-1 text-sm text-indigo-700 hover:underline whitespace-nowrap">Open <ArrowRight className="w-4 h-4" /></Link></td>
+      </tr>
+    );
+  };
 
-        <div className="flex justify-center my-3">
-          <ArrowDown className="w-5 h-5 text-amber-400 animate-bounce" />
-        </div>
-
-        <div className="mt-8 grid gap-5">
-          {sorted.length === 0 && <div className="text-slate-400 text-sm">No projects seeded yet.</div>}
-          {sorted.map((p) => {
-            const meta = PROJECT_ORDER[p.slug];
-            const variant = meta?.icon ?? "extras";
-            const hidden = !p.visibleToNonAdmin;
-            // Per-variant colour map. Kept inline rather than in a lookup so
-            // Tailwind's JIT doesn't prune the classes (dynamic template
-            // strings aren't detected by the class scanner).
-            const border =
-              variant === "frs"   ? "border-emerald-300 bg-emerald-50/50 hover:border-emerald-500" :
-              variant === "mobile"? "border-violet-300 bg-violet-50/40 hover:border-violet-500"    :
-              variant === "smoke" ? "border-sky-300 bg-sky-50/40 hover:border-sky-500"             :
-                                    "border-slate-200 bg-white hover:border-indigo-400";
-            const iconBox =
-              variant === "frs"   ? "bg-emerald-600 text-white" :
-              variant === "mobile"? "bg-violet-600 text-white"  :
-              variant === "smoke" ? "bg-sky-600 text-white"     :
-                                    "bg-indigo-100 text-indigo-600";
-            const arrow =
-              variant === "frs"   ? "text-emerald-500" :
-              variant === "mobile"? "text-violet-500"  :
-              variant === "smoke" ? "text-sky-500"     :
-                                    "text-slate-400";
-            const tipColor =
-              variant === "frs"   ? "text-emerald-700" :
-              variant === "mobile"? "text-violet-700"  :
-              variant === "smoke" ? "text-sky-700"     :
-                                    "text-indigo-600";
-            return (
-              <div key={p.id} className={`group relative rounded-xl border-2 p-6 transition-all hover:shadow-md ${border} ${hidden ? "opacity-75" : ""}`}>
-                <Link href={`/p/${p.slug}`} className="block">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 min-w-0">
-                      <div className={`shrink-0 w-11 h-11 rounded-lg flex items-center justify-center ${iconBox}`}>
-                        {variant === "frs"
-                          ? <ClipboardCheck className="w-6 h-6" />
-                          : variant === "mobile"
-                            ? <Smartphone className="w-6 h-6" />
-                            : variant === "smoke"
-                              ? <ListChecks className="w-6 h-6" />
-                              : <Sparkles className="w-6 h-6" />}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                          {meta && (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${meta.badgeColor}`}>
-                              {meta.badge}
-                            </span>
-                          )}
-                          <span className="font-semibold text-slate-900 text-lg">{p.name}</span>
-                          {hidden && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-700 border border-slate-300" title="Hidden from non-admin reviewers">
-                              <EyeOff className="w-3 h-3" /> Hidden
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-slate-500 mt-1">{p.description}</div>
-                        <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
-                          <span>{p.contractor} → {p.client}</span>
-                          <span>build {p.buildRef}</span>
-                          {/* Dev-team scoreboard. Renders as a red pill when
-                              there's anything to fix; collapses to a quiet
-                              green pill when the project is clean. The
-                              click-through opens the project — reviewers
-                              can flip on the "Needs fixing" chip there to
-                              focus on just the open items. */}
-                          {typeof p.needsFix === "number" && p.reviewable > 0 && (
-                            p.needsFix > 0 ? (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200 font-medium">
-                                🔧 {p.needsFix} need{p.needsFix === 1 ? "s" : ""} fixing
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
-                                ✓ no open defects
-                              </span>
-                            )
-                          )}
-                        </div>
-                        {meta && (
-                          <div className={`mt-3 text-xs ${tipColor}`}>
-                            {meta.tip}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <ArrowRight className={`shrink-0 w-5 h-5 mt-3 transition-transform group-hover:translate-x-1 ${arrow}`} />
-                  </div>
-                </Link>
-                {isAdmin && (
-                  <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleVisibility(p.slug, !p.visibleToNonAdmin); }}
-                    disabled={toggling === p.slug}
-                    className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-                    title={hidden ? "Show to non-admin reviewers" : "Hide from non-admin reviewers"}
-                  >
-                    {hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    {hidden ? "Hidden" : "Visible"}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+  const Table = ({ rows }: { rows: any[] }) => (
+    <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto">
+      <table className="w-full table-fixed min-w-[900px]">
+        <thead><tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
+          <th className="px-5 py-2.5 font-semibold w-[44%] min-w-[340px]">Project</th><th className="px-5 py-2.5 font-semibold">Stage</th><th className="px-5 py-2.5 font-semibold">Vendor / build</th><th className="px-5 py-2.5 font-semibold">Backlog</th><th className="px-5 py-2.5 font-semibold">Who sees it</th><th />
+        </tr></thead>
+        <tbody className="divide-y divide-slate-100">{rows.map((p) => <Row key={p.id} p={p} />)}</tbody>
+      </table>
     </div>
   );
+
+  return (
+    <Page title="Projects" sub="Every project in Verify. Open one for the full sign-off matrix across HTIS and HPSEDC levels, sprints and re-verify badges, the defect log, exports and feedback. Testers only see the projects marked “Testers see it”.">
+      {err && <div className="rounded-md border border-rose-200 bg-rose-50 text-rose-700 px-4 py-2.5 text-sm">{err}</div>}
+      {projects === null ? <p className="text-slate-400">Loading…</p> : (<>
+        <section className="space-y-2.5">
+          <div className="flex items-baseline gap-3"><h2 className="font-serif text-xl font-bold text-slate-900">In testing</h2><span className="text-sm text-slate-500">Visible to testers</span></div>
+          {visible.length ? <Table rows={visible} /> : <p className="text-sm text-slate-500">No project is visible to testers.</p>}
+        </section>
+        {isAdmin && hidden.length > 0 && (
+          <section className="space-y-2.5">
+            <div className="flex items-baseline gap-3"><h2 className="font-serif text-xl font-bold text-slate-900">Archive and reference</h2><span className="text-sm text-slate-500">Admins only</span></div>
+            <Table rows={hidden} />
+          </section>
+        )}
+      </>)}
+    </Page>
+  );
+}
+
+export function Home() {
+  return <Shell title="Projects"><Body /></Shell>;
 }

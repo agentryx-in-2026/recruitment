@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "wouter";
 import { Download, FileText, MessageSquare, AlertCircle, Filter, LogIn, ChevronRight, Lightbulb, MousePointerClick, CircleDot, X, Paperclip, Link2, Check } from "lucide-react";
 import { Link } from "wouter";
-import { Header } from "../components/Header";
+import { Shell } from "../components/Shell";
 import { api } from "../lib/api";
 import { useRequireAuth } from "../lib/useRequireAuth";
 import { FeedbackCard, IdeasButton } from "../components/FeedbackCard";
@@ -217,16 +217,15 @@ export function ProjectView() {
 
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  if (authLoading || !data) return <div><Header /><div className="p-10 text-slate-400">Loading…</div></div>;
+  if (authLoading || !data) return <Shell title="Project"><div className="p-10 text-slate-400">Loading…</div></Shell>;
 
   return (
-    <div>
-      <Header />
-      <div className="max-w-[1500px] mx-auto px-6 py-8">
+    <Shell title="Project">
+      <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6">
         {/* Project header */}
         <div className="flex items-baseline justify-between">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900">{data.project.name}</h1>
+            <h1 className="font-serif text-[26px] font-bold text-slate-900">{data.project.name}</h1>
             <div className="text-sm text-slate-500 mt-1">
               {data.project.contractor} → {data.project.client} · build {data.project.buildRef}
             </div>
@@ -309,7 +308,7 @@ export function ProjectView() {
         <ActivityFeed slug={slug} me={me} />
         <IssuesPanel slug={slug} canEdit={!!me} me={me} />
       </div>
-    </div>
+    </Shell>
   );
 }
 
@@ -1213,7 +1212,7 @@ function ContextStrip({ data, level, activeRole, onPickRole, needsFixOnly, onTog
           with no obvious return path. */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-1.5 text-xs text-slate-500">
-          <Link href="/" className="hover:text-agentryx-600 hover:underline">All projects</Link>
+          <Link href="/projects" className="hover:text-agentryx-600 hover:underline">All projects</Link>
           <ChevronRight className="w-3 h-3 text-slate-300" />
           <button onClick={() => onPickRole(null)}
             className="hover:text-agentryx-600 hover:underline">Overview</button>

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { CheckCircle2, LogOut, Menu, X, ChevronDown, ExternalLink, RefreshCw } from "lucide-react";
+import { CheckCircle2, LogOut, Menu, X, ChevronDown, ExternalLink, RefreshCw, Flag } from "lucide-react";
 import { api } from "../lib/api";
 import { AskPanel } from "./AskPanel";
 
@@ -12,16 +12,17 @@ import { AskPanel } from "./AskPanel";
  * Every workspace page shares one /api/testing/overview load through context.
  */
 export type Overview = {
-  me: { name: string; role: string; level: string; isAdmin: boolean };
+  me: { id: string; name: string; role: string; level: string; isAdmin: boolean };
   ai: boolean;
   config: { portalUrl: string; accounts: { role: string; username: string }[]; password: string; testersCanRun: boolean; failNoteRequired: boolean; mobileNote: string };
   projects: { id: string; slug: string; name: string; build_ref: string; description: string; cases: Case[] }[];
   running: { id: string; scope: string; started_at: string } | null;
+  findingsOpen: number;
 };
 export type Case = {
   id: string; project_id: string; projectSlug: string; item_ref: string; section: number; section_title: string;
   description: string; delivery_status: string; test_steps: string | null; expected_result: string | null; evidence: string | null;
-  my_decision: "accepted" | "rejected" | "waived" | null; my_comment: string | null; comment_count: number;
+  my_decision: "accepted" | "rejected" | "waived" | null; my_comment: string | null; my_at: string | null; comment_count: number;
   auto: { status: "passed" | "failed"; detail: string | null; screenshot: string | null; at: string } | null;
   autoScope: string | null;
 };
@@ -124,6 +125,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   const [data, setData] = useState<Overview | null>(null);
   const [askOpen, setAskOpen] = useState(() => { try { return localStorage.getItem("verify-ask-open") !== "0"; } catch { return true; } });
   const [askRef, setAskRef] = useState<string | null>(null);
+  const [askCmd, setAskCmd] = useState<{ view: "new" | "list"; n: number } | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => { try { return (localStorage.getItem("verify-theme") as Theme) || "light"; } catch { return "light"; } });
   const [closed, setClosed] = useState<Record<string, boolean>>(() => { try { return JSON.parse(localStorage.getItem("verify-nav-closed") || "{}"); } catch { return {}; } });
@@ -143,7 +145,12 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   }, [theme]);
   useEffect(() => { try { localStorage.setItem("verify-nav-closed", JSON.stringify(closed)); } catch { /* */ } }, [closed]);
   useEffect(() => { document.title = title ? `${title} · Agentryx Verify` : "Agentryx Verify"; }, [title]);
-  const askAbout = (ref: string | null) => { setAskRef(ref); setAskOpen(true); };
+  // Open the panel on a given view. Below the md breakpoint the panel is hidden, so go to the full page instead.
+  const openAsk = (view: "new" | "list", ref: string | null = null) => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) { navigate(view === "new" ? "/team-questions?new=1" : "/team-questions"); return; }
+    setAskRef(ref); setAskOpen(true); setAskCmd((c) => ({ view, n: (c?.n ?? 0) + 1 }));
+  };
+  const askAbout = (ref: string | null) => openAsk("new", ref);
 
   const all = data?.projects.flatMap((p) => p.cases) ?? [];
   const testable = all.filter((c) => c.delivery_status !== "not_delivered");
@@ -174,10 +181,11 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
             count={`${p.cases.filter((c) => caseState(c) === "passed").length}/${p.cases.length}`} tone="slate" />
         ))}
         <NavLink href="/automation" label="Automated runs" count={data.running ? "running" : undefined} />
+        <NavLink href="/findings" label="Findings" count={data.findingsOpen || undefined} />
       </Group>
       <Group title="Ask for help">
-        <NavButton label="Ask Agentryx" onClick={() => { setAskRef(null); setAskOpen(true); }} />
-        <NavButton label="Team questions" onClick={() => { setAskRef(null); setAskOpen(true); }} />
+        <NavButton label="Ask Agentryx" onClick={() => openAsk("new")} />
+        <NavLink href="/team-questions" label="Team questions" />
       </Group>
       <Group title="Resources">
         <NavLink href="/resources" label="Guides & videos" />
@@ -188,7 +196,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
           <div className={`mt-5 mx-2 pt-3 border-t ${T.rule} text-[11px] font-bold tracking-[0.14em] uppercase ${T.group}`}>Admin</div>
           <Group title="Manage">
             <NavLink href="/questions" label="Questions inbox" />
-            <NavLink href="/projects" label="Projects (classic view)" />
+            <NavLink href="/projects" label="Projects" />
             <NavLink href="/admin/roadmap" label="Verify roadmap" />
             <NavLink href="/settings" label="Settings" />
           </Group>
@@ -246,6 +254,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
                       <div className="text-xs text-slate-500 mt-2">Password for all: <span className="font-mono">{data.config.password}</span></div>
                     </Menu2>
                   </div>
+                  <span className="hidden md:inline-flex"><Pill onClick={() => navigate("/findings?new=1")}><Flag className="w-3.5 h-3.5 text-rose-600" /> Report a finding</Pill></span>
                   <span className="hidden md:inline-flex"><Pill href={`${data.config.portalUrl}/auth`}>Lite portal <ExternalLink className="w-3.5 h-3.5 text-slate-400" /></Pill></span>
                   <span className="hidden sm:inline-flex"><Pill onClick={() => reload()}><RefreshCw className="w-3.5 h-3.5" /><span className="sr-only">Refresh</span></Pill></span>
                   <Menu2 label={<><b className="font-semibold text-slate-900">{data.me.name.split(" ")[0]}</b><span className="hidden sm:inline text-xs text-slate-500">{data.me.level === "agentryx" ? "Agentryx" : data.me.level.replace("_", " ")}</span></>}>
@@ -288,11 +297,11 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
               className="absolute -left-9 top-1/2 -translate-y-1/2 w-9 py-4 rounded-l-lg bg-[#14213D] text-white text-xs font-semibold flex flex-col items-center gap-2 shadow-md hover:bg-[#1d2d52]">
               <span className="[writing-mode:vertical-rl] rotate-180 tracking-wide">Ask Agentryx</span><span className="text-[10px]">▶</span>
             </button>
-            <AskPanel ai={data.ai} isAdmin={data.me.isAdmin} contextRef={askRef} onClose={() => setAskOpen(false)} clearContext={() => setAskRef(null)} />
+            <AskPanel ai={data.ai} isAdmin={data.me.isAdmin} contextRef={askRef} command={askCmd} onClose={() => setAskOpen(false)} clearContext={() => setAskRef(null)} />
           </aside>
         )}
         {!askOpen && data && (
-          <button onClick={() => setAskOpen(true)} aria-label="Open Ask Agentryx" title="Open Ask Agentryx"
+          <button onClick={() => openAsk("list")} aria-label="Open Ask Agentryx" title="Open Ask Agentryx"
             className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 w-9 py-4 rounded-l-lg bg-[#14213D] text-white text-xs font-semibold flex-col items-center gap-2 shadow-md hover:bg-[#1d2d52]">
             <span className="[writing-mode:vertical-rl] rotate-180 tracking-wide">Ask Agentryx</span><span className="text-[10px]">◀</span>
           </button>

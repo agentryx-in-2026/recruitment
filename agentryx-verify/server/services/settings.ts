@@ -35,6 +35,8 @@ let cache: Partial<Record<SettingKey, any>> = {};
 export async function loadSettings() {
   await pool.query(`create table if not exists app_settings (
     key text primary key, value jsonb not null, updated_at timestamptz not null default now(), updated_by text)`);
+  // Findings: a tester confirms a fix by closing it ("closed" was added for the tester workspace).
+  await pool.query("alter type feedback_status add value if not exists 'closed'");
   const rows = (await pool.query("select key, value from app_settings")).rows;
   cache = Object.fromEntries(rows.map((r: any) => [r.key, r.value]));
 }

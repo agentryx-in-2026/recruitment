@@ -45,7 +45,7 @@ async function nextReferenceCode(): Promise<string> {
 // ── Submit a new feedback item ──────────────────────────────────────
 feedbackRouter.post("/", requireAuth, async (req, res) => {
   const reviewerId = req.session.reviewerId!;
-  const { projectId, type, title, description, area, similarTo, priority } = req.body ?? {};
+  const { projectId, type, title, description, area, similarTo, priority, linkedToItemRef } = req.body ?? {};
 
   // Basic server-side validation — matches the UI form rules.
   if (!type || !title || !description) {
@@ -73,7 +73,8 @@ feedbackRouter.post("/", requireAuth, async (req, res) => {
     description: (description as string).trim(),
     area: area ?? null,
     similarTo: type === "similar_sw" ? similarTo : null,
-    priority: priority ?? "normal",
+    priority: ["low", "normal", "high", "critical"].includes(priority) ? priority : "normal",
+    linkedToItemRef: linkedToItemRef ? String(linkedToItemRef).slice(0, 24) : null,
   }).returning();
 
   res.status(201).json(row);
@@ -188,7 +189,18 @@ feedbackRouter.get("/:id", requireAuth, async (req, res) => {
 // ── Admin: update status / priority / assignment / notes / link ────
 feedbackRouter.patch("/:id", requireAuth, async (req, res) => {
   const me = await currentReviewer(req.session.reviewerId!);
-  if (!canTriage(me)) return res.status(403).json({ error: "Triage access required" });
+  if (!me) return res.status(401).json({ error: "Reviewer not found" });
+  if (!canTriage(me)) {
+    // The reporter may close their own finding once fixed, or reopen it.
+    const [own] = await db.select().from(feedbackItems).where(eq(feedbackItems.id, req.params.id));
+    const keys = Object.keys(req.body ?? {});
+    if (!own || own.submitterReviewerId !== me.id || keys.some((k) => k !== "status") || !["closed", "submitted"].includes(req.body?.status)) {
+      return res.status(403).json({ error: "Triage access required" });
+    }
+  }
+  if ("status" in (req.body ?? {}) && !["submitted", "triaged", "planned", "in_progress", "shipped", "declined", "duplicate", "closed"].includes(req.body.status)) {
+    return res.status(400).json({ error: "Invalid status" });
+  }
 
   const allowed = ["status", "priority", "assignedToId", "adminNotes", "linkedToItemRef"] as const;
   const patch: Record<string, any> = {};

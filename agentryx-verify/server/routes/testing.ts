@@ -55,6 +55,7 @@ testingRouter.get("/overview", requireAuth, async (req, res) => {
             r.test_steps, r.expected_result, r.evidence, r.sort_order,
             (select s.decision from signoffs s where s.requirement_id = r.id and s.level = $2) as my_decision,
             (select s.comment from signoffs s where s.requirement_id = r.id and s.level = $2) as my_comment,
+            (select s.created_at from signoffs s where s.requirement_id = r.id and s.level = $2) as my_at,
             (select count(*) from comments c where c.requirement_id = r.id)::int as comment_count,
             (select json_build_object('status', a.status, 'detail', a.detail, 'screenshot', a.screenshot, 'at', a.created_at)
                from auto_results a where a.requirement_id = r.id order by a.created_at desc limit 1) as auto
@@ -65,8 +66,10 @@ testingRouter.get("/overview", requireAuth, async (req, res) => {
     autoScope: slugById.get(c.project_id) === "hirestream-lite" ? cov[c.item_ref] ?? null : null,
   }));
   const running = (await pool.query("select id, scope, started_at from auto_runs where status = 'running' order by started_at desc limit 1")).rows[0] ?? null;
+  const findingsOpen = (await pool.query(
+    `select count(*)::int as n from feedback_items where project_id = any($1) and status not in ('shipped','declined','duplicate','closed')`, [ids])).rows[0].n;
   res.json({
-    me: { name: r.name, role: r.role, level, isAdmin },
+    me: { id: r.id, name: r.name, role: r.role, level, isAdmin },
     ai: aiEnabled(),
     config: {
       portalUrl: getSetting("testing.portal_url"), accounts: getSetting("testing.accounts"), password: getSetting("testing.password"),
@@ -74,6 +77,7 @@ testingRouter.get("/overview", requireAuth, async (req, res) => {
     },
     projects: projects.map((p: any) => ({ ...p, cases: out.filter((c: any) => c.project_id === p.id) })),
     running,
+    findingsOpen,
   });
 });
 

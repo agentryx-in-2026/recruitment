@@ -12,6 +12,8 @@ import { Automation } from "./pages/Automation";
 import { Resources } from "./pages/Resources";
 import { Questions } from "./pages/Questions";
 import { Settings } from "./pages/Settings";
+import { TeamQuestions } from "./pages/TeamQuestions";
+import { Findings } from "./pages/Findings";
 
 export function App() {
   return (
@@ -23,6 +25,9 @@ export function App() {
       <Route path="/resources" component={Resources} />
       <Route path="/questions" component={Questions} />
       <Route path="/settings" component={Settings} />
+      <Route path="/team-questions" component={TeamQuestions} />
+      <Route path="/findings/:id" component={Findings} />
+      <Route path="/findings" component={Findings} />
       <Route path="/login" component={Login} />
       <Route path="/projects" component={Home} />
       <Route path="/admin/roadmap" component={Roadmap} />
