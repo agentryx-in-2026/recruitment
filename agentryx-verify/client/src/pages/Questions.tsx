@@ -30,10 +30,10 @@ function Body() {
   const shown = qs.filter((q) => filter === "all" || q.status === "open");
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-slate-900">Questions inbox</h1>
+          <h1 className="font-serif text-[26px] font-bold text-slate-900">Questions inbox</h1>
           <p className="text-sm text-slate-600 mt-1">{data!.ai ? "AI answers most questions; check them and answer the rest." : "AI answering is off (no Anthropic key on the server). Testers get matching passages; answer here."}</p>
         </div>
         <button onClick={reindex} className="inline-flex items-center gap-1.5 text-sm border border-slate-300 rounded-md px-3 py-1.5 hover:bg-white"><RefreshCw className="w-4 h-4" /> Rebuild knowledge</button>

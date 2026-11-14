@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
 import { UPLOAD_DIR } from "../middleware/upload";
 import { aiEnabled } from "./ask";
+import { getSetting } from "../services/settings";
 
 /**
  * Tester workspace API: cases in run order with my result and the latest
@@ -67,6 +68,10 @@ testingRouter.get("/overview", requireAuth, async (req, res) => {
   res.json({
     me: { name: r.name, role: r.role, level, isAdmin },
     ai: aiEnabled(),
+    config: {
+      portalUrl: getSetting("testing.portal_url"), accounts: getSetting("testing.accounts"), password: getSetting("testing.password"),
+      testersCanRun: getSetting("testing.testers_can_run"), failNoteRequired: getSetting("testing.fail_note_required"), mobileNote: getSetting("testing.mobile_note"),
+    },
     projects: projects.map((p: any) => ({ ...p, cases: out.filter((c: any) => c.project_id === p.id) })),
     running,
   });
@@ -104,6 +109,7 @@ testingRouter.post("/auto/run", requireAuth, async (req, res) => {
   const r = await me(req);
   if (!r) return res.status(401).json({ error: "Not authenticated" });
   if (!(ADMIN.has(r.role) || r.role === "agentryx")) return res.status(403).json({ error: "Only Agentryx testers and admins can start automated runs" });
+  if (!ADMIN.has(r.role) && !getSetting("testing.testers_can_run")) return res.status(403).json({ error: "Automated runs are switched off for testers in Settings" });
   const scope = String(req.body?.scope || "all");
   if (!["all", "applicant", "agency", "admin", "defects"].includes(scope)) return res.status(400).json({ error: "Unknown scope" });
   if (active) return res.status(409).json({ error: "An automated run is already in progress", runId: active });
@@ -115,6 +121,8 @@ testingRouter.post("/auto/run", requireAuth, async (req, res) => {
   const child = spawn("bash", [path.join(AUTO_DIR, "run.sh"), scope, runId], { cwd: AUTO_DIR, env: { ...process.env } });
   child.stdout.on("data", (d) => { log += d.toString(); pool.query("update auto_runs set log=$1 where id=$2", [log.slice(-20000), runId]).catch(() => {}); });
   child.stderr.on("data", (d) => { log += d.toString(); });
+  const timer = setTimeout(() => { log += `\nStopped: longer than ${getSetting("testing.run_timeout_min")} minutes (Settings, Testing).`; child.kill("SIGTERM"); }, getSetting("testing.run_timeout_min") * 60_000);
+  child.on("exit", () => clearTimeout(timer));
   child.on("close", (code) => finishRun(runId, code === 0 ? "finished" : "error", log).catch(() => { active = null; }));
   child.on("error", (e) => finishRun(runId, "error", `${log}\n${e.message}`).catch(() => { active = null; }));
   res.json({ runId, scope });

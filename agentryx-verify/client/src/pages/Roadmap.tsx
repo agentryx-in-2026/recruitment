@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Header } from "../components/Header";
+import { Shell } from "../components/Shell";
 import { useRequireAuth } from "../lib/useRequireAuth";
 import { ROADMAP, statsAllPhases, statsForPhase, type FeatureStatus, type RoadmapPhase } from "@shared/roadmap";
 import { ChevronDown, ChevronRight, CheckCircle2, Clock, Circle, Sparkles, Map } from "lucide-react";
@@ -31,15 +31,14 @@ export function Roadmap() {
 
   const overall = useMemo(() => statsAllPhases(ROADMAP), []);
 
-  if (loading) return <div><Header /><div className="p-10 text-slate-400">Loading…</div></div>;
+  if (loading) return <Shell title="Verify roadmap"><div className="p-10 text-slate-400">Loading…</div></Shell>;
   if (!reviewer || !["admin", "delivery"].includes(reviewer.role)) {
-    return <div><Header /><div className="p-10 text-slate-400">Redirecting…</div></div>;
+    return <Shell title="Verify roadmap"><div className="p-10 text-slate-400">Redirecting…</div></Shell>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
-      <div className="max-w-6xl mx-auto px-6 py-8">
+    <Shell title="Verify roadmap">
+      <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6">
         {/* Page header */}
         <div className="flex items-start justify-between gap-6 flex-wrap">
           <div>
@@ -47,7 +46,7 @@ export function Roadmap() {
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-agentryx-600 to-indigo-600 flex items-center justify-center shadow-sm">
                 <Map className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-3xl font-semibold text-slate-900">Product Roadmap</h1>
+              <h1 className="font-serif text-[26px] font-bold text-slate-900">Product Roadmap</h1>
             </div>
             <div className="text-sm text-slate-500 mt-2 max-w-2xl">{ROADMAP.vision}</div>
             <div className="text-xs text-slate-400 mt-1">
@@ -147,7 +146,7 @@ export function Roadmap() {
           mirrored in <span className="font-mono">shared/roadmap.ts</span>
         </div>
       </div>
-    </div>
+    </Shell>
   );
 }
 

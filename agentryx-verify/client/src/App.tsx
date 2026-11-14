@@ -11,6 +11,7 @@ import { CaseDetail } from "./pages/CaseDetail";
 import { Automation } from "./pages/Automation";
 import { Resources } from "./pages/Resources";
 import { Questions } from "./pages/Questions";
+import { Settings } from "./pages/Settings";
 
 export function App() {
   return (
@@ -21,6 +22,7 @@ export function App() {
       <Route path="/automation" component={Automation} />
       <Route path="/resources" component={Resources} />
       <Route path="/questions" component={Questions} />
+      <Route path="/settings" component={Settings} />
       <Route path="/login" component={Login} />
       <Route path="/projects" component={Home} />
       <Route path="/admin/roadmap" component={Roadmap} />

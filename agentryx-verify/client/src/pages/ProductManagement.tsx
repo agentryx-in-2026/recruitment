@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Header } from "../components/Header";
+import { Shell } from "../components/Shell";
 import { useRequireAuth } from "../lib/useRequireAuth";
-import { FileText, FileVideo, FileImage, FileCode, File as FileIcon, ExternalLink, Upload, Trash2, Lock, Users, Globe, FolderOpen } from "lucide-react";
+import { FileText, FileVideo, FileImage, FileCode, File as FileIcon, ExternalLink, Upload, Trash2, Lock, Users, Globe } from "lucide-react";
 
 /**
  * Product Management — the project's reference library (contract, FRS/SRS,
@@ -69,16 +69,14 @@ export function ProductManagement() {
     finally { setBusy(false); }
   };
 
-  if (loading || !data) return <div><Header /><div className="p-10 text-slate-400">{error ?? "Loading…"}</div></div>;
+  if (loading || !data) return <Shell title="Documents"><div className="p-10 text-slate-400">{error ?? "Loading…"}</div></Shell>;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+    <Shell title="Documents">
+      <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-agentryx-600 text-white flex items-center justify-center shrink-0"><FolderOpen className="w-5 h-5" /></div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Product Management</h1>
+            <h1 className="font-serif text-[26px] font-bold text-slate-900">Documents</h1>
             <p className="text-slate-600 mt-1">Contract, requirements, design and training documents for HireStream Lite and the mobile app.
               {data.isAdmin ? " You decide who can open each document." : " Documents shared with you by the project admin."}</p>
           </div>
@@ -169,8 +167,8 @@ export function ProductManagement() {
             </button>
           </form>
         )}
-      </main>
-    </div>
+      </div>
+    </Shell>
   );
 }
 

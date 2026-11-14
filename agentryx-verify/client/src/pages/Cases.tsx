@@ -33,10 +33,10 @@ function Body() {
   const heading = { all: "All cases", torun: "To run", failed: "Failed — retest", passed: "Passed" }[show] ?? "Cases";
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6">
       <div className="flex flex-wrap items-end gap-3 justify-between">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-slate-900">{heading}</h1>
+          <h1 className="font-serif text-[26px] font-bold text-slate-900">{heading}</h1>
           <p className="text-sm text-slate-500 mt-1">In run order. Click a case to test it.</p>
         </div>
         <div className="relative w-full sm:w-72">

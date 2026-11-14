@@ -6,15 +6,14 @@ import { api } from "../lib/api";
 
 /** One test case: steps, how to run it (yourself / automated / Claude in Chrome), record the result. */
 const ROLE: Record<number, string> = { 1: "Applicant", 2: "HPSEDC Placement Cell", 3: "Employer", 4: "Admin" };
-const PORTAL = "https://hirestream-lite.agentryx.dev";
 
 function steps(text: string | null) {
   if (!text) return [];
   return text.split(/\s*(?:→|;\s+then\s+|;\s+)\s*/).map((s) => s.trim()).filter(Boolean);
 }
 
-function chromePrompt(c: Case) {
-  const portal = c.projectSlug === "hirestream-lite" ? PORTAL : "the HireStream mobile app (as instructed)";
+function chromePrompt(c: Case, portalUrl: string) {
+  const portal = c.projectSlug === "hirestream-lite" ? portalUrl : "the HireStream mobile app (as instructed)";
   return [
     `You are helping me test the HireStream Lite portal (HPSEDC overseas placement). Work in this browser and show me each step as you go.`,
     ``,
@@ -62,7 +61,7 @@ function Body({ id }: { id: string }) {
 
   const save = async (goNext: boolean) => {
     if (!decision) { setError("Choose Passed, Failed or Waive first."); return; }
-    if (decision === "rejected" && !note.trim()) { setError("Say what went wrong, so it can be fixed."); return; }
+    if (decision === "rejected" && data!.config.failNoteRequired && !note.trim()) { setError("Say what went wrong, so it can be fixed."); return; }
     setSaving(true); setError(null);
     try {
       await api.signoff(c.projectSlug, c.id, level, decision, note.trim() || undefined, files);
@@ -73,7 +72,7 @@ function Body({ id }: { id: string }) {
   const clear = async () => { try { await api.clearSignoff(c.projectSlug, c.id, level); await reload(); } catch (e: any) { setError(e.message); } };
   const copyPrompt = async () => {
     setShowPrompt(true);
-    try { await navigator.clipboard.writeText(chromePrompt(c)); setCopied(true); setTimeout(() => setCopied(false), 2500); } catch { /* selectable text shown instead */ }
+    try { await navigator.clipboard.writeText(chromePrompt(c, data!.config.portalUrl)); setCopied(true); setTimeout(() => setCopied(false), 2500); } catch { /* selectable text shown instead */ }
   };
   const runAuto = async () => {
     setRunMsg("Starting…");
@@ -89,7 +88,7 @@ function Body({ id }: { id: string }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <div className="flex items-center justify-between gap-3 text-sm">
         <Link href={`/cases?project=${c.projectSlug}`} className="text-slate-500 hover:text-slate-800 truncate">{c.section_title}</Link>
         <div className="flex items-center gap-2 shrink-0">
@@ -111,8 +110,10 @@ function Body({ id }: { id: string }) {
         {c.delivery_status === "partial" && <p className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Partly built — check what works and note what doesn’t.</p>}
       </div>
 
-      <div className="grid md:grid-cols-5 gap-4">
-        <div className="md:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
+      <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,520px),1fr))] items-start">
+      <div className="space-y-6 min-w-0">
+      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]">
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Steps</h2>
           <ol className="mt-3 space-y-2">
             {steps(c.test_steps).map((s, i) => (
@@ -120,7 +121,7 @@ function Body({ id }: { id: string }) {
             ))}
           </ol>
         </div>
-        <div className="md:col-span-2 min-w-0 bg-emerald-50/60 rounded-xl border border-emerald-200 p-5">
+        <div className="min-w-0 bg-emerald-50/60 rounded-xl border border-emerald-200 p-5">
           <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800">Expected result</h2>
           <p className="mt-3 text-[15px] text-slate-800 break-words [overflow-wrap:anywhere]">{c.expected_result}</p>
           <button onClick={() => askAbout(c.item_ref)} className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-700 hover:underline"><Sparkles className="w-4 h-4" /> Ask about this case</button>
@@ -129,8 +130,8 @@ function Body({ id }: { id: string }) {
 
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Run it</h2>
-        <div className="mt-3 grid sm:grid-cols-3 gap-3">
-          <a href={c.projectSlug === "hirestream-lite" ? `${PORTAL}/auth` : "#"} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 p-3 hover:border-slate-400">
+        <div className="mt-3 grid gap-3 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
+          <a href={c.projectSlug === "hirestream-lite" ? `${data!.config.portalUrl}/auth` : "#"} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 p-3 hover:border-slate-400">
             <div className="font-semibold text-slate-900 flex items-center gap-1.5 text-sm"><ExternalLink className="w-4 h-4" /> Do it myself</div>
             <div className="text-xs text-slate-500 mt-1">Open the portal in a new tab and follow the steps.</div>
           </a>
@@ -147,7 +148,7 @@ function Body({ id }: { id: string }) {
         {showPrompt && (
           <div className="mt-3">
             <div className="text-xs text-slate-500 mb-1">Open the portal tab, open the Claude in Chrome side panel, paste this, and supervise. Record the result below yourself.</div>
-            <textarea readOnly value={chromePrompt(c)} rows={9} onFocus={(e) => e.currentTarget.select()} className="w-full font-mono text-xs rounded-lg border border-slate-300 bg-slate-50 p-3" />
+            <textarea readOnly value={chromePrompt(c, data!.config.portalUrl)} rows={9} onFocus={(e) => e.currentTarget.select()} className="w-full font-mono text-xs rounded-lg border border-slate-300 bg-slate-50 p-3" />
           </div>
         )}
         {c.auto && (
@@ -159,6 +160,8 @@ function Body({ id }: { id: string }) {
         )}
       </div>
 
+      </div>
+      <div className="space-y-6 min-w-0">
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Your result</h2>
         {state !== "notrun" && (
@@ -178,7 +181,7 @@ function Body({ id }: { id: string }) {
             </button>
           ))}
         </div>
-        <label htmlFor="result-note" className="block text-sm text-slate-600 mt-4 mb-1">{decision === "rejected" ? "What went wrong? (required)" : "Note (optional)"}</label>
+        <label htmlFor="result-note" className="block text-sm text-slate-600 mt-4 mb-1">{decision === "rejected" ? `What went wrong?${data!.config.failNoteRequired ? " (required)" : ""}` : "Note (optional)"}</label>
         <textarea id="result-note" value={note} onChange={(e) => setNote(e.target.value)} rows={3} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder={decision === "rejected" ? "What you did, what you expected, what you saw" : ""} />
         <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
           <Paperclip className="w-4 h-4" /> {files.length ? `${files.length} screenshot${files.length > 1 ? "s" : ""} attached` : "Attach screenshots"}
@@ -204,6 +207,8 @@ function Body({ id }: { id: string }) {
           <input id="new-comment" value={comment} onChange={(e) => setComment(e.target.value)} onKeyDown={(e) => e.key === "Enter" && postComment()} placeholder="Add a comment…" className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
           <button onClick={postComment} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">Post</button>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );

@@ -42,9 +42,9 @@ function Body() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6 space-y-8">
       <div>
-        <h1 className="font-serif text-3xl font-bold text-slate-900 flex items-center gap-2"><Bot className="w-7 h-7" /> Automated runs</h1>
+        <h1 className="font-serif text-[26px] font-bold text-slate-900 flex items-center gap-2"><Bot className="w-7 h-7" /> Automated runs</h1>
         <p className="text-slate-600 mt-2 max-w-3xl">Browser checks run the web-portal cases on a fresh copy of the live Lite portal, so test data never touches UAT. Each result shows beside the case; you still record your own Pass or Fail.</p>
       </div>
 

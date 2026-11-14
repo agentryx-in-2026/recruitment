@@ -6,6 +6,7 @@ import { db } from "../config/db";
 import { reviewers, auditLog } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
+import { anthropicKey, getSetting } from "../services/settings";
 import { searchKb, rebuildKnowledgeBase, type KbHit } from "../services/kb";
 
 /**
@@ -19,10 +20,12 @@ export const askRouter = Router();
 
 const ADMIN = new Set(["admin", "delivery"]);
 const INTERNAL = new Set(["admin", "delivery", "agentryx"]);
-const MODEL = process.env.ASK_MODEL || "claude-opus-5-5";
-export const aiEnabled = () => !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+// Model, effort, key and on/off come from Settings (a value in .env still wins).
+const model = () => process.env.ASK_MODEL || getSetting("ai.model");
+export const aiEnabled = () => !!anthropicKey().key && getSetting("ai.enabled");
 let client: Anthropic | null = null;
-const ai = () => (client ??= new Anthropic());
+const ai = () => (client ??= new Anthropic({ apiKey: anthropicKey().key! }));
+export const resetAiClient = () => { client = null; };
 
 async function me(req: Request) {
   if (!req.session.reviewerId) return null;
@@ -43,11 +46,11 @@ function sourcesBlock(hits: KbHit[]) {
 
 async function answerWithClaude(question: string, hits: KbHit[]): Promise<string | null> {
   const response: any = await (ai().beta.messages.create as any)({
-    model: MODEL,
+    model: model(),
     max_tokens: 16000,
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-    output_config: { effort: "low" },
+    output_config: { effort: getSetting("ai.effort") },
     system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: `Sources:\n\n${sourcesBlock(hits)}\n\nQuestion: ${question}` }],
   });
@@ -64,7 +67,7 @@ const publicQ = (q: any) => ({
 });
 
 // GET /api/ask/status — is AI answering switched on?
-askRouter.get("/status", requireAuth, (_req, res) => res.json({ ai: aiEnabled(), model: aiEnabled() ? MODEL : null }));
+askRouter.get("/status", requireAuth, (_req, res) => res.json({ ai: aiEnabled(), model: aiEnabled() ? model() : null }));
 
 // GET /api/ask/search?q= — knowledge-base search (the "Find in guides" tab)
 askRouter.get("/search", requireAuth, async (req, res) => {

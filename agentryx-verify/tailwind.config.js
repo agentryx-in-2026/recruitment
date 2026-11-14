@@ -3,6 +3,7 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: { serif: ["\"Source Serif 4\"", "Georgia", "serif"] },
       colors: {
         agentryx: {
           50:  "#f5f7ff",
