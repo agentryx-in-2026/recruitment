@@ -13,7 +13,9 @@ export function Login() {
     setErr(""); setBusy(true);
     try {
       await api.login(username.trim(), password);
-      location.href = "/";
+      // Return to where the reader was going (same-site paths only).
+      const next = new URLSearchParams(location.search).get("next");
+      location.href = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
     } catch (e: any) {
       setErr("Invalid username or password.");
     } finally {

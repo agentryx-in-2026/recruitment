@@ -28,6 +28,8 @@ export const PM_CATEGORIES = [
   "Requirements & coverage",
   "Design & architecture",
   "Plans & status",
+  "Testing & quality",
+  "Operations & security",
   "Training material",
 ] as const;
 const AUDIENCES = ["admin", "internal", "all"] as const;
@@ -163,7 +165,13 @@ blockquote{border-left:4px solid #c9d3e6;margin:10px 0;padding:4px 14px;color:#4
 @media (max-width:640px){main{padding:24px 16px}}</style></head><body><main>${body}</main></body></html>`;
 
 // GET /api/pm/documents/:id/file — opens the document in the browser.
-pmRouter.get("/documents/:id/file", requireAuth, async (req, res) => {
+// A link opened without a session (new browser, expired sign-in) goes to sign-in and back, not a bare error.
+const authOrLogin = (req: Request, res: Response, next: () => void) => {
+  if (req.session.reviewerId) return next();
+  if (req.accepts(["html", "json"]) === "html") return res.redirect(`/login?next=${encodeURIComponent(req.originalUrl)}`);
+  res.status(401).json({ error: "Not authenticated" });
+};
+pmRouter.get("/documents/:id/file", authOrLogin, async (req, res) => {
   const r = await me(req);
   const [d] = await db.select().from(pmDocuments).where(eq(pmDocuments.id, req.params.id));
   if (!d || !canSee(r?.role, d.audience)) return res.status(404).type("text/plain").send("Not found");
