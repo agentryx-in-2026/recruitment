@@ -114,7 +114,7 @@ export function ProductManagement() {
 
         <div className="mt-8 space-y-8">
           {grouped.map((g) => (
-            <section key={g.category}>
+            <section key={g.category} id={`cat-${g.category.replace(/[^a-z]+/gi, "-").toLowerCase()}`} className="scroll-mt-32">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">{g.category}</h2>
               <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
                 {g.docs.map((d) => {

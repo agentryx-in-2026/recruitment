@@ -285,3 +285,21 @@ pmRouter.get("/overview", requireAuth, async (req, res) => {
   const docs = (await pool.query("select category, count(*)::int n, max(updated_at) as updated from pm_documents group by 1")).rows;
   res.json({ projects: out, questions, lastRun: run, docs });
 });
+
+// GET /api/pm/release/:hash — one release (commit): full message and files changed (admin + delivery).
+pmRouter.get("/release/:hash", requireAuth, async (req, res) => {
+  const r = await me(req);
+  if (!r || !ADMIN_ROLES.has(r.role)) return res.status(403).json({ error: "Admins only" });
+  const hash = String(req.params.hash);
+  if (!/^[0-9a-f]{7,40}$/.test(hash)) return res.status(400).json({ error: "Bad commit id" });
+  const { execFileSync } = await import("child_process");
+  const ROOT = path.resolve(process.cwd(), "..");
+  try {
+    const meta = execFileSync("git", ["-C", ROOT, "show", "-s", "--date=iso-strict", "--format=%H%x00%an%x00%ad%x00%s%x00%b", hash], { timeout: 5000 }).toString();
+    const [full, author, date, subject, body] = meta.split("\0");
+    const stat = execFileSync("git", ["-C", ROOT, "show", "--numstat", "--format=", hash], { timeout: 5000 }).toString().trim().split("\n").filter(Boolean)
+      .map((l) => { const [add, del, file] = l.split("\t"); return { add: Number(add) || 0, del: Number(del) || 0, file }; });
+    res.json({ hash: full, author, date, subject, body: body.replace(/\n*Co-Authored-By:.*$/gims, "").trim(), files: stat.slice(0, 60), fileCount: stat.length,
+      url: `https://github.com/agentryx-in-2026/recruitment/commit/${full}` });
+  } catch { res.status(404).json({ error: "Release not found" }); }
+});

@@ -20,6 +20,7 @@ function Body() {
       if (show === "torun") cs = cs.filter((c) => caseState(c) === "notrun" && c.delivery_status !== "not_delivered");
       if (show === "failed") cs = cs.filter((c) => caseState(c) === "failed");
       if (show === "passed") cs = cs.filter((c) => caseState(c) === "passed");
+      if (show === "notbuilt") cs = cs.filter((c) => c.delivery_status === "not_delivered");
       if (q.trim()) { const t = q.toLowerCase(); cs = cs.filter((c) => `${c.item_ref} ${c.description} ${c.test_steps ?? ""}`.toLowerCase().includes(t)); }
       const acts: { act: string; cases: typeof cs }[] = [];
       for (const c of cs) {
@@ -30,7 +31,7 @@ function Body() {
     }).filter((g) => g.count > 0);
   }, [data, show, project, q]);
 
-  const heading = { all: "All cases", torun: "To run", failed: "Failed — retest", passed: "Passed" }[show] ?? "Cases";
+  const heading = { all: "All cases", torun: "To run", failed: "Failed — retest", passed: "Passed", notbuilt: "Not built yet" }[show] ?? "Cases";
 
   return (
     <div className="w-full max-w-[1760px] px-4 sm:px-6 lg:px-8 py-6">
