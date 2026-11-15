@@ -48,7 +48,7 @@ function SessionCard({ s, cases, open, onToggle, isNext }: { s: any; cases: Case
                   <span className="font-mono text-xs text-slate-500 w-12 shrink-0 pt-0.5">{c.item_ref}</span>
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm text-slate-900">{c.description}</span>
-                    {c.plan_note && <span className="block text-xs text-slate-500 mt-0.5">{c.plan_note}</span>}
+                    {c.test_plan !== "run" && c.plan_note && <span className="block text-xs text-slate-500 mt-0.5">{c.plan_note}</span>}
                   </span>
                   <span className="flex flex-col items-end gap-0.5 shrink-0">
                     {byHand(c) ? <StatusChip c={c} /> : <span className="text-[11px] font-semibold rounded-full border px-2 py-0.5 bg-slate-50 text-slate-500 border-slate-200">{({ with: "With another case", auto: "Automated", blocked: "Not ready", later: "Later" } as Record<string, string>)[c.test_plan]}</span>}

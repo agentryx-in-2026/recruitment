@@ -49,6 +49,29 @@ function CaseRow({ c, extra }: { c: Case; extra?: ReactNode }) {
   );
 }
 
+/** Notice from the team (Settings → Testing), shown at the top of the Dashboard. */
+function Notice({ admin = false }: { admin?: boolean }) {
+  const { data } = useWorkspace();
+  const text = (data?.config.notice ?? "").trim();
+  if (!text) return admin ? <p className="text-sm text-slate-500">No notice to testers. <Link href="/settings" className="text-indigo-700 hover:underline">Write one in Settings</Link>.</p> : null;
+  const at = data!.config.noticeAt ? new Date(data!.config.noticeAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : "";
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  return (
+    <section className="rounded-lg border border-amber-300 bg-amber-50 p-5">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-amber-900">Notice from the team</h2>
+        {at && <span className="text-xs text-amber-800">{at}</span>}
+        {admin && <span className="text-xs text-slate-500">Testers see this at the top of their Dashboard · <Link href="/settings" className="text-indigo-700 hover:underline">edit</Link></span>}
+      </div>
+      <ul className="mt-2 space-y-1.5 text-[15px] text-slate-800">
+        {lines.map((l, i) => l.startsWith("- ")
+          ? <li key={i} className="flex gap-2"><span className="text-amber-700">•</span><span>{l.slice(2)}</span></li>
+          : <li key={i} className="font-medium">{l}</li>)}
+      </ul>
+    </section>
+  );
+}
+
 function Body() {
   const { data, askAbout } = useWorkspace();
   const d = data!;
@@ -103,6 +126,7 @@ function Body() {
         {next && <Link href={`/cases/${next.id}`} className="inline-flex items-center gap-2 bg-[#14213D] text-white text-sm font-semibold rounded-md px-3.5 py-2 hover:bg-[#1d2d52]"><PlayCircle className="w-4 h-4" /> Continue with {next.item_ref}</Link>}
       </>}>
 
+      <Notice />
       {next && (
         <section className="rounded-lg border border-[#14213D]/20 bg-[#F1F4FA] p-5 flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[260px]">
@@ -278,6 +302,7 @@ function AdminBody() {
 
   return (
     <Page title="Dashboard" sub="Phase-1 UAT of HireStream Lite for HPSEDC: where testing, defects and the team stand today.">
+      <Notice admin />
       <section className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
         <Stat n={`${pct}%`} label="UAT progress" sub={`${passed} of ${hand.length} hand-run cases passed`} href="/run" />
         <Stat n={failed.length} label="Failed — retest" sub="Waiting on a fix" href="/cases?show=failed" tone={failed.length ? "rose" : undefined} />

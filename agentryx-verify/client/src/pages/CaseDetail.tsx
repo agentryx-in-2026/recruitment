@@ -133,6 +133,12 @@ function Body({ id }: { id: string }) {
               <li key={i} className="flex gap-3 text-[15px] text-slate-800"><span className="w-6 h-6 shrink-0 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">{i + 1}</span><span>{s}</span></li>
             ))}
           </ol>
+          {c.test_plan === "run" && c.plan_note && (
+            <div className="mt-4 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-2.5 text-sm text-slate-800">
+              <div className="text-xs font-bold uppercase tracking-wider text-indigo-800 mb-1">Data and tips</div>
+              {c.plan_note.split("\n").map((l, i) => <p key={i} className={i ? "mt-1.5" : ""}>{l}</p>)}
+            </div>
+          )}
         </div>
         <div className="min-w-0 bg-emerald-50/60 rounded-xl border border-emerald-200 p-5">
           <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800">Expected result</h2>

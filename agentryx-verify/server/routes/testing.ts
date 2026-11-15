@@ -76,6 +76,7 @@ testingRouter.get("/overview", requireAuth, async (req, res) => {
     config: {
       portalUrl: getSetting("testing.portal_url"), accounts: getSetting("testing.accounts"), password: getSetting("testing.password"),
       testersCanRun: getSetting("testing.testers_can_run"), failNoteRequired: getSetting("testing.fail_note_required"), mobileNote: getSetting("testing.mobile_note"),
+      notice: getSetting("testing.notice"), noticeAt: getSetting("testing.notice_at"),
     },
     projects: projects.map((p: any) => ({ ...p, cases: out.filter((c: any) => c.project_id === p.id) })),
     running,

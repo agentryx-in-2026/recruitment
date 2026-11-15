@@ -14,7 +14,7 @@ import { AskPanel } from "./AskPanel";
 export type Overview = {
   me: { id: string; name: string; role: string; level: string; isAdmin: boolean };
   ai: boolean;
-  config: { portalUrl: string; accounts: { role: string; username: string }[]; password: string; testersCanRun: boolean; failNoteRequired: boolean; mobileNote: string };
+  config: { portalUrl: string; accounts: { role: string; username: string }[]; password: string; testersCanRun: boolean; failNoteRequired: boolean; mobileNote: string; notice: string; noticeAt: string };
   projects: { id: string; slug: string; name: string; build_ref: string; description: string; cases: Case[] }[];
   running: { id: string; scope: string; started_at: string } | null;
   findingsOpen: number;

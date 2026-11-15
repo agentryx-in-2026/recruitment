@@ -21,6 +21,9 @@ export const DEFAULTS = {
   "testing.run_timeout_min": 30,
   "testing.fail_note_required": true,
   "testing.mobile_note": "The build for the Lite portal is being prepared — start with the web portal.",
+  // Notice from the team, shown at the top of every tester's Dashboard. One point per line.
+  "testing.notice": "",
+  "testing.notice_at": "",
 };
 export type SettingKey = keyof typeof DEFAULTS;
 export const SECRET_KEYS = new Set<SettingKey>(["ai.anthropic_key"]);

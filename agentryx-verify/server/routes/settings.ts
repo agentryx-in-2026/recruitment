@@ -46,6 +46,7 @@ settingsRouter.put("/", requireAuth, async (req, res) => {
     if (k === "testing.run_timeout_min" && (Number(v) < 5 || Number(v) > 120)) return res.status(400).json({ error: "Timeout must be 5–120 minutes" });
     if (k === "testing.portal_url" && !/^https?:\/\/\S+$/.test(String(v))) return res.status(400).json({ error: "Portal address must start with https://" });
   }
+  if ("testing.notice" in body && body["testing.notice"] !== getSetting("testing.notice")) body["testing.notice_at"] = new Date().toISOString();
   for (const [k, v] of Object.entries(body)) {
     await setSetting(k as SettingKey, typeof v === "string" ? v.trim() : v, r.name);
     await audit(req, "settings.update", { item: k, meta: { value: SECRET_KEYS.has(k as SettingKey) ? "(secret)" : v } });
