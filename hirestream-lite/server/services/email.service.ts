@@ -98,7 +98,12 @@ export async function sendEmail(options: SendMailOptions): Promise<boolean> {
 // actually sending a message.
 export async function testEmailConnection(to?: string): Promise<{ ok: boolean; error?: string; info?: string }> {
   const { transporter, from } = await resolveTransporter();
-  if (!transporter) return { ok: false, error: "Email is not configured." };
+  if (!transporter) {
+    const p = await getProviderConfig("email");
+    return { ok: false, error: p?.enabled
+      ? "Email is not configured: enter the SMTP host."
+      : "Email is switched off. Tick the box next to \"Disabled\" to turn it on, then test again." };
+  }
   try {
     await transporter.verify();
     // If a recipient is supplied, actually send a small deliverability probe
