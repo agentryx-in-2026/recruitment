@@ -88,7 +88,7 @@ function Body() {
         <span className="text-slate-500">{all.filter((c) => c.test_plan === "later").length} mobile, later</span>
         <span>Passwords: <span className="font-mono">{d.config.password}</span> for the demo accounts</span>
       </div>
-      <div className="space-y-3 max-w-5xl">
+      <div className="space-y-3">
         {d.sessions.map((s) => {
           const cs = bySession(s.n);
           if (!cs.length) return null;

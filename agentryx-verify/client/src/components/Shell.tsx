@@ -65,7 +65,7 @@ const SIDE: Record<Theme, { aside: string; brand: string; item: string; active: 
   navy: { aside: "bg-[#14213D]", brand: "text-white", item: "text-slate-200 hover:bg-white/10", active: "bg-[#2A3A63] text-white font-semibold shadow-[inset_3px_0_0_#FBBF24]", group: "text-slate-400", badge: "bg-white/15 text-slate-100", muted: "text-slate-400", rule: "border-white/10" },
 };
 
-const SideCtx = createContext<{ theme: Theme; closed: Record<string, boolean>; toggle: (g: string) => void; close: () => void }>(null as any);
+const SideCtx = createContext<{ theme: Theme; closed: Record<string, boolean>; toggle: (g: string) => void; reveal: (g: string) => void; close: () => void }>(null as any);
 
 function NavLink({ href, label, count, tone = "amber", alsoActive = false, sub = false }: { href: string; label: string; count?: number | string; tone?: "amber" | "slate"; alsoActive?: boolean; sub?: boolean }) {
   const [loc] = useLocation();
@@ -85,15 +85,19 @@ function NavButton({ label, onClick }: { label: string; onClick: () => void }) {
   const { theme, close } = useContext(SideCtx);
   return <button onClick={() => { onClick(); close(); }} className={`w-full text-left pl-4 pr-3 py-2 rounded-md text-[15px] ${SIDE[theme].item}`}>{label}</button>;
 }
-function Group({ title, children, here = false }: { title: string; children: ReactNode; here?: boolean }) {
-  const { theme, closed, toggle } = useContext(SideCtx);
-  const shut = !!closed[title] && !here; // the group holding the current page always shows
+function Group({ title, children, here = false, section = false }: { title: string; children: ReactNode; here?: boolean; section?: boolean }) {
+  const { theme, closed, toggle, reveal } = useContext(SideCtx);
+  // Arriving on a page inside a closed group opens it once; after that the
+  // header always toggles, even for the group holding the current page.
+  useEffect(() => { if (here) reveal(title); }, [here]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shut = !!closed[title];
+  const T = SIDE[theme];
   return (
-    <div className="mt-4">
-      <button onClick={() => toggle(title)} aria-expanded={!shut} className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold tracking-[0.14em] uppercase ${SIDE[theme].group} hover:opacity-80`}>
+    <div className={section ? `mt-5 mx-0 pt-3 border-t ${T.rule}` : "mt-4"}>
+      <button onClick={() => toggle(title)} aria-expanded={!shut} className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold tracking-[0.14em] uppercase ${T.group} hover:opacity-80`}>
         <span className={`text-[9px] transition-transform ${shut ? "" : "rotate-90"}`}>▶</span>{title}
       </button>
-      {!shut && <div className="mt-0.5 space-y-0.5">{children}</div>}
+      {!shut && <div className={`${section ? "mt-1.5" : "mt-0.5"} space-y-0.5`}>{children}</div>}
     </div>
   );
 }
@@ -148,8 +152,9 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   const inGroup = {
     testing: /^\/(cases|automation|findings|run)/.test(loc),
     help: loc.startsWith("/team-questions"),
-    resources: /^\/(resources|docs)/.test(loc) || (loc.startsWith("/product") && !(data?.me.isAdmin)),
+    resources: loc.startsWith("/resources") || (/^\/(docs|product)/.test(loc) && !data?.me.isAdmin),
     manage: /^\/(questions|projects|admin|settings|audit|p\/)/.test(loc) && !!data?.me.isAdmin,
+    product: /^\/(docs|product)/.test(loc) && !!data?.me.isAdmin,
   };
   const reload = useCallback(async () => {
     const r = await fetch("/api/testing/overview", { credentials: "include" });
@@ -186,7 +191,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   const toRun = hand.filter((c) => caseState(c) === "notrun").length;
   const pct = hand.length ? Math.round((passed / hand.length) * 100) : 0;
   const T = SIDE[theme];
-  const groups = ["Testing", "Ask for help", "Resources", "Manage", "Key documents"];
+  const groups = ["Testing", "Ask for help", "Resources", "Manage", "Product management", "Key documents"];
   const allShut = groups.every((g) => closed[g]);
 
   const nav = data && (
@@ -233,18 +238,19 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
           </Group>
 
           {/* Product management: its own section, as important as Admin. */}
-          <div className={`mt-5 mx-2 pt-3 border-t ${T.rule} text-[11px] font-bold tracking-[0.14em] uppercase ${T.group}`}>Product management</div>
-          <div className="mt-1.5 space-y-0.5">
+          <Group title="Product management" section here={inGroup.product}>
             <NavLink href="/product?tab=status" label="Project status" alsoActive={loc === "/product" && typeof window !== "undefined" && !window.location.search} />
             <NavLink href="/product?tab=defects" label="Defect log" />
             <NavLink href="/product?tab=releases" label="Releases" />
             <NavLink href="/product?tab=documents" label="Documents" alsoActive={!!onDoc && !docStarred} />
-          </div>
-          {starred.length > 0 && (
-            <Group title="Key documents" here={docStarred}>
-              {starred.map((d) => <NavLink key={d.id} href={`/docs/${d.id}`} label={d.title} sub />)}
-            </Group>
-          )}
+            {starred.length > 0 && (
+              <div className="pl-2">
+                <Group title="Key documents" here={docStarred}>
+                  {starred.map((d) => <NavLink key={d.id} href={`/docs/${d.id}`} label={d.title} sub />)}
+                </Group>
+              </div>
+            )}
+          </Group>
         </>
       )}
       <div className={`mt-auto pt-6`}>
@@ -266,7 +272,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
 
   return (
     <Ctx.Provider value={{ data, reload, askAbout, askRef }}>
-      <SideCtx.Provider value={{ theme, closed, toggle: (g) => setClosed((c) => ({ ...c, [g]: !c[g] })), close: () => setNavOpen(false) }}>
+      <SideCtx.Provider value={{ theme, closed, toggle: (g) => setClosed((c) => ({ ...c, [g]: !c[g] })), reveal: (g) => setClosed((c) => (c[g] ? { ...c, [g]: false } : c)), close: () => setNavOpen(false) }}>
       <div className="min-h-screen bg-[#FBFAF7] flex">
         <aside className={`hidden lg:block w-60 shrink-0 sticky top-0 h-screen overflow-y-auto ${T.aside}`}>{nav}</aside>
         {navOpen && (
