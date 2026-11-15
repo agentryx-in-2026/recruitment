@@ -33,3 +33,14 @@ html.theme-dark .bg-emerald-50\/40 { background-color: #10291F; }
 html.theme-dark .bg-amber-50\/50 { background-color: #2B2210; }
 html.theme-dark .divide-slate-200 > * + * { border-color: #2A3446; }
 html.theme-dark .bg-\[\#E2E7F3\], html.theme-dark .bg-\[\#F1F4FA\] { background-color: #24304A; }
+
+/* Audit trail charts: one validated hue per theme (light on white, dark on the dark surface). */
+.audit-bar { background-color: #3B5BDB; }
+html.theme-dark .audit-bar { background-color: #6B85EE; }
+
+/* Print report: the page content only. */
+@media print {
+  aside, .print\:hidden, button[aria-label="Open Ask Agentryx"] { display: none !important; }
+  body, .bg-\[\#FBFAF7\] { background: #fff !important; }
+  header { position: static !important; }
+}

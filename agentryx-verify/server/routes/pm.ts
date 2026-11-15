@@ -1,3 +1,4 @@
+import { audit } from "../services/audit";
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
 import path from "path";
@@ -185,6 +186,14 @@ pmRouter.get("/documents/:id/file", authOrLogin, async (req, res) => {
     return res.status(400).json({ error: "Use ?raw=1 for the file" });
   }
   res.setHeader("Cache-Control", "private, no-store");
+  // One "viewed" event per opening (a playing video fetches many byte ranges; count only the first).
+  const range = req.get("range");
+  if (!range || /^bytes=0-/.test(range)) {
+    if (!(req.session as any).lastDocView || (req.session as any).lastDocView.id !== d.id || Date.now() - (req.session as any).lastDocView.at > 60_000) {
+      (req.session as any).lastDocView = { id: d.id, at: Date.now() };
+      void audit(req, req.query.download === "1" ? "document.downloaded" : "document.viewed", { item: d.title, meta: { category: d.category } });
+    }
+  }
   const full = path.join(PM_DIR, path.basename(d.fileName));
   if (!fs.existsSync(full)) return res.status(404).type("text/plain").send("File missing");
   const safeName = d.originalName.replace(/[^\w.\- ()]+/g, "_");
@@ -220,7 +229,7 @@ pmRouter.post("/documents", requireAuth, (req, res, next) => {
     fileName: f.filename, originalName: f.originalname, mimeType: mimeFor(f.originalname, f.mimetype),
     sizeBytes: f.size, audience, sortOrder: 100, uploadedById: admin.id,
   }).returning();
-  await db.insert(auditLog).values({ reviewerId: admin.id, action: "pm.upload", meta: { id: d.id, title, audience } });
+  await audit(req, "document.uploaded", { item: d.title, meta: { category: d.category, audience } });
   res.json(publicRow(d));
 });
 
@@ -240,7 +249,7 @@ pmRouter.patch("/documents/:id", requireAuth, async (req, res) => {
   if (typeof req.body.pinned === "boolean") { patch.pinned = req.body.pinned; delete patch.updatedAt; }
   const [d] = await db.update(pmDocuments).set(patch).where(eq(pmDocuments.id, req.params.id)).returning();
   if (!d) return res.status(404).json({ error: "Not found" });
-  await db.insert(auditLog).values({ reviewerId: admin.id, action: "pm.update", meta: { id: d.id, ...req.body } });
+  await audit(req, "document.updated", { item: d.title, meta: req.body });
   res.json(publicRow(d));
 });
 
@@ -251,7 +260,7 @@ pmRouter.delete("/documents/:id", requireAuth, async (req, res) => {
   const [d] = await db.delete(pmDocuments).where(eq(pmDocuments.id, req.params.id)).returning();
   if (!d) return res.status(404).json({ error: "Not found" });
   fs.unlink(path.join(PM_DIR, path.basename(d.fileName)), () => {});
-  await db.insert(auditLog).values({ reviewerId: admin.id, action: "pm.delete", meta: { id: d.id, title: d.title } });
+  await audit(req, "document.deleted", { item: d.title, meta: { category: d.category } });
   res.json({ ok: true });
 });
 

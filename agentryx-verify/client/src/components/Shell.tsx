@@ -149,7 +149,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
     testing: /^\/(cases|automation|findings|run)/.test(loc),
     help: loc.startsWith("/team-questions"),
     resources: /^\/(resources|docs)/.test(loc) || (loc.startsWith("/product") && !(data?.me.isAdmin)),
-    manage: /^\/(questions|projects|admin|settings|p\/|product)/.test(loc) && !!data?.me.isAdmin,
+    manage: /^\/(questions|projects|admin|settings|audit|p\/|product)/.test(loc) && !!data?.me.isAdmin,
   };
   const reload = useCallback(async () => {
     const r = await fetch("/api/testing/overview", { credentials: "include" });
@@ -157,6 +157,14 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
     setData(await r.json());
   }, [navigate]);
   useEffect(() => { reload(); }, [reload]);
+  // Heartbeat for the audit trail: time active counts only while this tab is open and in view.
+  useEffect(() => {
+    const beat = () => fetch("/api/audit/ping", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ visible: !document.hidden }) }).catch(() => {});
+    beat();
+    const t = setInterval(beat, 60_000);
+    document.addEventListener("visibilitychange", beat);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", beat); };
+  }, []);
   useEffect(() => { try { localStorage.setItem("verify-ask-open", askOpen ? "1" : "0"); } catch { /* */ } }, [askOpen]);
   useEffect(() => {
     try { localStorage.setItem("verify-theme", theme); } catch { /* */ }
@@ -219,6 +227,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
             <NavLink href="/questions" label="Questions inbox" />
             <NavLink href="/product?tab=status" label="Product management" alsoActive={!!onDoc && !docStarred} />
             <NavLink href="/projects" label="Projects" />
+            <NavLink href="/audit" label="Audit trail & usage" />
             <NavLink href="/admin/roadmap" label="Verify roadmap" />
             <NavLink href="/settings" label="Settings" />
           </Group>

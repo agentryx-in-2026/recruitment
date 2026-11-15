@@ -1,3 +1,4 @@
+import { audit } from "../services/audit";
 import { Router, type Request } from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "../config/db";
@@ -47,7 +48,7 @@ settingsRouter.put("/", requireAuth, async (req, res) => {
   }
   for (const [k, v] of Object.entries(body)) {
     await setSetting(k as SettingKey, typeof v === "string" ? v.trim() : v, r.name);
-    await db.insert(auditLog).values({ reviewerId: r.id, action: "settings.update", meta: { key: k, value: SECRET_KEYS.has(k as SettingKey) ? "(secret)" : v } });
+    await audit(req, "settings.update", { item: k, meta: { value: SECRET_KEYS.has(k as SettingKey) ? "(secret)" : v } });
   }
   if ("ai.anthropic_key" in body) resetAiClient();
   res.json(snapshot());

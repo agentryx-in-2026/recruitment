@@ -16,6 +16,8 @@ import { pmRouter } from "./routes/pm";
 import { askRouter } from "./routes/ask";
 import { testingRouter } from "./routes/testing";
 import { settingsRouter } from "./routes/settings";
+import { auditRouter } from "./routes/auditTrail";
+import { ensureAuditSchema, trackActivity } from "./services/audit";
 import { loadSettings } from "./services/settings";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -56,6 +58,9 @@ app.use(session({
   },
 }));
 
+// Sign-in activity: last seen, visits, and admin-ended sessions.
+app.use("/api", trackActivity);
+
 // Health
 app.get("/health", (_req, res) => res.type("text/plain").send("ok"));
 
@@ -66,6 +71,7 @@ app.use("/api/pm", pmRouter);
 app.use("/api/ask", askRouter);
 app.use("/api/testing", testingRouter);
 app.use("/api/settings", settingsRouter);
+app.use("/api/audit", auditRouter);
 app.use("/api/export", exportRouter);
 app.use("/api/feedback", feedbackRouter);
 app.use("/api", sprintsRouter);  // exposes /api/projects/:slug/sprints and /api/sprints/:id
@@ -144,6 +150,6 @@ if (fs.existsSync(clientDir)) {
     res.status(503).type("text/plain").send("Client bundle not built. Run `npm run build`."));
 }
 
-loadSettings().catch((e) => console.error("[settings] load failed", e)).finally(() => app.listen(env.PORT, "0.0.0.0", () => {
+Promise.all([loadSettings(), ensureAuditSchema()]).catch((e) => console.error("[startup] schema/settings failed", e)).finally(() => app.listen(env.PORT, "0.0.0.0", () => {
   console.log(`Agentryx Verify on :${env.PORT} (${env.NODE_ENV})`);
 }));

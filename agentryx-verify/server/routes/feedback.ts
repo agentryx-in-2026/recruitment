@@ -1,3 +1,4 @@
+import { audit } from "../services/audit";
 import { Router } from "express";
 import { db } from "../config/db";
 import {
@@ -77,6 +78,7 @@ feedbackRouter.post("/", requireAuth, async (req, res) => {
     linkedToItemRef: linkedToItemRef ? String(linkedToItemRef).slice(0, 24) : null,
   }).returning();
 
+  await audit(req, "finding.reported", { projectId: row.projectId, item: row.referenceCode, meta: { title: row.title, type: row.type, severity: row.priority } });
   res.status(201).json(row);
 });
 
@@ -211,6 +213,7 @@ feedbackRouter.patch("/:id", requireAuth, async (req, res) => {
   const [row] = await db.update(feedbackItems).set(patch)
     .where(eq(feedbackItems.id, req.params.id)).returning();
   if (!row) return res.status(404).json({ error: "Not found" });
+  await audit(req, "finding.updated", { projectId: row.projectId, item: row.referenceCode, meta: { status: patch.status, note: patch.adminNotes ?? undefined } });
   res.json(row);
 });
 
@@ -232,6 +235,7 @@ feedbackRouter.post("/:id/comments", requireAuth, async (req, res) => {
     reviewerId: me.id,
     body,
   }).returning();
+  await audit(req, "finding.comment", { projectId: item.projectId, item: item.referenceCode, meta: { text: body.slice(0, 200) } });
   res.status(201).json(row);
 });
 
@@ -261,5 +265,6 @@ feedbackRouter.post("/:id/attachments", requireAuth, feedbackUploader.array("fil
     }))
   ).returning();
 
+  await audit(req, "finding.screenshots", { projectId: item.projectId, item: item.referenceCode, meta: { files: rows.length } });
   res.status(201).json(rows);
 });

@@ -5,6 +5,7 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { env } from "../config/env";
+import { audit, startSession, endSession } from "../services/audit";
 
 export const authRouter = Router();
 
@@ -12,16 +13,27 @@ export const authRouter = Router();
 authRouter.post("/login", async (req, res) => {
   const { username, email, password } = req.body ?? {};
   const identifier = String(username ?? email ?? "").toLowerCase().trim();
-  if (!identifier || !password) return res.status(400).json({ error: "username and password required" });
+  if (!identifier || !password) {
+    await audit(req, "auth.login_failed", { reviewerId: null, meta: { username: identifier || null, reason: identifier ? "No password entered" : "No username entered" } });
+    return res.status(400).json({ error: "username and password required" });
+  }
   const looksLikeEmail = identifier.includes("@");
   const [r] = await db.select().from(reviewers).where(
     looksLikeEmail ? eq(reviewers.email, identifier) : eq(reviewers.username, identifier)
   );
-  if (!r || !r.passwordHash) return res.status(401).json({ error: "Invalid credentials" });
+  if (!r || !r.passwordHash) {
+    await audit(req, "auth.login_failed", { reviewerId: null, meta: { username: identifier, reason: "Unknown username" } });
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
   const ok = await bcrypt.compare(password, r.passwordHash);
-  if (!ok) return res.status(401).json({ error: "Invalid credentials" });
+  if (!ok) {
+    await audit(req, "auth.login_failed", { reviewerId: r.id, meta: { username: identifier, reason: "Wrong password" } });
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
+  // A fresh session id on sign-in (prevents session fixation), then track it.
+  await new Promise<void>((ok2, ko) => req.session.regenerate((e) => (e ? ko(e) : ok2())));
   req.session.reviewerId = r.id;
-  await db.insert(auditLog).values({ reviewerId: r.id, action: "auth.login", meta: { method: "password" } });
+  await startSession(req, r.id, "password");
   res.json({ ok: true, reviewer: { id: r.id, username: r.username, email: r.email, name: r.name, role: r.role, organization: r.organization } });
 });
 
@@ -64,13 +76,7 @@ authRouter.get("/consume", async (req, res) => {
 
   req.session.reviewerId = link.reviewerId;
   req.session.projectId = link.projectId ?? undefined;
-
-  await db.insert(auditLog).values({
-    projectId: link.projectId,
-    reviewerId: link.reviewerId,
-    action: "auth.login",
-    meta: { method: "magic_link" },
-  });
+  await startSession(req, link.reviewerId, "magic link");
 
   // Redirect to project page if we know it
   const slug = String(req.query.p ?? "");
@@ -78,7 +84,11 @@ authRouter.get("/consume", async (req, res) => {
 });
 
 // POST /api/auth/logout
-authRouter.post("/logout", (req, res) => {
+authRouter.post("/logout", async (req, res) => {
+  if (req.session.reviewerId) {
+    await audit(req, "auth.logout");
+    await endSession(req.session.trackId, "signed_out");
+  }
   req.session.destroy(() => {
     res.clearCookie("connect.sid");
     res.json({ ok: true });
@@ -113,5 +123,6 @@ authRouter.post("/dev-login", async (req, res) => {
   const [r] = await db.select().from(reviewers).where(eq(reviewers.email, email));
   if (!r) return res.status(404).json({ error: "No reviewer with that email" });
   req.session.reviewerId = r.id;
+  await startSession(req, r.id, "email");
   res.json({ ok: true, reviewer: r });
 });

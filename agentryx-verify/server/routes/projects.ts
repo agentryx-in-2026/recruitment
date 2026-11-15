@@ -6,6 +6,7 @@ import {
   projects, requirements, signoffs, comments, issues, reviewers, attachments, projectSprints, auditLog,
 } from "@shared/schema";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { audit } from "../services/audit";
 import { requireAuth } from "../middleware/auth";
 import { uploadImages, UPLOAD_DIR, VERIFY_SIGNOFF_DIR, VERIFY_FEEDBACK_DIR } from "../middleware/upload";
 
@@ -223,12 +224,7 @@ projectsRouter.post("/:slug/requirements/:reqId/signoff", requireAuth, uploadIma
     const [r] = await db.select({ projectId: requirements.projectId, itemRef: requirements.itemRef })
       .from(requirements).where(eq(requirements.id, reqId));
     if (r) {
-      await db.insert(auditLog).values({
-        projectId: r.projectId,
-        reviewerId: req.session.reviewerId!,
-        action: auditAction,
-        meta: { itemRef: r.itemRef, level, decision },
-      });
+      await audit(req, auditAction, { projectId: r.projectId, item: r.itemRef, meta: { level, decision, comment: comment ?? null, files: newAttachments?.length ?? 0 } });
     }
   } catch (e) { console.error("audit_log insert failed (signoff)", e); }
 
@@ -247,6 +243,7 @@ projectsRouter.patch("/:slug/requirements/:reqId", requireAuth, async (req, res)
     ...(testSteps !== undefined ? { testSteps } : {}),
     ...(expectedResult !== undefined ? { expectedResult } : {}),
   }).where(eq(requirements.id, req.params.reqId)).returning();
+  if (row) await audit(req, "case.instructions_edited", { projectId: row.projectId, item: row.itemRef, meta: { steps: testSteps !== undefined, expected: expectedResult !== undefined } });
   res.json(row);
 });
 
@@ -267,6 +264,7 @@ projectsRouter.patch("/:slug/visibility", requireAuth, async (req, res) => {
     .where(eq(projects.slug, req.params.slug))
     .returning();
   if (!row) return res.status(404).json({ error: "Project not found" });
+  await audit(req, "project.visibility", { projectId: row.id, item: row.name, meta: { visibleToTesters: visible } });
   res.json(row);
 });
 
@@ -293,12 +291,7 @@ projectsRouter.delete("/:slug/requirements/:reqId/signoff", requireAuth, async (
     const [r] = await db.select({ projectId: requirements.projectId, itemRef: requirements.itemRef })
       .from(requirements).where(eq(requirements.id, reqId));
     if (r) {
-      await db.insert(auditLog).values({
-        projectId: r.projectId,
-        reviewerId: req.session.reviewerId!,
-        action: "signoff.cleared",
-        meta: { itemRef: r.itemRef, level },
-      });
+      await audit(req, "signoff.cleared", { projectId: r.projectId, item: r.itemRef, meta: { level } });
     }
   } catch (e) { console.error("audit_log insert failed (signoff cleared)", e); }
 
@@ -366,6 +359,8 @@ projectsRouter.post("/:slug/requirements/:reqId/comments", requireAuth, uploadIm
     body: hasText ? body.trim() : "",
   }).returning();
   const newAttachments = await saveAttachments(files, "comment", row.id, req.session.reviewerId!);
+  const [rq] = await db.select({ itemRef: requirements.itemRef, projectId: requirements.projectId }).from(requirements).where(eq(requirements.id, req.params.reqId));
+  await audit(req, "comment.added", { projectId: rq?.projectId, item: rq?.itemRef ?? null, meta: { text: (hasText ? body.trim() : "").slice(0, 200), files: newAttachments?.length ?? 0 } });
   res.json({ ...row, attachments: newAttachments });
 });
 
@@ -413,6 +408,7 @@ projectsRouter.post("/:slug/issues", requireAuth, async (req, res) => {
     projectId: project.id, shortId: next, itemRef: itemRef || null,
     severity, description, reportedById: req.session.reviewerId!,
   }).returning();
+  await audit(req, "defect.logged", { projectId: project.id, item: row.shortId, meta: { severity, description: String(description).slice(0, 200), case: itemRef || null } });
   res.json(row);
 });
 
@@ -437,5 +433,6 @@ projectsRouter.patch("/:slug/issues/:id", requireAuth, async (req, res) => {
     ...(resolution !== undefined ? { resolution } : {}),
     updatedAt: new Date(),
   }).where(eq(issues.id, req.params.id)).returning();
+  if (row) await audit(req, "defect.updated", { projectId: row.projectId, item: row.shortId, meta: { status: status ?? null, resolution: resolution !== undefined ? String(resolution).slice(0, 200) : undefined } });
   res.json(row);
 });

@@ -1,3 +1,4 @@
+import { audit } from "../services/audit";
 import { Router, type Request, type Response } from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { nanoid } from "nanoid";
@@ -109,6 +110,7 @@ askRouter.post("/", requireAuth, async (req, res) => {
     `insert into ask_questions (id, reviewer_id, question, context_ref, answer, answered_by, status, sources, answered_at)
      values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
     [id, r.id, question, contextRef, answer, answeredBy, status, JSON.stringify(sources), answer ? new Date() : null]);
+  await audit(req, "ask.question", { item: contextRef, meta: { question: question.slice(0, 200), answered: status === "answered" ? "Ask Agentryx" : "waiting for the team" } });
   res.json({ id, question, answer, status, sources, aiError, answeredBy: answer ? "Ask Agentryx" : null });
 });
 
@@ -155,6 +157,7 @@ askRouter.patch("/:id", requireAuth, async (req, res) => {
   if (typeof req.body?.answer === "string" && req.body.answer.trim()) {
     if (!isAdmin) return res.status(403).json({ error: "Only an admin can answer" });
     await pool.query("update ask_questions set answer=$1, answered_by=$2, status='answered', answered_at=now() where id=$3", [req.body.answer.trim(), r.id, cur.id]);
+    await audit(req, "ask.answered", { item: cur.context_ref ?? null, meta: { question: String(cur.question).slice(0, 160), answer: req.body.answer.trim().slice(0, 200) } });
   }
   if (req.body?.status === "closed" || req.body?.status === "open") {
     await pool.query("update ask_questions set status=$1 where id=$2", [req.body.status, cur.id]);
@@ -167,6 +170,6 @@ askRouter.post("/reindex", requireAuth, async (req: Request, res: Response) => {
   const r = await me(req);
   if (!r || !ADMIN.has(r.role)) return res.status(403).json({ error: "Admin only" });
   const counts = await rebuildKnowledgeBase();
-  await db.insert(auditLog).values({ reviewerId: r.id, action: "ask.reindex", meta: counts });
+  await audit(req, "ask.reindex", { meta: counts });
   res.json(counts);
 });

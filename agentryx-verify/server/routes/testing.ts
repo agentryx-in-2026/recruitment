@@ -1,3 +1,4 @@
+import { audit } from "../services/audit";
 import { Router, type Request } from "express";
 import { spawn } from "child_process";
 import fs from "fs";
@@ -122,7 +123,7 @@ testingRouter.post("/auto/run", requireAuth, async (req, res) => {
   const runId = nanoid();
   active = runId;
   await pool.query("insert into auto_runs (id, scope, started_by) values ($1,$2,$3)", [runId, scope, r.id]);
-  await db.insert(auditLog).values({ reviewerId: r.id, action: "auto.run", meta: { runId, scope } });
+  await audit(req, "auto.run", { item: scope, meta: { runId } });
   let log = "";
   const child = spawn("bash", [path.join(AUTO_DIR, "run.sh"), scope, runId], { cwd: AUTO_DIR, env: { ...process.env } });
   child.stdout.on("data", (d) => { log += d.toString(); pool.query("update auto_runs set log=$1 where id=$2", [log.slice(-20000), runId]).catch(() => {}); });
