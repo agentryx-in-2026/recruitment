@@ -1,21 +1,21 @@
 1
-00:00:10,400 --> 00:00:14,241
+00:00:10,400 --> 00:00:14,245
 HPSEDC staff sign in with the Overseas Placement Cell account.
 
 2
-00:00:14,301 --> 00:00:23,679
-In this version of HireStream, HPSEDC works as the single super agency: every vacancy belongs to this account, and every applicant comes to this team.
+00:00:14,305 --> 00:00:23,944
+In this version of HireStream, HPSEDC itself acts as the recruiting agency: every vacancy belongs to this account, and every applicant comes to this team.
 
 3
-00:00:23,739 --> 00:00:31,733
+00:00:24,004 --> 00:00:32,006
 The dashboard opens with the agency card, the verified badge, and the Applicant Pipeline, which counts applicants at each stage.
 
 4
-00:00:31,793 --> 00:00:35,320
+00:00:32,066 --> 00:00:35,596
 Below it are the most recent jobs and recruitment drives.
 
 5
-00:00:35,380 --> 00:00:38,970
+00:00:35,656 --> 00:00:39,250
 The Post Job button is always at the top of the left menu.
 
 6
