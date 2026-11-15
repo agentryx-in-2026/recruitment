@@ -32,3 +32,6 @@ logs/
 playwright-report/
 test-results/
 coverage/
+
+# Credentials kept locally, never committed
+A.PMD/Creds & Keys/
