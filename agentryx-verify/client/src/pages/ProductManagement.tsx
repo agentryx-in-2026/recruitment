@@ -100,18 +100,18 @@ export function ProductManagement() {
                 <a key={d.id} href={`/docs/${d.id}`} className="text-sm bg-white border border-amber-200 rounded-md px-3 py-1.5 text-slate-800 hover:border-amber-400">{d.title}</a>
               ))}
             </div>
-            {data.isAdmin && <div className="text-xs text-amber-900/70 mt-2">Starred documents also show in everyone's sidebar under Resources. Star or unstar them in the Documents tab.</div>}
+            {data.isAdmin && <div className="text-xs text-amber-900/70 mt-2">Starred documents also show in the sidebar — under Product management for admins, under Resources for testers. Star or unstar them in the Documents tab.</div>}
           </div>
         )}
         {data.isAdmin && (
           <div className="mt-5 flex gap-1 border-b border-slate-200">
-            {([["status", "Status"], ["documents", "Documents"]] as const).map(([k, l]) => (
+            {([["status", "Project status"], ["defects", "Defect log"], ["releases", "Releases"], ["documents", "Documents"]] as const).map(([k, l]) => (
               <button key={k} onClick={() => navigate(`/product?tab=${k}`)}
                 className={`px-4 py-2 text-sm -mb-px border-b-2 ${tab === k ? "border-[#14213D] text-slate-900 font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"}`}>{l}</button>
             ))}
           </div>
         )}
-        {data.isAdmin && tab === "status" ? <div className="mt-6"><PmStatus onDocs={() => navigate("/product?tab=documents")} /></div> : (<>
+        {data.isAdmin && (tab === "status" || tab === "defects" || tab === "releases") ? <div className="mt-6"><PmStatus key={tab} view={tab as any} onDocs={() => navigate("/product?tab=documents")} /></div> : (<>
 
         {error && <div className="mt-6 rounded-lg border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">{error}</div>}
 

@@ -296,7 +296,7 @@ pmRouter.get("/overview", requireAuth, async (req, res) => {
     if (dir) {
       try { version = JSON.parse(fs.readFileSync(path.join(ROOT, dir, "package.json"), "utf8")).version ?? null; } catch { /* */ }
       try {
-        releases = execFileSync("git", ["-C", ROOT, "log", "-8", "--date=iso-strict", "--format=%h%x09%ad%x09%s", "--", dir], { timeout: 5000 })
+        releases = execFileSync("git", ["-C", ROOT, "log", `-${Math.min(Math.max(Number(req.query.releases) || 8, 1), 50)}`, "--date=iso-strict", "--format=%h%x09%ad%x09%s", "--", dir], { timeout: 5000 })
           .toString().trim().split("\n").filter(Boolean).map((l) => { const [hash, date, subject] = l.split("\t"); return { hash, date, subject }; });
       } catch { /* */ }
     }

@@ -112,10 +112,10 @@ function SummaryCard({ href, onClick, children }: { href?: string; onClick?: () 
   return href ? <Link href={href} className={cls}>{children}</Link> : <div className={cls} onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onClick?.()}>{children}</div>;
 }
 
-export function PmStatus({ onDocs }: { onDocs: () => void }) {
+export function PmStatus({ onDocs, view = "status" }: { onDocs: () => void; view?: "status" | "defects" | "releases" }) {
   const [d, setD] = useState<Overview | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  useEffect(() => { fetch("/api/pm/overview", { credentials: "include" }).then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error); setD(j); }).catch((e) => setErr(e.message)); }, []);
+  useEffect(() => { fetch(`/api/pm/overview${view === "releases" ? "?releases=40" : ""}`, { credentials: "include" }).then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error); setD(j); }).catch((e) => setErr(e.message)); }, [view]);
   if (err) return <p className="text-rose-700">{err}</p>;
   if (!d) return <p className="text-slate-400">Loading…</p>;
   const openDocs = (category?: string) => { onDocs(); if (category) setTimeout(() => scrollTo(catId(category)), 400); };
@@ -134,16 +134,17 @@ export function PmStatus({ onDocs }: { onDocs: () => void }) {
               <span className="text-sm text-slate-500">{p.contractor} → {p.client} · build <span className="font-mono">{p.build_ref}</span>{p.version ? <> · app version <span className="font-mono">{p.version}</span></> : null}</span>
               <Link href={`/p/${p.slug}`} className="text-sm text-indigo-700 hover:underline ml-auto">Sign-off matrix</Link>
             </div>
-            <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
+            {view === "status" && <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
               <Stat n={p.cases.passed} of={p.cases.total} label="UAT cases passed" href={q("passed")} title="Open the passed cases" tone={p.cases.total && p.cases.passed === p.cases.total ? "green" : undefined} />
               <Stat n={p.cases.failed} label="Failed" href={q("failed")} title="Open the failed cases" tone={p.cases.failed ? "rose" : undefined} />
               <Stat n={notRun} label="Not run yet" href={q("torun")} title="Open the cases still to run" />
               <Stat n={p.cases.not_built} label="Not built yet" href={q("notbuilt")} title="Open the cases waiting for a build" tone={p.cases.not_built ? "amber" : undefined} />
               <Stat n={open.length} of={p.defects.length} label={`Defects open${blockers ? ` · ${blockers} blocker${blockers > 1 ? "s" : ""}` : ""}`} onClick={() => scrollTo(`defects-${p.slug}`)} title="Jump to the defect log" tone={blockers ? "rose" : open.length ? "amber" : "green"} />
               <Stat n={p.findings.open} label="Findings open" href="/findings" title="Open the findings" />
-            </div>
-            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))] items-start">
-              <div id={`defects-${p.slug}`} className="bg-white rounded-lg border border-slate-200 scroll-mt-32">
+            </div>}
+            {view === "defects" && <p className="text-sm text-slate-600"><b>{open.length}</b> open{blockers ? <> · <b className="text-rose-700">{blockers} blocker{blockers > 1 ? "s" : ""}</b></> : null} · {p.defects.length - open.length} resolved. Click a row for the resolution.</p>}
+            <div className={`grid gap-4 items-start ${view === "status" ? "grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))]" : "grid-cols-1"}`}>
+              {view !== "releases" && <div id={`defects-${p.slug}`} className="bg-white rounded-lg border border-slate-200 scroll-mt-32">
                 <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
                   <span className="font-semibold text-slate-900 flex items-center gap-2"><Bug className="w-4 h-4 text-slate-500" /> Defect log</span>
                   <Link href={`/p/${p.slug}`} className="text-sm text-indigo-700 hover:underline">Manage defects</Link>
@@ -151,8 +152,8 @@ export function PmStatus({ onDocs }: { onDocs: () => void }) {
                 {p.defects.length === 0 ? <p className="px-5 py-4 text-sm text-slate-500">No defects logged.</p> : (
                   <div className="divide-y divide-slate-100">{p.defects.map((x) => <DefectRow key={x.short_id} x={x} slug={p.slug} />)}</div>
                 )}
-              </div>
-              <div className="bg-white rounded-lg border border-slate-200">
+              </div>}
+              {view !== "defects" && <div className="bg-white rounded-lg border border-slate-200">
                 <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
                   <span className="font-semibold text-slate-900 flex items-center gap-2"><GitCommit className="w-4 h-4 text-slate-500" /> Recent releases</span>
                   <a href="https://github.com/agentryx-in-2026/recruitment/commits/main" target="_blank" rel="noreferrer" className="text-sm text-indigo-700 hover:underline inline-flex items-center gap-1">All on GitHub <ExternalLink className="w-3.5 h-3.5" /></a>
@@ -160,13 +161,13 @@ export function PmStatus({ onDocs }: { onDocs: () => void }) {
                 {p.releases.length === 0 ? <p className="px-5 py-4 text-sm text-slate-500">No release history found for this app.</p> : (
                   <ol className="divide-y divide-slate-100">{p.releases.map((c) => <ReleaseRow key={c.hash} c={c} />)}</ol>
                 )}
-              </div>
+              </div>}
             </div>
           </section>
         );
       })}
 
-      <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))]">
+      {view === "status" && <section className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))]">
         <SummaryCard href="/automation">
           <div className="font-semibold text-slate-900 flex items-center gap-2"><Bot className="w-4 h-4 text-slate-500" /> Last automated run <ArrowRight className="w-3.5 h-3.5 text-slate-300 ml-auto" /></div>
           {d.lastRun ? (
@@ -193,7 +194,7 @@ export function PmStatus({ onDocs }: { onDocs: () => void }) {
             ))}
           </ul>
         </div>
-      </section>
+      </section>}
     </div>
   );
 }

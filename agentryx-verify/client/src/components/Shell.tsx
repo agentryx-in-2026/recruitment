@@ -149,7 +149,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
     testing: /^\/(cases|automation|findings|run)/.test(loc),
     help: loc.startsWith("/team-questions"),
     resources: /^\/(resources|docs)/.test(loc) || (loc.startsWith("/product") && !(data?.me.isAdmin)),
-    manage: /^\/(questions|projects|admin|settings|audit|p\/|product)/.test(loc) && !!data?.me.isAdmin,
+    manage: /^\/(questions|projects|admin|settings|audit|p\/)/.test(loc) && !!data?.me.isAdmin,
   };
   const reload = useCallback(async () => {
     const r = await fetch("/api/testing/overview", { credentials: "include" });
@@ -186,7 +186,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   const toRun = hand.filter((c) => caseState(c) === "notrun").length;
   const pct = hand.length ? Math.round((passed / hand.length) * 100) : 0;
   const T = SIDE[theme];
-  const groups = ["Testing", "Ask for help", "Resources", "Manage"];
+  const groups = ["Testing", "Ask for help", "Resources", "Manage", "Key documents"];
   const allShut = groups.every((g) => closed[g]);
 
   const nav = data && (
@@ -216,20 +216,35 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
       </Group>
       <Group title="Resources" here={inGroup.resources}>
         <NavLink href="/resources" label="Guides & videos" />
-        <NavLink href="/product?tab=documents" label="Documents" alsoActive={!!onDoc && !docStarred && !data.me.isAdmin} />
-        {starred.map((d) => <NavLink key={d.id} href={`/docs/${d.id}`} label={d.title} sub />)}
+        {!data.me.isAdmin && <>
+          <NavLink href="/product?tab=documents" label="Documents" alsoActive={!!onDoc && !docStarred} />
+          {starred.map((d) => <NavLink key={d.id} href={`/docs/${d.id}`} label={d.title} sub />)}
+        </>}
       </Group>
       {data.me.isAdmin && (
         <>
           <div className={`mt-5 mx-2 pt-3 border-t ${T.rule} text-[11px] font-bold tracking-[0.14em] uppercase ${T.group}`}>Admin</div>
           <Group title="Manage" here={inGroup.manage}>
             <NavLink href="/questions" label="Questions inbox" />
-            <NavLink href="/product?tab=status" label="Product management" alsoActive={!!onDoc && !docStarred} />
             <NavLink href="/projects" label="Projects" />
             <NavLink href="/audit" label="Audit trail & usage" />
             <NavLink href="/admin/roadmap" label="Verify roadmap" />
             <NavLink href="/settings" label="Settings" />
           </Group>
+
+          {/* Product management: its own section, as important as Admin. */}
+          <div className={`mt-5 mx-2 pt-3 border-t ${T.rule} text-[11px] font-bold tracking-[0.14em] uppercase ${T.group}`}>Product management</div>
+          <div className="mt-1.5 space-y-0.5">
+            <NavLink href="/product?tab=status" label="Project status" alsoActive={loc === "/product" && typeof window !== "undefined" && !window.location.search} />
+            <NavLink href="/product?tab=defects" label="Defect log" />
+            <NavLink href="/product?tab=releases" label="Releases" />
+            <NavLink href="/product?tab=documents" label="Documents" alsoActive={!!onDoc && !docStarred} />
+          </div>
+          {starred.length > 0 && (
+            <Group title="Key documents" here={docStarred}>
+              {starred.map((d) => <NavLink key={d.id} href={`/docs/${d.id}`} label={d.title} sub />)}
+            </Group>
+          )}
         </>
       )}
       <div className={`mt-auto pt-6`}>
