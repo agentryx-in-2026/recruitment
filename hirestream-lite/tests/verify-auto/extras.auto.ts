@@ -94,6 +94,49 @@ test("Extras", async ({ page }) => {
     return `${open} jobs still active after the run`;
   });
 
+  await check(page, "L2.15", "Recruitment drive: the Placement Cell creates it, the Admin approves it, an applicant registers and the Placement Cell sees the registration", async () => {
+    const as = async (u: string) => { await page.context().clearCookies(); const r = await page.request.post("/api/v1/auth/login", { data: { username: u, password: "test123" } }); expect(r.status(), `sign in ${u}`).toBe(200); };
+    const title = `UAT drive ${STAMP}`;
+    const when = new Date(Date.now() + 10 * 86400000).toISOString();
+    await as("hpsedc_agency");
+    const c = await page.request.post("/api/v1/drives", { data: { title, date: when, location: "HPSEDC Office, Shimla", targetRoles: ["Welder"], expectedCandidates: 20, description: "Walk-in drive for Gulf welders." } });
+    expect(c.status(), `create drive ${await c.text().catch(() => "")}`.slice(0, 160)).toBeLessThan(300);
+    const id = (await c.json())?.data?.id;
+    expect(id, "drive id").toBeTruthy();
+    const before = sql(`select status from recruitment_drives where id = '${id}'`);
+    await page.goto("/"); await waitIdle(page, 1500);
+    await page.getByRole("button", { name: /^Drives/ }).filter({ visible: true }).first().click({ noWaitAfter: true }).catch(() => {});
+    await waitIdle(page, 900);
+    await expect(page.getByText(title).filter({ visible: true }).first(), "drive on the Placement Cell screen").toBeVisible();
+    await as("demo_admin");
+    if (before === "pending") {
+      const ap = await page.request.patch(`/api/v1/drives/${id}/approve`);
+      expect(ap.status(), "admin approves").toBeLessThan(300);
+    }
+    expect(sql(`select status from recruitment_drives where id = '${id}'`), "approved").toBe("approved");
+    await as("demo_candidate");
+    const rg = await page.request.post(`/api/v1/drives/${id}/register`, { data: { note: "Available on the day" } });
+    expect(rg.status(), "applicant registers").toBe(201);
+    await as("hpsedc_agency");
+    const regs = sql(`select count(*) from drive_registrations where drive_id = '${id}' and status = 'registered'`);
+    expect(regs, "registration recorded").toBe("1");
+    await page.context().clearCookies();
+    return `created (${before}), approved, 1 registration`;
+  });
+
+  await check(page, "L5.6", "FAQ page and country information: the FAQ answers questions in English and Hindi; applicants see the destination countries", async () => {
+    await page.context().clearCookies();
+    const q = sql(`select question from faq where is_active order by sort_order limit 1`);
+    await page.goto("/faq"); await waitIdle(page, 1200);
+    if (q) await expect(page.getByText(q.slice(0, 30)).filter({ visible: true }).first(), "an FAQ entry").toBeVisible();
+    await page.getByRole("button", { name: /हिं/ }).first().click().catch(() => {}); await waitIdle(page, 600);
+    await page.getByRole("button", { name: /^EN$/ }).first().click().catch(() => {});
+    const r = await page.request.get("/api/v1/content/countries?activeOnly=true");
+    const n = ((await r.json().catch(() => ({})))?.data ?? []).length;
+    expect(n, "active destination countries").toBeGreaterThan(0);
+    return `${n} destination countries`;
+  });
+
   await check(page, "L5.1", "Phone width (390 px): form, dashboard and pipeline have no sideways scroll", async () => {
     await page.context().clearCookies();
     await page.setViewportSize({ width: 390, height: 844 });

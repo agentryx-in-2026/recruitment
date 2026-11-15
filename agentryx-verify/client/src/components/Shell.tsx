@@ -201,7 +201,6 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
       <Group title="Testing" here={inGroup.testing}>
         <NavLink href="/run" label="Test run — step by step" count={toRun} />
         <NavLink href="/cases" label="All cases" count={all.length} tone="slate" />
-        <NavLink href="/cases?show=torun" label="To run" count={toRun} tone="slate" />
         <NavLink href="/cases?show=failed" label="Failed — retest" count={failed} />
         <NavLink href="/cases?show=passed" label="Passed" count={passed} tone="slate" />
         {data.projects.map((p) => (
