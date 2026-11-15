@@ -204,6 +204,8 @@ router.get("/applications", protect, async (req, res, next) => {
     if (!candidateResult || candidateResult.length === 0) {
       return res.json({ success: true, data: [] });
     }
+    const { getSetting } = await import("../services/settings.service");
+    const requireLetter: boolean = await getSetting("placement.require_letter_to_accept");
 
     const candidateId = candidateResult[0].id;
 
@@ -253,6 +255,8 @@ router.get("/applications", protect, async (req, res, next) => {
           id: p.id, status: p.status, startDate: p.startDate, country: p.country,
           salary: p.salary, visaStatus: p.visaStatus,
           appointmentLetterUrl: p.appointmentLetterUrl, declineReason: p.declineReason,
+          // FB-2026-0021: the offer can't be accepted (or its letter downloaded) until HPSEDC attaches the appointment letter.
+          awaitingLetter: !!(p.status === "offered" && requireLetter && !p.appointmentLetterUrl),
         } : null,
         // Next scheduled interview for this application.
         // v0.4.34 (Phase 4): added interviewerName, meetingLink, and the

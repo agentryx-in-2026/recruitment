@@ -1720,13 +1720,15 @@ function ApplicationsView({ applications, initialIntent, setActiveView }: { appl
   const acceptMutation = useMutation({
     mutationFn: async (placementId: string) => {
       const res = await fetch(`/api/v1/drives/placements/${placementId}/accept`, { method: "PATCH" });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error?.message || body?.message || "Please try again.");
+      return body;
     },
     onSuccess: () => {
       toast({ title: t("appsView.toastAccepted"), description: t("appsView.toastAcceptedDesc") });
       queryClient.invalidateQueries({ queryKey: ["/api/v1/candidates/applications"] });
     },
+    onError: (e: Error) => toast({ title: t("appsView.acceptFailed"), description: e.message, variant: "destructive" }),
   });
   const declineMutation = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
@@ -1981,16 +1983,19 @@ function ApplicationsView({ applications, initialIntent, setActiveView }: { appl
                       </p>
                     </div>
                   </div>
+                  {selectedApp.placement.awaitingLetter && (
+                    <p className="mb-3 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{t("appsView.awaitingLetter")}</p>
+                  )}
                   {!showDeclineForm ? (
                     <div className="flex gap-2 flex-wrap">
-                      <Button size="sm" disabled={acceptMutation.isPending}
+                      {!selectedApp.placement.awaitingLetter && <Button size="sm" disabled={acceptMutation.isPending}
                         onClick={() => acceptMutation.mutate(selectedApp.placement.id)}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white">
                         {acceptMutation.isPending
                           ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
                           : <CheckCircle className="w-4 h-4 mr-1.5" />}
                         {acceptMutation.isPending ? t("appsView.accepting") : t("appsView.acceptOffer")}
-                      </Button>
+                      </Button>}
                       <Button size="sm" variant="outline"
                         onClick={() => { setShowDeclineForm(true); setDeclineReason(""); }}
                         className="border-red-200 text-red-700 hover:bg-red-50">
@@ -2000,11 +2005,11 @@ function ApplicationsView({ applications, initialIntent, setActiveView }: { appl
                           the PDF inline, so the browser's viewer opens with
                           its own download + print controls — the dashboard
                           stays open behind it. */}
-                      <a href={`/api/v1/me/placements/${selectedApp.placement.id}/offer-letter.pdf`}
+                      {!selectedApp.placement.awaitingLetter && <a href={`/api/v1/me/placements/${selectedApp.placement.id}/offer-letter.pdf`}
                         target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-md border border-slate-200 bg-white hover:border-emerald-400 hover:text-emerald-700 transition">
                         <Download className="w-4 h-4" /> {t("appsView.viewOfferPdf")}
-                      </a>
+                      </a>}
                     </div>
                   ) : (
                     <div className="bg-white rounded-lg border border-red-200 p-3">

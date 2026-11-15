@@ -528,6 +528,13 @@ router.get("/placements/:id/offer-letter.pdf", async (req, res, next) => {
       allowed = !!parent && parent.employerId === user.id;
     }
     if (!allowed) return res.status(403).send("");
+    // FB-2026-0021: an applicant gets the offer letter only once HPSEDC has
+    // attached the appointment letter (when that rule is on) — the same rule
+    // that gates Accept. Staff can always preview it.
+    if (user.role === "candidate" && p.status === "offered" && !p.appointmentLetterUrl
+        && await getSetting<boolean>("placement.require_letter_to_accept")) {
+      return res.status(409).type("text/html").send(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offer letter not ready</title><body style="font:16px/1.5 system-ui,sans-serif;max-width:560px;margin:48px auto;padding:0 16px;color:#1c2430"><h1 style="font-size:20px">Your offer letter is not ready yet</h1><p>HPSEDC will attach your appointment letter first. Once it is there, you can download the offer letter and accept the offer from your dashboard.</p></body>`);
+    }
 
     res.setHeader("Content-Type", "application/pdf");
     // v0.4.16: inline so mobile browsers preview the PDF in-place instead

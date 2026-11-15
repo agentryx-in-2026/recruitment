@@ -253,7 +253,18 @@ test("Applicant", async ({ page }) => {
     // Make the precondition true on the copy: HPSEDC uploads the letter for suresh_thakur's offer.
     const pid = sql(`select p.id from placements p join applications a on a.id=p.application_id join candidates c on c.id=a.candidate_id join users u on u.id=c.user_id where u.username='suresh_thakur' and p.status='offered' limit 1`);
     expect(pid, "suresh has an open offer").not.toBe("");
+    // FB-2026-0021: before the letter, no offer PDF and no accept — with a reason the applicant can read.
     await logout(page);
+    await page.context().clearCookies();
+    const cand = await page.request.post("/api/v1/auth/login", { data: { username: "suresh_thakur", password: "test123" } });
+    expect(cand.status()).toBe(200);
+    const apps = (await (await page.request.get("/api/v1/candidates/applications")).json()).data as any[];
+    expect(apps.find((a) => a.placement?.id === pid)?.placement?.awaitingLetter, "offer waits for the letter").toBe(true);
+    expect((await page.request.get(`/api/v1/me/placements/${pid}/offer-letter.pdf`)).status(), "offer PDF held back").toBe(409);
+    const early = await page.request.fetch(`/api/v1/drives/placements/${pid}/accept`, { method: "PATCH" });
+    expect(early.status(), "accept before the letter is refused").toBe(400);
+    expect(String((await early.json()).error?.message), "refusal explains why").toContain("appointment letter");
+    await page.context().clearCookies();
     const agent = await page.request.post("/api/v1/auth/login", { data: { username: "hpsedc_agency", password: "test123" } });
     expect(agent.status()).toBe(200);
     const fs = await import("fs");

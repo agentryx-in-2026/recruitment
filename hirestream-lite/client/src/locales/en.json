@@ -1228,6 +1228,8 @@
     "accepting": "Accepting…",
     "decline": "Decline",
     "viewOfferPdf": "View / print offer letter (PDF)",
+    "awaitingLetter": "Waiting for your appointment letter. HPSEDC will attach it first — then you can download the offer letter and accept the offer here.",
+    "acceptFailed": "Couldn't accept the offer",
     "declineReasonLabel": "Reason for declining",
     "declineOptional": "(optional, helps us improve matches)",
     "declinePlaceholder": "e.g. Found a better opportunity, family reasons, salary too low…",

@@ -70,14 +70,15 @@ export default function ApplicationDetailPage() {
   const acceptMutation = useMutation({
     mutationFn: async (placementId: string) => {
       const res = await fetch(`/api/v1/drives/placements/${placementId}/accept`, { method: "PATCH" });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error?.message || body?.message || "Please try again or contact HPSEDC.");
+      return body;
     },
     onSuccess: () => {
       toast({ title: "Offer accepted", description: "Your visa process will begin. Check Documents." });
       qc.invalidateQueries({ queryKey: ["/api/v1/candidates/applications"] });
     },
-    onError: () => toast({ title: "Couldn't accept offer", description: "Please try again or contact the agency.", variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Couldn't accept offer", description: e.message, variant: "destructive" }),
   });
   const declineMutation = useMutation({
     mutationFn: async ({ placementId, reason }: { placementId: string; reason: string }) => {
@@ -211,26 +212,29 @@ export default function ApplicationDetailPage() {
               </div>
             </div>
 
+            {app.placement.awaitingLetter && (
+              <p className="mb-3 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Waiting for your appointment letter. HPSEDC will attach it first — then you can download the offer letter and accept the offer here.</p>
+            )}
             {!showDeclineForm ? (
               <div className="flex gap-2 flex-wrap">
-                <Button size="lg" disabled={acceptMutation.isPending}
+                {!app.placement.awaitingLetter && <Button size="lg" disabled={acceptMutation.isPending}
                   onClick={() => acceptMutation.mutate(app.placement.id)}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md">
                   {acceptMutation.isPending
                     ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
                     : <CheckCircle className="w-5 h-5 mr-1.5" />}
                   {acceptMutation.isPending ? "Accepting…" : "Accept Offer"}
-                </Button>
+                </Button>}
                 <Button size="lg" variant="outline"
                   onClick={() => { setShowDeclineForm(true); setDeclineReason(""); }}
                   className="border-red-300 text-red-700 hover:bg-red-50">
                   <XCircle className="w-5 h-5 mr-1.5" /> Decline
                 </Button>
-                <a href={`/api/v1/me/placements/${app.placement.id}/offer-letter.pdf`}
+                {!app.placement.awaitingLetter && <a href={`/api/v1/me/placements/${app.placement.id}/offer-letter.pdf`}
                   target="_blank" rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-md border border-slate-200 bg-white hover:border-emerald-400 hover:text-emerald-700 transition">
                   <Download className="w-4 h-4" /> Download offer letter (PDF)
-                </a>
+                </a>}
               </div>
             ) : (
               <div className="bg-white rounded-lg border border-red-200 p-3">
