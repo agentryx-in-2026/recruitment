@@ -7,6 +7,8 @@ const envSchema = z.object({
   // v0.4.17: no default. A predictable shared session secret would let
   // anyone forge sessions. The startup gate below additionally rejects
   // weak / placeholder values even if NODE_ENV is dev or test.
+  // 32-byte hex key that encrypts admin-saved integration secrets (SMTP, SMS…).
+  INTEGRATION_SECRET_KEY: z.string().regex(/^[0-9a-f]{64}$/i).optional(),
   SESSION_SECRET: z.string().min(32, "SESSION_SECRET must be at least 32 chars (production secret, no default)"),
   PORT: z.string().transform(Number).default("5000"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),

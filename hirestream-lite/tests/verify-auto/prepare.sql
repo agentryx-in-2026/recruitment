@@ -1,6 +1,9 @@
 -- States the automated checks rely on, applied to the DISPOSABLE copy only.
 -- Each block makes one precondition true regardless of what UAT testers did.
 
+-- Never send real email or SMS from the copy: the checks read codes from the database.
+update provider_config set enabled = false where id in ('email', 'sms');
+
 -- Jobs open with a deadline; demo quick-login off (production-like sign-in).
 update jobs set status = 'active', hiring_deadline = now() + interval '45 days', target_hires = greatest(target_hires, 10);
 update system_settings set value = 'false' where key = 'feature.quick_login_enabled';
