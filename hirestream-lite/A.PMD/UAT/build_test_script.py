@@ -4,12 +4,13 @@ Builds the HireStream Lite UAT test script (HTML) from the live case list in
 Agentryx Verify, so the script always matches what the tester marks there.
 
     python3 build_test_script.py            # writes Lite_UAT_Test_Script.html next to this file
+    python3 build_test_script.py --sync     # also writes each tip into its case in Verify (shown on the case page)
 
 Case wording comes from Verify (requirements table). Session titles mirror
 agentryx-verify/server/services/testPlan.ts. The extra per-case data and tips
 live in TIPS below — edit them here, then rebuild.
 """
-import html, os, re, subprocess, datetime
+import html, json, os, re, subprocess, datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 VERIFY_ENV = os.path.join(HERE, "../../../agentryx-verify/.env")
@@ -80,12 +81,12 @@ TIPS = {
   "L1.16": "With one applicant you have one interview, so do <b>Reschedule</b> with the reason “UAT — clash with exam” (session 6 needs it) and download the calendar (.ics) file. If you also want to try Confirm and Decline, mark the case Partial and say which you could test.",
   "L2.7": "Answer your applicant's request by proposing a new time. Note in the comment which options you could try.",
   "L2.8": "Pass / Select <b>your applicant</b> with rating 4. For Fail / Reject, use one of the seeded applicants already at Interview — first without notes (must be refused), then with notes.",
-  "L1.17": "Sign in as your applicant. You'll see the 'Documents needed' card on the dashboard.<br><b>Also do this now, for L1.20 (session 9):</b> click Accept offer <i>before</i> HPSEDC uploads the appointment letter, and note what happens.",
+  "L1.17": "Sign in as your applicant. You'll see the 'Documents needed' card on the dashboard.<br><b>Also look now, for L1.20 (session 9):</b> HPSEDC hasn't uploaded the appointment letter yet, so the offer should say it is waiting for the letter, with no Accept button and no offer-letter PDF (only Decline). Note what you see.",
   "L1.18": "Any small PDF works (e.g. print a web page to PDF). For the size check, use any file larger than 5 MB.",
   "L1.19": "PBBY policy number: UAT-PBBY-0001.",
   "L2.9": "Any PDF works as the signed letter. Travel date: 30 days ahead. Skip the ECR part if your applicant isn't marked ECR, and say so in the comment.",
   "L2.10": "Visa note: “UAT — submitted to embassy”.",
-  "L1.20": "Use what you saw in session 7 for the 'before the letter' part. Known finding <b>FB-2026-0021</b>: before the letter, the offer PDF already downloads and Accept shows a raw “Action failed” error instead of an explanation. If that's still the case, mark <b>Partial</b> and mention FB-2026-0021. Skip Decline (it would undo your story) unless you have a second selected applicant.",
+  "L1.20": "Use what you saw in session 7 for the 'before the letter' part. This is the fix for your finding <b>FB-2026-0021</b> (15 Nov): before the letter there is no Accept and no offer PDF, just a note saying why. After you check it, confirm the fix on FB-2026-0021 in Findings too. Skip Decline (it would undo your story) unless you have a second selected applicant.",
   "L2.11": "Note: “UAT — called, settled in well”.",
   "L1.21": "Message: “UAT — when is my flight?”. Grievance category 'Someone asked me for money', text “UAT test — please ignore”.",
   "L1.22": "Change the password to Test@2027, sign out and sign back in with it. Write the new password down.",
@@ -101,11 +102,11 @@ TIPS = {
 
 def rows():
     url = re.search(r"DATABASE_URL=(.*)", open(VERIFY_ENV).read()).group(1).strip()
-    sql = f"""select r.session, r.test_plan, r.item_ref, r.description, r.test_steps, r.expected_result, coalesce(r.plan_note,'')
-              from requirements r join projects p on p.id=r.project_id
-              where p.slug='{PROJECT}' and r.test_plan in ('run','with') order by r.session, r.sort_order"""
-    out = subprocess.run(["psql", url, "-tA", "-F", "|~|", "-c", sql], capture_output=True, text=True, check=True).stdout
-    return [l.split("|~|") for l in out.strip("\n").split("\n") if l]
+    sql = f"""select coalesce(json_agg(json_build_array(r.session, r.test_plan, r.item_ref, r.description, r.test_steps, r.expected_result, coalesce(r.plan_note,''))
+              order by r.session, r.sort_order), '[]') from requirements r join projects p on p.id=r.project_id
+              where p.slug='{PROJECT}' and r.test_plan in ('run','with')"""
+    out = subprocess.run(["psql", url, "-tAc", sql], capture_output=True, text=True, check=True).stdout
+    return json.loads(out)
 
 e = html.escape
 
@@ -134,7 +135,7 @@ def build():
                 continue
             cs.append(f'''<div class="case"><div class="ch"><span class="ref">{e(ref)}</span><span class="t">{e(desc)}</span><span class="box">☐ Pass ☐ Fail ☐ Partial</span></div>
             <div class="grid"><div><h4>Do this</h4>{steps_html(st)}{f'<div class="tip"><b>Data and tips:</b> {tip}</div>' if tip else ''}</div>
-            <div><h4>Expected</h4><p>{e(exp)}</p>{f'<p class="note">{e(note)}</p>' if note else ''}</div></div></div>''')
+            <div><h4>Expected</h4><p>{e(exp)}</p></div></div></div>''')
         carry = f'<div class="carry"><b>Carry forward:</b> {e(CARRY[n])}</div>' if n in CARRY else ""
         body.append(f'''<section class="session" id="s{n}"><div class="sh"><span class="sn">Session {n}</span><h2>{e(title)}</h2></div>
         <p class="meta"><b>Sign in as:</b> {e(acct)} &nbsp;·&nbsp; <b>Role:</b> {e(role)} &nbsp;·&nbsp; <b>Time:</b> about {mins} minutes</p>
@@ -226,7 +227,22 @@ code{{background:var(--soft);padding:1px 5px;border-radius:4px;font-size:13px}}
 <p>Check the Verify Dashboard: every case should show Pass, Fail or Partial. Anything you couldn't test, mark Partial with the reason. Then tell us — we fix the Fails, and you retest the ones marked for re-verify.</p></section>
 </main></body></html>"""
 
+def plain(t):
+    t = re.sub(r"<br\s*/?>", "\n", t)
+    return html.unescape(re.sub(r"<[^>]+>", "", t)).strip()
+
+def sync():
+    """Write each tip into its case's plan_note in Verify (run cases only)."""
+    url = re.search(r"DATABASE_URL=(.*)", open(VERIFY_ENV).read()).group(1).strip()
+    for ref, tip in TIPS.items():
+        q = plain(tip).replace("'", "''")
+        subprocess.run(["psql", url, "-qtAc", f"""update requirements r set plan_note = '{q}' from projects p
+            where p.id = r.project_id and p.slug = '{PROJECT}' and r.item_ref = '{ref}' and r.test_plan = 'run'"""], check=True)
+    print("synced", len(TIPS), "tips into Verify")
+
 if __name__ == "__main__":
+    import sys
+    if "--sync" in sys.argv: sync()
     out = os.path.join(HERE, "Lite_UAT_Test_Script.html")
     open(out, "w").write(build())
     print("wrote", out)
