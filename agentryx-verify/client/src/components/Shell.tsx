@@ -198,7 +198,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
     <nav className="flex flex-col min-h-full px-3 py-5">
       <Link href="/" className={`flex items-center gap-2 px-2 font-serif font-bold text-lg ${T.brand}`}><CheckCircle2 className="w-5 h-5 text-amber-500" />Agentryx Verify</Link>
       <div className="mt-5 space-y-0.5">
-        <NavLink href="/" label="Start here" />
+        <NavLink href="/" label="Dashboard" />
       </div>
       <div className="flex justify-end mt-2">
         <button onClick={() => setClosed(allShut ? {} : Object.fromEntries(groups.map((g) => [g, true])))} className={`text-xs ${T.muted} hover:underline px-2`}>{allShut ? "Expand all" : "Collapse all"}</button>

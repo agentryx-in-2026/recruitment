@@ -193,7 +193,7 @@ function Body() {
               <div className="mt-4"><Field label="Shared password" hint="The demo accounts' password, shown to testers."><input value={v["testing.password"]} onChange={(e) => set("testing.password", e.target.value)} className={`${field} max-w-[240px] font-mono`} /></Field></div>
               <div className="mt-4"><button className={btn} disabled={busy} onClick={() => save(["testing.accounts", "testing.password"], { "testing.accounts": accounts.filter((x) => x.role.trim() && x.username.trim()) })}>Save accounts</button></div>
             </Card>
-            <Card title="Mobile app note" sub="The line shown on Start here about the mobile app. Leave it empty to hide it.">
+            <Card title="Mobile app note" sub="The line shown on the Dashboard about the mobile app. Leave it empty to hide it.">
               <textarea rows={2} value={v["testing.mobile_note"]} onChange={(e) => set("testing.mobile_note", e.target.value)} className={input} />
               <div className="mt-3"><button className={btn} disabled={busy} onClick={() => save(["testing.mobile_note"])}>Save</button></div>
             </Card>

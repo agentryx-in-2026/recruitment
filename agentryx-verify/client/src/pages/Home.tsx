@@ -11,7 +11,7 @@ import { api } from "../lib/api";
  * sprints and re-verify badges, the defect log, exports and the feedback inbox.
  */
 const NOTE: Record<string, { tag: string; tone: string; tip: string; Icon: any }> = {
-  "hirestream-lite": { tag: "Live UAT", tone: "bg-emerald-50 text-emerald-700 border-emerald-200", tip: "The web portal HPSEDC will launch. Testers work it from Start here.", Icon: Globe },
+  "hirestream-lite": { tag: "Live UAT", tone: "bg-emerald-50 text-emerald-700 border-emerald-200", tip: "The web portal HPSEDC will launch. Testers work it from the Dashboard.", Icon: Globe },
   "hirestream-mobile-v1.0": { tag: "Live UAT", tone: "bg-emerald-50 text-emerald-700 border-emerald-200", tip: "Android app. Install Expo Go and scan the QR code on the project page.", Icon: Smartphone },
   "hirestream-v1.4": { tag: "Archive", tone: "bg-slate-100 text-slate-600 border-slate-200", tip: "Earlier multi-agency build, superseded by HireStream Lite.", Icon: Archive },
   "hirestream-htis-smoke": { tag: "Reference", tone: "bg-sky-50 text-sky-700 border-sky-200", tip: "HTIS generic QA smoke checklist; verdicts from the 22 Apr workbook pre-loaded.", Icon: Archive },

@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "wouter";
-import { ArrowRight, PlayCircle, Flag, Bot, MessageCircleQuestion, ListChecks, History, Bug } from "lucide-react";
+import { ArrowRight, PlayCircle, Flag, Bot, MessageCircleQuestion, ListChecks, History, Bug, Activity, GitCommit, Users } from "lucide-react";
 import { Shell, Page, useWorkspace, caseState, StatusChip, AutoChip, byHand, type Case } from "../components/Shell";
 import { KIND, Chip, stage } from "./Findings";
+import { LABEL } from "./Audit";
 
 /**
- * Start here — the tester's home (MGC dashboard style). From the top:
+ * Dashboard — the tester's home (MGC dashboard style). From the top:
  * the next case, the key numbers, then panels for everything that needs the
  * tester: up next, failed retests, known defects, findings, questions, the last
  * automated run, recent results, and progress act by act.
@@ -95,7 +96,7 @@ function Body() {
   });
 
   return (
-    <Page title="Start here"
+    <Page title="Dashboard"
       sub={`Namaste ${d.me.name.split(" ")[0]}. Where testing stands, and what needs you next. Work the web cases top to bottom, in the order of the demo.`}
       actions={<>
         <Link href="/findings?new=1" className="inline-flex items-center gap-2 bg-white border border-slate-300 text-slate-700 text-sm rounded-md px-3.5 py-2 hover:bg-slate-50"><Flag className="w-4 h-4 text-rose-600" /> Report a finding</Link>
@@ -223,6 +224,155 @@ function Body() {
   );
 }
 
+/**
+ * Admin dashboard — the whole programme on one page: UAT progress, defects,
+ * findings and questions that need an answer, automated checks, who has been
+ * testing, recent activity and the latest releases. Every number opens its list.
+ */
+const istDay = (daysAgo = 0) => new Date(Date.now() - daysAgo * 864e5).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+const ago = (iso: string) => {
+  const m = Math.round((Date.now() - +new Date(iso)) / 60000);
+  return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+};
+const hrs = (sec: number) => !sec ? "0" : sec < 3600 ? `${Math.round(sec / 60)}m` : `${(sec / 3600).toFixed(1)}h`;
+const SEV: Record<string, string> = { blocker: "text-rose-700", critical: "text-rose-700", high: "text-amber-700", major: "text-amber-700" };
+const isOpen = (st: string) => st === "open" || st === "in_progress";
+
+function AdminBody() {
+  const { data } = useWorkspace();
+  const d = data!;
+  const [pm, setPm] = useState<any | null>(null);
+  const [usage, setUsage] = useState<any | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [findings, setFindings] = useState<any[]>([]);
+  const [qs, setQs] = useState<any[]>([]);
+  useEffect(() => {
+    const j = (u: string) => fetch(u, { credentials: "include" }).then((r) => r.json());
+    const week = `from=${istDay(6)}&to=${istDay(0)}`;
+    j("/api/pm/overview").then(setPm).catch(() => {});
+    j(`/api/audit/overview?${week}`).then(setUsage).catch(() => {});
+    j(`/api/audit/events?${week}&type=items&limit=8`).then((x) => setEvents(x?.rows ?? [])).catch(() => {});
+    const ids = new Set(d.projects.map((p) => p.id));
+    j("/api/feedback").then((x) => setFindings(Array.isArray(x) ? x.filter((f: any) => ids.has(f.projectId)) : [])).catch(() => {});
+    j("/api/ask/team").then((x) => setQs(Array.isArray(x) ? x : [])).catch(() => {});
+  }, []);
+
+  const lite = d.projects.find((p) => p.slug === "hirestream-lite");
+  const hand = (lite?.cases ?? []).filter(byHand);
+  const passed = hand.filter((c) => caseState(c) === "passed").length;
+  const failed = d.projects.flatMap((p) => p.cases).filter((c) => c.test_plan !== "later" && caseState(c) === "failed");
+  const pct = hand.length ? Math.round((passed / hand.length) * 100) : 0;
+  const defects: any[] = (pm?.projects ?? []).flatMap((p: any) => p.defects.map((x: any) => ({ ...x, app: p.name })));
+  const openDefects = defects.filter((x) => isOpen(x.status));
+  const blockers = openDefects.filter((x) => x.severity === "blocker").length;
+  const openFindings = findings.filter((f) => ["open", "progress"].includes(stage(f.status)));
+  const waitingQs = qs.filter((q) => q.status === "open");
+  const run = pm?.lastRun;
+  const releases: any[] = (pm?.projects ?? []).flatMap((p: any) => p.releases.map((r: any) => ({ ...r, app: p.name })))
+    .sort((a: any, b: any) => +new Date(b.date) - +new Date(a.date)).slice(0, 6);
+  const sessions = d.sessions.filter((s) => s.n <= 12).map((s) => {
+    const cs = hand.filter((c) => c.session === s.n);
+    return { s, total: cs.length, passed: cs.filter((c) => caseState(c) === "passed").length, failed: cs.filter((c) => caseState(c) === "failed").length };
+  }).filter((x) => x.total);
+  const cards = usage?.cards;
+
+  return (
+    <Page title="Dashboard" sub="Phase-1 UAT of HireStream Lite for HPSEDC: where testing, defects and the team stand today.">
+      <section className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(180px,1fr))]">
+        <Stat n={`${pct}%`} label="UAT progress" sub={`${passed} of ${hand.length} hand-run cases passed`} href="/run" />
+        <Stat n={failed.length} label="Failed — retest" sub="Waiting on a fix" href="/cases?show=failed" tone={failed.length ? "rose" : undefined} />
+        <Stat n={openDefects.length} label="Open defects" sub={blockers ? `${blockers} blocking` : `${defects.length - openDefects.length} resolved`} href="/product?tab=defects" tone={blockers ? "rose" : openDefects.length ? "amber" : undefined} />
+        <Stat n={openFindings.length} label="Findings to triage" sub="Reported outside the cases" href="/findings" tone={openFindings.length ? "amber" : undefined} />
+        <Stat n={pm?.questions.waiting ?? waitingQs.length} label="Questions waiting" sub="Need an answer from you" href="/questions" tone={(pm?.questions.waiting ?? waitingQs.length) ? "amber" : undefined} />
+        <Stat n={run ? `${run.passed}/${run.passed + run.failed}` : "—"} label="Automated checks" sub={run ? `Last run ${ago(run.started_at)}` : "No run yet"} href="/automation" tone={run?.failed ? "rose" : undefined} />
+        <Stat n={cards?.people ?? "—"} label="People testing" sub={cards ? `${cards.sign_ins} sign-ins · ${hrs(cards.active_seconds)} active, 7 days` : "Last 7 days"} href="/audit" />
+        <Stat n={cards?.online ?? "—"} label="Online now" sub="Active in the last 5 min" href="/audit" />
+      </section>
+
+      <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] items-start">
+        <Panel title="UAT progress by session" icon={ListChecks} link={["/run", "Test run"]}>
+          <div className="py-1">
+            {sessions.map(({ s, total, passed, failed }) => (
+              <Link key={s.n} href="/run" className="flex items-center gap-4 px-5 py-2 hover:bg-slate-50">
+                <span className="w-6 h-6 shrink-0 rounded-full bg-slate-100 text-slate-700 text-xs font-bold flex items-center justify-center">{s.n}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-slate-900 truncate">{s.title}</div>
+                  <div className="mt-1 h-1.5 bg-slate-100 rounded-full overflow-hidden flex"><div className="bg-emerald-500" style={{ width: `${(passed / total) * 100}%` }} /><div className="bg-rose-500" style={{ width: `${(failed / total) * 100}%` }} /></div>
+                </div>
+                <span className="text-xs text-slate-500 tabular-nums w-16 text-right">{passed}/{total}{failed ? ` · ${failed}✗` : ""}</span>
+              </Link>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Needs your answer" icon={MessageCircleQuestion} link={["/questions", "Questions inbox"]} empty="Nothing waiting. Every question and finding has a reply.">
+          {(waitingQs.length > 0 || openFindings.length > 0) && <div className="divide-y divide-slate-100 py-1">
+            {waitingQs.slice(0, 4).map((q) => (
+              <Link key={q.id} href="/questions" className="flex items-start gap-3 px-5 py-2.5 hover:bg-slate-50">
+                <span className="text-[11px] font-semibold text-amber-700 w-20 shrink-0 pt-0.5">Question</span>
+                <span className="flex-1 min-w-0"><span className="block text-sm text-slate-900 truncate">{q.question}</span><span className="block text-xs text-slate-500">{q.askedBy ?? q.name ?? ""}{q.created_at || q.createdAt ? ` · ${ago(q.created_at ?? q.createdAt)}` : ""}</span></span>
+              </Link>))}
+            {openFindings.slice(0, 4).map((f) => (
+              <Link key={f.id} href={`/findings/${f.id}`} className="flex items-start gap-3 px-5 py-2.5 hover:bg-slate-50">
+                <span className="text-[11px] font-semibold text-rose-700 w-20 shrink-0 pt-0.5">Finding</span>
+                <span className="flex-1 min-w-0"><span className="block text-sm text-slate-900 truncate">{f.title}</span><span className="block text-xs text-slate-500">{f.referenceCode} · {f.submitter?.name ?? ""}</span></span>
+                <Chip map={KIND} k={f.type} />
+              </Link>))}
+          </div>}
+        </Panel>
+
+        <Panel title="Open defects" icon={Bug} link={["/product?tab=defects", "Defect log"]} empty={pm ? "No open defects." : "Loading…"}>
+          {openDefects.length > 0 && <div className="divide-y divide-slate-100 py-1">
+            {openDefects.slice(0, 6).map((x) => (
+              <Link key={x.short_id} href="/product?tab=defects" className="flex items-start gap-3 px-5 py-2.5 hover:bg-slate-50">
+                <span className="font-mono text-xs text-slate-500 w-16 shrink-0 pt-0.5">{x.short_id}</span>
+                <span className="flex-1 min-w-0"><span className="block text-sm text-slate-900 truncate">{x.description}</span><span className="block text-xs text-slate-500">{x.app} · {x.status.replace("_", " ")}</span></span>
+                <span className={`text-[11px] font-semibold capitalize ${SEV[x.severity] ?? "text-slate-500"}`}>{x.severity}</span>
+              </Link>))}
+          </div>}
+        </Panel>
+
+        <Panel title="Who's been testing" icon={Users} link={["/audit", "Audit trail & usage"]} empty={usage ? "Nobody signed in this week." : "Loading…"}>
+          {usage?.most?.length > 0 && <div className="divide-y divide-slate-100 py-1">
+            {usage.most.map((m: any) => (
+              <Link key={m.id} href="/audit" className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50">
+                <span className="w-7 h-7 shrink-0 rounded-full bg-[#14213D] text-white text-xs font-bold flex items-center justify-center">{(m.name || m.username || "?")[0].toUpperCase()}</span>
+                <span className="flex-1 min-w-0 text-sm text-slate-900 truncate">{m.name || m.username}{usage.online?.some((o: any) => o.id === m.id) && <span className="ml-2 text-[11px] font-semibold text-emerald-700">● online</span>}</span>
+                <span className="text-xs text-slate-500 tabular-nums">{hrs(m.active_seconds)} active · {m.actions} actions · {m.sign_ins} sign-ins</span>
+              </Link>))}
+            <p className="px-5 py-2 text-xs text-slate-500">Last 7 days</p>
+          </div>}
+        </Panel>
+
+        <Panel title="Recent activity" icon={Activity} link={["/audit", "Full audit trail"]} empty={usage ? "No activity this week." : "Loading…"}>
+          {events.length > 0 && <div className="divide-y divide-slate-100 py-1">
+            {events.map((e) => (
+              <Link key={e.id} href="/audit" className="flex items-start gap-3 px-5 py-2.5 hover:bg-slate-50">
+                <span className="text-xs text-slate-500 w-20 shrink-0 pt-0.5">{ago(e.created_at)}</span>
+                <span className="flex-1 min-w-0 text-sm text-slate-900 truncate"><b className="font-semibold">{e.name || e.username || "System"}</b> {(LABEL[e.action] ?? e.action).toLowerCase()}{e.item ? <span className="text-slate-600"> · {e.item}</span> : null}</span>
+              </Link>))}
+          </div>}
+        </Panel>
+
+        <Panel title="Latest releases" icon={GitCommit} link={["/product?tab=releases", "All releases"]} empty={pm ? "No releases recorded." : "Loading…"}>
+          {releases.length > 0 && <div className="divide-y divide-slate-100 py-1">
+            {releases.map((r) => (
+              <Link key={r.hash} href="/product?tab=releases" className="flex items-start gap-3 px-5 py-2.5 hover:bg-slate-50">
+                <span className="font-mono text-xs text-slate-500 w-16 shrink-0 pt-0.5">{r.hash.slice(0, 7)}</span>
+                <span className="flex-1 min-w-0"><span className="block text-sm text-slate-900 truncate">{r.subject}</span><span className="block text-xs text-slate-500">{r.app} · {ago(r.date)}</span></span>
+              </Link>))}
+          </div>}
+        </Panel>
+      </div>
+    </Page>
+  );
+}
+
+function Home() {
+  const { data } = useWorkspace();
+  return data?.me.isAdmin ? <AdminBody /> : <Body />;
+}
+
 export function Workspace() {
-  return <Shell title="Start here"><Body /></Shell>;
+  return <Shell title="Dashboard"><Home /></Shell>;
 }

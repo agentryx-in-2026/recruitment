@@ -34,7 +34,7 @@ const dur = (sec: number) => !sec ? "—" : sec < 60 ? "< 1 min" : sec < 3600 ? 
 const fmt = (iso: string | null, tz: string, withDate = true) => !iso ? "—" : new Date(iso).toLocaleString("en-GB", { timeZone: tz, ...(withDate ? { day: "numeric", month: "short", year: "numeric" } : {}), hour: "numeric", minute: "2-digit", hour12: true });
 
 /** What happened, in words. */
-const LABEL: Record<string, string> = {
+export const LABEL: Record<string, string> = {
   "auth.login": "Signed in", "auth.logout": "Signed out", "auth.login_failed": "Failed sign-in", "auth.session_ended": "Ended a sign-in",
   "signoff.created": "Recorded a result", "signoff.updated": "Changed a result", "signoff.cleared": "Cleared a result",
   "comment.added": "Commented on a case", "case.instructions_edited": "Edited case instructions",
