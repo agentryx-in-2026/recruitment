@@ -7,7 +7,7 @@ images, so the guides and the videos always show the same build.
 | file | what |
 |---|---|
 | `applicant.film.ts` | Applicant: sign-up → form pages 1–4 → confirm email → apply → interview → documents → offer → help |
-| `agency.film.ts` | HPSEDC super agency (`hpsedc_agency`): post job → pipeline → interview → outcome → pre-departure → welfare → messages → reports |
+| `agency.film.ts` | HPSEDC Placement Cell (`hpsedc_agency`): post job → pipeline → interview → outcome → pre-departure → welfare → messages → reports |
 | `admin.film.ts` | Admin Console (`demo_admin`): import → professions → form fields → config → people → compliance → audit → communication → reports |
 | `narration.json` | voice-over per chapter (the films assert chapter order against it) |
 | `gen-narration.mjs` | Piper TTS → WAVs + `durations.json` (each chapter is padded to its voice-over) |

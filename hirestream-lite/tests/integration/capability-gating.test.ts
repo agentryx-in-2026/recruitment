@@ -60,7 +60,7 @@ describe('HP-3 capability gating — self-registration', () => {
     expect(a.status).toBe(403);
   });
 
-  it('single mode: a new job is owned by the mega-agency, not its creator', async () => {
+  it('single mode: a new job is owned by the HPSEDC agency, not its creator', async () => {
     await updateSetting('capability.agency_mode', 'single');
     await seedDefaultAgency();
     const megaId = await getDefaultAgencyUserId();
@@ -79,7 +79,7 @@ describe('HP-3 capability gating — self-registration', () => {
     expect(job.status).toBe(201);
 
     const [row] = await db.select().from(jobs).where(eq(jobs.id, job.body.data.id));
-    expect(row.agentId).toBe(megaId);            // forced to the mega-agency
+    expect(row.agentId).toBe(megaId);            // forced to the HPSEDC agency
     expect(row.agentId).not.toBe(agentReg.body.data.id); // NOT the creator
   });
 });

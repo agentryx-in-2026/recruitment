@@ -95,18 +95,18 @@ export function DemoCastTabs({
   currentUsername?: string;
 }) {
   // HP-3/HP-4: single-agency shape. In HP the marketplace "Agencies" group is
-  // re-purposed into a "Super Agency" tab showing just HPSEDC (the mega-agency);
+  // re-purposed into a "Placement Cell" tab showing just HPSEDC, acting as the government recruiting agency;
   // Employers is hidden. Marketplace mode keeps the reference behaviour.
   const { capabilities } = useCapabilities();
   const singleAgency = !capabilities.agencySelfRegistration;
-  const HPSEDC_SUPER_AGENCY: DemoCastMember = {
+  const HPSEDC_PLACEMENT_CELL: DemoCastMember = {
     username: "hpsedc_agency", name: "HPSEDC", subtitle: "Overseas Placement Cell",
-    status: "Super Agency", tone: "green", note: "The single mega-agency — owns all jobs.",
+    status: "Government recruiting agency", tone: "green", note: "Runs the whole applicant journey — owns every job.",
   };
   const tabs = (Object.keys(DEMO_CAST) as DemoTab[]).filter((t) =>
     t !== "employers" || capabilities.employerSelfRegistration);
-  const labelFor = (t: DemoTab) => (t === "agencies" && singleAgency ? "Super Agency" : DEMO_TAB_LABELS[t]);
-  const castFor = (t: DemoTab): DemoCastMember[] => (t === "agencies" && singleAgency ? [HPSEDC_SUPER_AGENCY] : DEMO_CAST[t]);
+  const labelFor = (t: DemoTab) => (t === "agencies" && singleAgency ? "Placement Cell" : DEMO_TAB_LABELS[t]);
+  const castFor = (t: DemoTab): DemoCastMember[] => (t === "agencies" && singleAgency ? [HPSEDC_PLACEMENT_CELL] : DEMO_CAST[t]);
   const defaultTab = tabs.includes("candidates") ? "candidates" : tabs[0];
   return (
     <Tabs defaultValue={defaultTab} className="w-full">

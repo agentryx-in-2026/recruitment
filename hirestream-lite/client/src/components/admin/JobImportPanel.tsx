@@ -1,7 +1,7 @@
 // Smart Job Importer — admin panel. HPSEDC uploads the Government's Excel/CSV
 // job file; we auto-map columns, validate + dedupe each row, let the admin
 // review/adjust the mapping, then bulk-post the valid rows as live jobs.
-// audit 2026-07-06 (Batch 4): headline single-super-agency feature.
+// audit 2026-07-06 (Batch 4): headline single-agency (HPSEDC as recruiting agency) feature.
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";

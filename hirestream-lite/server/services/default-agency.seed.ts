@@ -1,5 +1,5 @@
 /**
- * HP-3b: seeds the single HPSEDC "mega-agency".
+ * HP-3b: seeds the single HPSEDC HPSEDC agency.
  *
  * HireStream-HP runs as a single agency (see capability.agency_mode). Rather
  * than delete the multi-agency machinery, we keep it and seed exactly ONE

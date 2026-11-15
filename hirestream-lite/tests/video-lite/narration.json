@@ -3,7 +3,7 @@
     {
       "key": "login",
       "title": "Sign in and the dashboard",
-      "text": "HPSEDC staff sign in with the Overseas Placement Cell account. In this version of HireStream, HPSEDC works as the single super agency: every vacancy belongs to this account, and every applicant comes to this team. The dashboard opens with the agency card, the verified badge, and the Applicant Pipeline, which counts applicants at each stage. Below it are the most recent jobs and recruitment drives. The Post Job button is always at the top of the left menu."
+      "text": "HPSEDC staff sign in with the Overseas Placement Cell account. In this version of HireStream, HPSEDC itself acts as the recruiting agency: every vacancy belongs to this account, and every applicant comes to this team. The dashboard opens with the agency card, the verified badge, and the Applicant Pipeline, which counts applicants at each stage. Below it are the most recent jobs and recruitment drives. The Post Job button is always at the top of the left menu."
     },
     {
       "key": "post",

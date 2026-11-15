@@ -185,7 +185,7 @@ export default function AdminDashboard() {
       items: g.items.filter(it =>
         (it.key !== "employers" || capabilities.employerSelfRegistration) &&
         (it.key !== "agencies" || capabilities.agencySelfRegistration) &&
-        // Agency leaderboard is meaningless with a single mega-agency.
+        // Agency leaderboard is meaningless with a single agency.
         (it.key !== "leaderboard" || capabilities.agencySelfRegistration)),
     }))
     .filter(g => g.items.length > 0);

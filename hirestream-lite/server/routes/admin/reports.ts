@@ -346,7 +346,7 @@ router.get("/export/mea-emigrate.csv", async (_req, res, next) => {
         emigration_clearance_status: defuseCsvCell(r.placement.emigrationClearanceStatus ?? "not_recorded"),
         deployment_date: r.placement.startDate ? new Date(r.placement.startDate).toISOString().slice(0, 10) : "",
         placement_status: defuseCsvCell(r.placement.status),
-        recruiting_agent: "HPSEDC", // single super-agency — the RA on record
+        recruiting_agent: "HPSEDC", // single recruiting agency — the RA on record
       }));
 
     // Always emit the header row — an empty ECR return is a valid result HPSEDC

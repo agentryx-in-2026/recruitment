@@ -53,7 +53,7 @@ router.post("/", protect, async (req, res, next) => {
     const description = String(req.body?.description ?? "").trim();
 
     // Single-agency (HPSEDC) reframe 2026-07-07: "agency_complaint" made sense in
-    // the multi-agency marketplace but not when HPSEDC is the sole super-agency.
+    // the multi-agency marketplace but not when HPSEDC is the sole recruiting agency.
     // Replaced in the UI by "recruitment_problem" (issue with the recruitment/
     // placement process) and "workplace_abuse" (deployed-worker abuse: unpaid
     // wages, passport held, unsafe conditions). Legacy "agency_complaint" stays

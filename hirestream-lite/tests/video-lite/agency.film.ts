@@ -5,7 +5,7 @@ import { film, setup, login, settle, scrollTo, scrollBy, point, typeText, BEST }
 import { showTitleCard } from "./_overlay";
 
 /**
- * HPSEDC AS SUPER AGENCY — the day-to-day work of the HPSEDC Overseas
+ * HPSEDC PLACEMENT CELL — the day-to-day work of the HPSEDC Overseas
  * Placement Cell, signed in as hpsedc_agency (the account every job belongs to
  * in single-agency mode). Compact pipeline: Applied → Interview → Selected → Placed.
  *
@@ -33,7 +33,7 @@ test("Agency", async ({ page }) => {
   await page.goto("/auth");
   await settle(page);
   f.start();
-  await showTitleCard(page, "HPSEDC as Super Agency", "Running overseas recruitment day to day — jobs, interviews, selection and pre-departure",
+  await showTitleCard(page, "HPSEDC Placement Cell", "Running overseas recruitment day to day — jobs, interviews, selection and pre-departure",
     "Walkthrough · HPSEDC Overseas Placement Cell", 4200);
 
   // 1 ── Sign in & dashboard
@@ -240,5 +240,5 @@ test("Agency", async ({ page }) => {
   for (let k = 0; k < 4; k++) { await scrollBy(page, 420); await beat(page, 900); }
 
   await f.finish();
-  await showTitleCard(page, "HPSEDC Overseas Placement Cell", "Every job, interview and placement — tracked in one place", "HireStream · Super Agency walkthrough", 4000, false);
+  await showTitleCard(page, "HPSEDC Overseas Placement Cell", "Every job, interview and placement — tracked in one place", "HireStream · Placement Cell walkthrough", 4000, false);
 });

@@ -19,7 +19,7 @@ const LEAD_MS = 2900; // voice starts as the chapter card fades (card = 2.4 s + 
 
 const ALL = [
   { role: "applicant", out: "1-Applicant-Walkthrough", match: /applicant/i, prefix: "Applicant" },
-  { role: "agency", out: "2-HPSEDC-Super-Agency-Walkthrough", match: /agency/i, prefix: "Agency" },
+  { role: "agency", out: "2-HPSEDC-Placement-Cell-Walkthrough", match: /agency/i, prefix: "Agency" },
   { role: "admin", out: "3-Admin-Walkthrough", match: /admin/i, prefix: "Admin" },
 ];
 const roleArg = process.argv[2];

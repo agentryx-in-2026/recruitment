@@ -136,7 +136,7 @@ export const SETTING_SPECS: SettingSpec[] = [
 
   // ── Capability (HP-3: single-agency / blue-collar fork gating) ────────
   // These flags DISABLE (never delete) the multi-role marketplace surface so
-  // HireStream-HP runs as a single mega-agency (HPSEDC). The full multi-role
+  // HireStream-HP runs as a single agency (HPSEDC). The full multi-role
   // architecture stays intact behind them — flip these ON to re-expand into a
   // marketplace (external employers + agencies) with zero code changes.
   // Reference portal (separate DB) keeps its own values; these HP defaults do
@@ -161,7 +161,7 @@ export const SETTING_SPECS: SettingSpec[] = [
     key: "capability.agency_mode",
     category: "capability",
     label: "Agency operating mode",
-    description: "'single' = one mega-agency (HPSEDC) owns all jobs/candidates. 'marketplace' = multiple agencies compete (the reference-portal model).",
+    description: "'single' = HPSEDC acts as the government recruiting agency and owns all jobs and applicants. 'marketplace' = multiple agencies compete (the reference-portal model).",
     type: "string",
     default: "single",
     options: ["single", "marketplace"],
@@ -470,7 +470,7 @@ export const SETTING_SPECS: SettingSpec[] = [
   {
     // Smart Job Importer: which agent user owns bulk-imported jobs. Empty
     // (default) = resolve at commit time — the first verified agency's user
-    // (HPSEDC mega-agency in single mode), else the importing admin.
+    // (HPSEDC agency in single mode), else the importing admin.
     key: "jobimport.default_agent_user_id",
     systemManaged: true,
     category: "access",

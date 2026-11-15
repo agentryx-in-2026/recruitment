@@ -3,7 +3,7 @@
  *
  * ── Why a profile and not a second state machine ────────────────────────────
  * HPSEDC phase 1 does not run the marketplace workflow the portal was first
- * built for. Agencies are dormant; HPSEDC act as a single super-agency, receive
+ * built for. Agencies are dormant; HPSEDC act as a single recruiting agency, receive
  * government job batches, and interview EVERY applicant rather than screening
  * to a shortlist first. So there is no "reviewed" desk-check and no
  * "shortlisted" step — you apply, you are interviewed, you are selected.

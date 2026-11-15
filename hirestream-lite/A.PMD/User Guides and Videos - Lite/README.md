@@ -1,7 +1,7 @@
 # HireStream Lite — User Guides and Walkthrough Videos
 
 Launch documentation for **HireStream Lite** (HPSEDC Overseas Placement Portal,
-phase 1: HPSEDC as the single super agency, Direct 4-stage pipeline).
+phase 1: HPSEDC acting as the government recruiting agency, Direct 4-stage pipeline).
 
 ## User guides
 
@@ -11,7 +11,7 @@ browser; keep the `images/` folder next to it).
 | # | Guide | For |
 |---|---|---|
 | 1 | `01_Applicant_User_Guide.pdf` / `.html` | Candidates — register, apply, interview, documents, offer, help |
-| 2 | `02_HPSEDC_Super_Agency_User_Guide.pdf` / `.html` | HPSEDC Overseas Placement Cell staff — jobs, pipeline, interviews, selection, pre-departure, welfare, messages, reports |
+| 2 | `02_HPSEDC_Placement_Cell_User_Guide.pdf` / `.html` | HPSEDC Overseas Placement Cell staff — jobs, pipeline, interviews, selection, pre-departure, welfare, messages, reports |
 | 3 | `03_Admin_User_Guide.pdf` / `.html` | HPSEDC administrators and the super administrator — job import, professions, form fields, configuration, compliance, audit, complaints, go-live checklist |
 
 ## Walkthrough videos (`Videos/`)
@@ -23,7 +23,7 @@ separate `.srt`). Each film is also cut into one clip per chapter in
 | # | Video | Chapters |
 |---|---|---|
 | 1 | `1-Applicant-Walkthrough.mp4` (11:20) | create account · page 1 about you · page 2 skills · page 3 qualifications · page 4 review & submit · confirm email · find a job & apply · interview · selected: documents · accept offer · help & grievances |
-| 2 | `2-HPSEDC-Super-Agency-Walkthrough.mp4` (8:35) | sign in & dashboard · post a job · my jobs & job page · applications pipeline · schedule interview · reschedule request · record outcome · pre-departure (letter, travel, visa) · welfare · messages & grievances · reports |
+| 2 | `2-HPSEDC-Placement-Cell-Walkthrough.mp4` (8:35) | sign in & dashboard · post a job · my jobs & job page · applications pipeline · schedule interview · reschedule request · record outcome · pre-departure (letter, travel, visa) · welfare · messages & grievances · reports |
 | 3 | `3-Admin-Walkthrough.mp4` (9:24) | admin console · import job batches · professions · form fields · system configuration · people · compliance & welfare · audit, fraud & duplicates · messages, grievances & notifications · reports & tools |
 
 ## Slide decks (claude.ai artifacts, private until shared)

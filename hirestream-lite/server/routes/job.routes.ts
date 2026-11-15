@@ -186,10 +186,10 @@ router.post("/", protect, async (req, res, next) => {
       : (clientVisibility === "agents_only" || clientVisibility === "public"
           ? clientVisibility : "public");
 
-    // HP-3b: in single-agency mode every job is owned by the one mega-agency
+    // HP-3b: in single-agency mode every job is owned by the HPSEDC agency
     // (HPSEDC), whichever staff account created it. Marketplace mode keeps
     // creator ownership (reference behaviour). Falls back to creator ownership
-    // if the mega-agency isn't seeded yet.
+    // if the HPSEDC agency isn't seeded yet.
     let ownership: Record<string, string> = userRole === "agent" ? { agentId: userId } : { employerId: userId };
     {
       const { getSetting: getModeSetting } = await import("../services/settings.service");

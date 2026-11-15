@@ -14,7 +14,7 @@ const ISSUED = process.env.GUIDE_DATE || new Date().toLocaleDateString("en-GB", 
 
 const GUIDES = [
   { src: "applicant.html", out: "01_Applicant_User_Guide", title: "Applicant User Guide", sub: "Registering, applying and preparing to travel", audience: "Candidates seeking overseas employment through HPSEDC" },
-  { src: "agency.html", out: "02_HPSEDC_Super_Agency_User_Guide", title: "HPSEDC as Super Agency — User Guide", sub: "Day-to-day recruitment operations of the Overseas Placement Cell", audience: "HPSEDC Overseas Placement Cell staff" },
+  { src: "agency.html", out: "02_HPSEDC_Placement_Cell_User_Guide", title: "HPSEDC Placement Cell — User Guide", sub: "Day-to-day recruitment operations of the Overseas Placement Cell", audience: "HPSEDC Overseas Placement Cell staff" },
   { src: "admin.html", out: "03_Admin_User_Guide", title: "Admin User Guide", sub: "Oversight, configuration and compliance", audience: "HPSEDC administrators and system administrators" },
 ];
 
@@ -34,7 +34,7 @@ main{max-width:900px;margin:0 auto;background:#fff;padding:0 56px 64px}
 .cover .tricolour{display:flex;gap:6px;margin:6px 0 10px}.cover .tricolour span{width:42px;height:5px;border-radius:3px}
 nav.toc{break-after:page;padding-top:24px}
 nav.toc h2{border:0;margin-top:0}
-nav.toc ol{padding-left:22px;columns:1}
+nav.toc ol{padding-left:34px;columns:1}
 nav.toc li{margin:4px 0}
 nav.toc a{color:var(--ink);text-decoration:none}
 nav.toc a:hover{color:var(--brand2)}

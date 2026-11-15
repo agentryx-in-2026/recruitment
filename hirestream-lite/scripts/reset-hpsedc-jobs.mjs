@@ -1,6 +1,6 @@
 // One-shot: wipe all existing jobs (+ their applications/placements) and reseed
-// a fresh board owned ONLY by the HPSEDC mega-agency. Foreign employers are the
-// "company"; HPSEDC (the mega-agency agent) is the owning agency.
+// a fresh board owned ONLY by the HPSEDC agency. Foreign employers are the
+// "company"; HPSEDC (the HPSEDC agency) is the owning agency.
 import { config } from "dotenv"; config();
 import pg from "pg";
 const { Client } = pg;
@@ -36,7 +36,7 @@ await c.connect();
 try {
   const s = await c.query("SELECT value FROM system_settings WHERE key=$1", [AGENCY_KEY]);
   const agencyId = s.rows[0]?.value;
-  if (!agencyId) throw new Error("mega-agency id not set in system_settings");
+  if (!agencyId) throw new Error("HPSEDC agency id not set in system_settings");
 
   await c.query("BEGIN");
   // Delete job-dependent data (children first), then jobs.

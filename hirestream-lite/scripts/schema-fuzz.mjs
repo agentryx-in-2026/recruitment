@@ -147,7 +147,7 @@ const FUZZ_TARGETS = [
       agencyName: { kind: "string", min: 2, max: 150 },
       licenseNumber: { kind: "string", min: 3, max: 50 },
     },
-    validPayload: () => ({ agencyName: "Super Agency", licenseNumber: "LIC12345" }),
+    validPayload: () => ({ agencyName: "Test Agency", licenseNumber: "LIC12345" }),
   },
   {
     name: "grievance creation",
