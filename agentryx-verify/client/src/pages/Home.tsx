@@ -15,6 +15,7 @@ const NOTE: Record<string, { tag: string; tone: string; tip: string; Icon: any }
   "hirestream-mobile-v1.0": { tag: "Live UAT", tone: "bg-emerald-50 text-emerald-700 border-emerald-200", tip: "Android app. Install Expo Go and scan the QR code on the project page.", Icon: Smartphone },
   "hirestream-v1.4": { tag: "Archive", tone: "bg-slate-100 text-slate-600 border-slate-200", tip: "Earlier multi-agency build, superseded by HireStream Lite.", Icon: Archive },
   "hirestream-htis-smoke": { tag: "Reference", tone: "bg-sky-50 text-sky-700 border-sky-200", tip: "HTIS generic QA smoke checklist; verdicts from the 22 Apr workbook pre-loaded.", Icon: Archive },
+  "hirestream-hp": { tag: "Archive", tone: "bg-slate-100 text-slate-600 border-slate-200", tip: "Single-agency, blue-collar variant. Not in this UAT.", Icon: Archive },
   "hirestream-v1.5-extras": { tag: "Beyond FRS", tone: "bg-indigo-50 text-indigo-700 border-indigo-200", tip: "Enhancements delivered above the contracted scope.", Icon: Lightbulb },
 };
 
@@ -23,6 +24,7 @@ function Body() {
   const [projects, setProjects] = useState<any[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const load = () => api.listProjects().then(setProjects).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
   const isAdmin = data!.me.isAdmin;
@@ -87,8 +89,11 @@ function Body() {
         </section>
         {isAdmin && hidden.length > 0 && (
           <section className="space-y-2.5">
-            <div className="flex items-baseline gap-3"><h2 className="font-serif text-xl font-bold text-slate-900">Archive and reference</h2><span className="text-sm text-slate-500">Admins only</span></div>
-            <Table rows={hidden} />
+            <button onClick={() => setShowArchived((v) => !v)} className="flex items-baseline gap-3 text-left">
+              <h2 className="font-serif text-xl font-bold text-slate-900"><span className="inline-block w-4 text-slate-400 text-sm">{showArchived ? "▼" : "▶"}</span>Archived</h2>
+              <span className="text-sm text-slate-500">{hidden.length} earlier projects · admins only · kept for reference, not part of this UAT</span>
+            </button>
+            {showArchived && <Table rows={hidden} />}
           </section>
         )}
       </>)}
