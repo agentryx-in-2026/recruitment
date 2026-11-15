@@ -1987,6 +1987,20 @@ const EMAIL_PRESETS: Record<string, { host?: string; port?: number; secure?: boo
   gmail:       { host: "smtp.gmail.com",             port: 587,  secure: false },
 };
 
+// Fill host/port/TLS from the picked provider's preset. Replaces a field only
+// when it is empty or still holds another provider's preset value, so a host
+// the admin typed by hand is never overwritten.
+const PRESET_HOSTS = new Set(Object.values(EMAIL_PRESETS).map((p) => p.host));
+const PRESET_PORTS = new Set(Object.values(EMAIL_PRESETS).map((p) => p.port));
+function withEmailPreset(type: string, prev: Record<string, any>): Record<string, any> {
+  const preset = EMAIL_PRESETS[type];
+  if (!preset) return prev;
+  const host = !prev.host || PRESET_HOSTS.has(prev.host) ? preset.host : prev.host;
+  const port = !prev.port || PRESET_PORTS.has(Number(prev.port)) ? preset.port : prev.port;
+  const secure = host === preset.host ? preset.secure ?? false : prev.secure ?? false;
+  return { user: "", from: "", ...prev, host, port, secure };
+}
+
 const INTEGRATION_META: Record<string, {
   label: string; subtitle: string; Icon: any; color: string;
   providerTypes: { value: string; label: string }[];
@@ -2011,13 +2025,13 @@ const INTEGRATION_META: Record<string, {
       _default:    { host: "SMTP host", port: "SMTP port", user: "SMTP username", from: "From address", secure: "TLS on connect (port 465)", pass: "SMTP password / API key" },
       smtp2go:     { host: "SMTP host (mail.smtp2go.com)", port: "SMTP port (2525 or 587)", user: "SMTP username", from: "From address (sender)", secure: "TLS on connect (leave off for 2525/587)", pass: "SMTP password" },
       mailtrap:    { host: "SMTP host (sandbox.smtp.mailtrap.io)", port: "SMTP port (2525 / 587 / 465)", user: "Mailtrap username", from: "Any address (mails land in inbox, not delivered)", secure: "TLS on connect", pass: "Mailtrap password" },
-      brevo:       { host: "SMTP host (smtp-relay.brevo.com)", port: "SMTP port (587)", user: "Brevo login email", from: "Sender address (must be verified)", secure: "TLS on connect (leave off — port 587 STARTTLS)", pass: "SMTP key from Brevo dashboard" },
+      brevo:       { host: "SMTP host (smtp-relay.brevo.com)", port: "SMTP port (587)", user: "SMTP login (…@smtp-brevo.com, from Brevo's SMTP tab)", from: "Sender — Name <address> (address must be verified in Brevo)", secure: "TLS on connect (leave off — port 587 STARTTLS)", pass: "SMTP key from Brevo dashboard" },
       gmail:       { host: "SMTP host (smtp.gmail.com)", port: "SMTP port (587)", user: "your.name@gmail.com", from: "your.name@gmail.com", secure: "TLS on connect (leave off for 587)", pass: "16-char app password (not your Google password)" },
     },
     helpByProviderType: {
       smtp2go:     "Sign up at smtp2go.com, go to Sending → SMTP Users, click Add SMTP user — that gives you a username + password. Host is mail.smtp2go.com, port 2525 (or 587 if your network blocks 2525). Free tier: 1,000 emails / month, no card required.",
       mailtrap:    "Sign up at mailtrap.io → create an Email Testing inbox → open 'SMTP Settings' dropdown → pick Nodemailer integration. Everything goes to the Mailtrap inbox (nothing delivered to real recipients) — perfect for UAT.",
-      brevo:       "Sign up at brevo.com → left nav 'SMTP & API' → SMTP tab → Generate a new SMTP key. Use your Brevo login email as the SMTP username and the generated key as the password. Free tier: 300 emails / day.",
+      brevo:       "Sign up at brevo.com → left nav 'SMTP & API' → SMTP tab → Generate a new SMTP key. Use the Login shown on that page (it ends in @smtp-brevo.com — not your account email) as the username and the generated key as the password. The sender address must be a verified sender in Brevo, e.g. HPSEDC Overseas Placement <noreply@agentryx.dev>. Free tier: 300 emails / day.",
       sendgrid:    "From SendGrid dashboard: Settings → API Keys → Create API Key with 'Mail Send' permission. SMTP user is literally the string 'apikey' and the password is the API key value. Host: smtp.sendgrid.net, port 587.",
       ses:         "Amazon SES → Create SMTP credentials (different from AWS Access keys). Region-specific hosts like email-smtp.us-east-1.amazonaws.com. Port 587.",
       mailgun:     "Mailgun → Sending → Domain settings → SMTP credentials. Host is smtp.mailgun.org (or smtp.eu.mailgun.org for EU), port 587.",
@@ -2143,7 +2157,7 @@ function IntegrationCard({ it, onSave, onTest }: {
   const { Icon } = meta;
   const [providerType, setProviderType] = useState<string>(it.providerType);
   const [enabled, setEnabled] = useState<boolean>(it.enabled);
-  const [config, setConfig] = useState<Record<string, any>>(it.config || {});
+  const [config, setConfig] = useState<Record<string, any>>(() => it.id === "email" ? withEmailPreset(it.providerType, it.config || {}) : (it.config || {}));
   const [secrets, setSecrets] = useState<Record<string, string>>({});
   const [testPhone, setTestPhone] = useState<string>("");
   const [testEmail, setTestEmail] = useState<string>("");
@@ -2222,17 +2236,7 @@ function IntegrationCard({ it, onSave, onTest }: {
               // Pre-populate well-known host/port for the picked provider when
               // those fields are empty, so the admin can jump straight to
               // username + password. Never overwrites what the admin typed.
-              const preset = EMAIL_PRESETS[next];
-              if (preset) {
-                setConfig((prev) => ({
-                  host:  prev.host  || preset.host  || "",
-                  port:  prev.port  || preset.port  || "",
-                  secure: prev.secure ?? preset.secure ?? false,
-                  user:  prev.user  ?? "",
-                  from:  prev.from  ?? "",
-                  ...prev,
-                }));
-              }
+              if (it.id === "email") setConfig((prev) => withEmailPreset(next, prev));
             }}
               className="mt-1 w-full rounded-md border border-slate-200 px-3 py-1.5 text-sm">
               {meta.providerTypes.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
