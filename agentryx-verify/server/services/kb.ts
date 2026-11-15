@@ -57,7 +57,7 @@ export async function rebuildKnowledgeBase(): Promise<Record<string, number>> {
   // Guides
   const guides: [string, string, string][] = [
     ["applicant.html", "Applicant User Guide", "Applicant User Guide"],
-    ["agency.html", "HPSEDC as Super Agency — User Guide", "HPSEDC as Super Agency — User Guide"],
+    ["agency.html", "HPSEDC Placement Cell — User Guide", "HPSEDC Placement Cell — User Guide"],
     ["admin.html", "Admin User Guide", "Admin User Guide"],
   ];
   for (const [file, title, pmTitle] of guides) {
@@ -71,7 +71,7 @@ export async function rebuildKnowledgeBase(): Promise<Record<string, number>> {
   if (fs.existsSync(narrPath)) {
     const narr = JSON.parse(fs.readFileSync(narrPath, "utf8"));
     const starts = fs.existsSync(startsPath) ? JSON.parse(fs.readFileSync(startsPath, "utf8")) : {};
-    const vids: Record<string, string> = { applicant: "Walkthrough video — Applicant", agency: "Walkthrough video — HPSEDC Super Agency", admin: "Walkthrough video — Admin" };
+    const vids: Record<string, string> = { applicant: "Walkthrough video — Applicant", agency: "Walkthrough video — HPSEDC Placement Cell", admin: "Walkthrough video — Admin" };
     for (const [role, chapters] of Object.entries<any[]>(narr)) {
       const base = await docUrl(vids[role]);
       chapters.forEach((ch, i) => {
@@ -124,7 +124,7 @@ export async function rebuildKnowledgeBase(): Promise<Record<string, number>> {
   }
 
   // Documents library — anything not already covered above (guides, FRS, plan, videos, images)
-  const covered = new Set(["Applicant User Guide", "HPSEDC as Super Agency — User Guide", "Admin User Guide", "Functional Requirements Specification (FRS)", "Lite FRS coverage & phase-1 demo plan"]);
+  const covered = new Set(["Applicant User Guide", "HPSEDC Placement Cell — User Guide", "Admin User Guide", "Functional Requirements Specification (FRS)", "Lite FRS coverage & phase-1 demo plan"]);
   const docs = await pool.query("select id, title, mime_type, audience, file_name from pm_documents order by category, title");
   for (const d of docs.rows) {
     if (covered.has(d.title) || /^(video|image)\//.test(d.mime_type)) continue;

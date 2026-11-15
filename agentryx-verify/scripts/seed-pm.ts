@@ -70,10 +70,10 @@ const DOCS: { title: string; category: string; audience: "admin" | "internal" | 
   { title: "Ministry job batch (demo file)", category: "Demo & presentation", audience: "internal", src: `${LITE}/Demo/Ministry_job_batch_demo.csv`, description: "Six vacancies for the Import Jobs step; one row has no country, so the importer rejects it." },
   // ── Training material ──
   { title: "Applicant User Guide", category: "Training material", audience: "all", src: `${GUIDES}/01_Applicant_User_Guide.pdf`, description: "Registering, applying and preparing to travel." },
-  { title: "HPSEDC as Super Agency — User Guide", category: "Training material", audience: "all", src: `${GUIDES}/02_HPSEDC_Super_Agency_User_Guide.pdf`, description: "Day-to-day work of the Overseas Placement Cell." },
+  { title: "HPSEDC Placement Cell — User Guide", category: "Training material", audience: "all", src: `${GUIDES}/02_HPSEDC_Placement_Cell_User_Guide.pdf`, description: "Day-to-day work of the Overseas Placement Cell." },
   { title: "Admin User Guide", category: "Training material", audience: "all", src: `${GUIDES}/03_Admin_User_Guide.pdf`, description: "Oversight, configuration, compliance and go-live checklist." },
   { title: "Walkthrough video — Applicant", category: "Training material", audience: "all", src: `${GUIDES}/Videos/1-Applicant-Walkthrough.mp4`, description: "11 min, narrated, English subtitles." },
-  { title: "Walkthrough video — HPSEDC Super Agency", category: "Training material", audience: "all", src: `${GUIDES}/Videos/2-HPSEDC-Super-Agency-Walkthrough.mp4`, description: "9 min, narrated, English subtitles." },
+  { title: "Walkthrough video — HPSEDC Placement Cell", category: "Training material", audience: "all", src: `${GUIDES}/Videos/2-HPSEDC-Placement-Cell-Walkthrough.mp4`, description: "9 min, narrated, English subtitles." },
   { title: "Walkthrough video — Admin", category: "Training material", audience: "all", src: `${GUIDES}/Videos/3-Admin-Walkthrough.mp4`, description: "9 min, narrated, English subtitles." },
 ];
 

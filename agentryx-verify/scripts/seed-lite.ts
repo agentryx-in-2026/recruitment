@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 
 /**
  * HireStream Lite — the stripped-down HPSEDC phase-1 portal
- * (hirestream-lite.agentryx.dev): HPSEDC as single super agency, Direct
+ * (hirestream-lite.agentryx.dev): HPSEDC acting as the government recruiting agency, Direct
  * 4-stage pipeline, documents only at selection, admin-configurable form and
  * professions. Cases follow the Lite user guides (hirestream-lite/A.PMD/User
  * Guides and Videos - Lite). §6 holds the launch defects found while making
@@ -137,7 +137,7 @@ async function main() {
       buildRef: "v1.1.0",
       contractor: "Agentryx",
       client: "HPSEDC",
-      description: "hirestream-lite.agentryx.dev — HPSEDC as single super agency, Direct 4-stage pipeline (Applied → Interview → Selected → Placed), documents only at selection. Test accounts: hpsedc_agency / demo_admin / demo_candidate (password test123); create fresh candidates via Create Account.",
+      description: "hirestream-lite.agentryx.dev — HPSEDC acting as the government recruiting agency, Direct 4-stage pipeline (Applied → Interview → Selected → Placed), documents only at selection. Test accounts: hpsedc_agency / demo_admin / demo_candidate (password test123); create fresh candidates via Create Account.",
       matrixSourcePath: "/home/subhash.thakur.india/Projects/Recruitment/hirestream-lite/A.PMD/User Guides and Videos - Lite",
       sortOrder: 1,
     }).returning();

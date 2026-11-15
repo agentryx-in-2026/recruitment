@@ -27,7 +27,7 @@ export type AskSource = { n: number; type: string; title: string; heading: strin
 type Ctx = { internal: boolean; admin: boolean; sources: AskSource[]; seen: Map<string, number> };
 
 const TOOLS: Anthropic.Tool[] = [
-  { name: "search_knowledge", description: "Full-text search of the project's reference material: the three Lite user guides (Applicant, HPSEDC Super Agency, Admin), the narration of every walkthrough-video chapter, the contracted FRS, the SRS and architecture documents, and every test case. Returns numbered passages; cite them as [n]. Search several times with different words when the first search is thin.",
+  { name: "search_knowledge", description: "Full-text search of the project's reference material: the three Lite user guides (Applicant, HPSEDC Placement Cell, Admin), the narration of every walkthrough-video chapter, the contracted FRS, the SRS and architecture documents, and every test case. Returns numbered passages; cite them as [n]. Search several times with different words when the first search is thin.",
     input_schema: { type: "object", properties: { query: { type: "string", description: "Keywords, e.g. 'schedule interview reschedule'" }, type: { type: "string", enum: ["guide", "video", "frs", "doc", "case", "plan"], description: "Optional: limit to one kind of source" } }, required: ["query"] } },
   { name: "get_test_case", description: "One test case by its ID (e.g. L2.6, M3.1): steps, expected result, the tester's result and note, and the latest automated check result.",
     input_schema: { type: "object", properties: { ref: { type: "string" } }, required: ["ref"] } },
