@@ -16,7 +16,7 @@ export const SESSIONS: Session[] = [
     intro: "Import a job batch as the Admin, then sign in as the Placement Cell and post one job by hand.",
     carry: "Post a job called “UAT Welder — <your name>” for the UAE, with a hiring deadline. You will apply to it in session 3." },
   { n: 3, title: "Register and apply as a new applicant", role: "Applicant (new account)", account: "Create Account with a new email", minutes: 45,
-    intro: "Create a brand-new applicant — use an email like piyush.uat1@gmail.com — and fill the four-page form, then find your session-2 job and apply. Try Hindi on at least one page.",
+    intro: "Create a brand-new applicant with your own Gmail plus +uat1 (e.g. yourname+uat1@gmail.com — the verification code arrives in your normal inbox), fill the four-page form, then find your session-2 job and apply. Try Hindi on at least one page.",
     carry: "Remember the applicant's name and email. Every later session follows this applicant." },
   { n: 4, title: "HPSEDC reviews and invites to interview", role: "Placement Cell", account: "hpsedc_agency", minutes: 20,
     intro: "Find your applicant in the Applications Pipeline, look at the candidate pool and export, then schedule an interview for your applicant." },
