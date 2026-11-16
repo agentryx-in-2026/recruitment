@@ -20,13 +20,13 @@ test("Defects", async ({ page }) => {
     await expect(page.getByRole("alert").filter({ visible: true }).first(), "bad token refused").toBeVisible();
 
     const token = Array.from({ length: 64 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
-    sql(`insert into password_reset_tokens (user_id, token, expires_at) select id, '${token}', now() + interval '1 hour' from users where username = 'demo42'`);
+    sql(`insert into password_reset_tokens (user_id, token, expires_at) select id, '${token}', now() + interval '1 hour' from users where username = 'devraj_negi'`);
     await page.goto(`/reset-password?token=${token}`); await waitIdle(page);
     await page.locator("#np").fill("Reset@2026x");
     await page.locator("#np2").fill("Reset@2026x");
     await page.getByRole("button", { name: /Set new password/ }).click();
     await expect(page.getByText(/Your password has been changed/).filter({ visible: true }).first()).toBeVisible();
-    const r = await page.request.post("/api/v1/auth/login", { data: { username: "demo42", password: "Reset@2026x" } });
+    const r = await page.request.post("/api/v1/auth/login", { data: { username: "devraj_negi", password: "Reset@2026x" } });
     expect(r.status(), "sign in with the new password").toBe(200);
     await page.context().clearCookies();
   });

@@ -544,7 +544,7 @@ const MIN_PRIORITY = ["offered", "placed", "selected", "interview_scheduled", "s
 function MinimalOverview({ profile, completion, applications, setActiveView, setLocation, goDocuments, goRegister, capabilities, regCode, helpline, ready, questionsDone, docsNeeded, docsUrgent, obligations, t }: any) {
   const tier: string | null = profile.registrationTier || null;
   const firstName = (profile.fullName || "").split(" ")[0];
-  const BIG = "w-full h-14 text-lg font-semibold rounded-xl";
+  const BIG = "w-full h-auto min-h-14 py-3 whitespace-normal text-center leading-snug text-lg font-semibold rounded-xl";
   const apps = applications || [];
   const rank = (a: any) => MIN_PRIORITY.indexOf(a.placement?.status === "offered" ? "offered" : a.status);
   const primary = apps.length ? [...apps].sort((a, b) => rank(a) - rank(b))[0] : null;
@@ -725,14 +725,14 @@ function MinAppStatus({ app, extra, setActiveView, t }: any) {
           </div>
         </div>
       )}
-      {offered && <Button onClick={() => setActiveView("applications")} className="w-full h-14 text-lg font-semibold rounded-xl mt-4 bg-amber-500 hover:bg-amber-600 text-white">{t("simpleDash.offerAction")}</Button>}
+      {offered && <Button onClick={() => setActiveView("applications")} className="w-full h-auto min-h-14 py-3 whitespace-normal text-center leading-snug text-lg font-semibold rounded-xl mt-4 bg-amber-500 hover:bg-amber-600 text-white">{t("simpleDash.offerAction")}</Button>}
       {/* Once selected the application grows two more pages (documents +
           compliance). The dashboard is where the candidate lives, so it must
           point at them — otherwise the pages exist but nobody can find the
           door. Deep-links straight to page 5. */}
       {(key === "selected" || key === "placed") && (
         <Button onClick={() => window.location.assign("/register?page=5")}
-          className="w-full h-14 text-lg font-semibold rounded-xl mt-4 bg-blue-700 hover:bg-blue-800 text-white">
+          className="w-full h-auto min-h-14 py-3 whitespace-normal text-center leading-snug text-lg font-semibold rounded-xl mt-4 bg-blue-700 hover:bg-blue-800 text-white">
           {t("simpleDash.completeDeployment")}
         </Button>
       )}

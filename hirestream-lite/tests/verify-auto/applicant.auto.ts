@@ -256,12 +256,15 @@ test("Applicant", async ({ page }) => {
     // FB-2026-0021: before the letter, no offer PDF and no accept — with a reason the applicant can read.
     await logout(page);
     await page.context().clearCookies();
-    const cand = await page.request.post("/api/v1/auth/login", { data: { username: "suresh_thakur", password: "test123" } });
+    // Use any open offer still without a letter (earlier agency checks attach one to an offer).
+    const [waitUser, waitPid] = sql(`select u.username || '|' || p.id from placements p join applications a on a.id=p.application_id join candidates c on c.id=a.candidate_id join users u on u.id=c.user_id where p.status='offered' and p.appointment_letter_url is null order by u.username limit 1`).split("|");
+    expect(waitPid, "an open offer without a letter").toBeTruthy();
+    const cand = await page.request.post("/api/v1/auth/login", { data: { username: waitUser, password: "test123" } });
     expect(cand.status()).toBe(200);
     const apps = (await (await page.request.get("/api/v1/candidates/applications")).json()).data as any[];
-    expect(apps.find((a) => a.placement?.id === pid)?.placement?.awaitingLetter, "offer waits for the letter").toBe(true);
-    expect((await page.request.get(`/api/v1/me/placements/${pid}/offer-letter.pdf`)).status(), "offer PDF held back").toBe(409);
-    const early = await page.request.fetch(`/api/v1/drives/placements/${pid}/accept`, { method: "PATCH" });
+    expect(apps.find((a) => a.placement?.id === waitPid)?.placement?.awaitingLetter, "offer waits for the letter").toBe(true);
+    expect((await page.request.get(`/api/v1/me/placements/${waitPid}/offer-letter.pdf`)).status(), "offer PDF held back").toBe(409);
+    const early = await page.request.fetch(`/api/v1/drives/placements/${waitPid}/accept`, { method: "PATCH" });
     expect(early.status(), "accept before the letter is refused").toBe(400);
     expect(String((await early.json()).error?.message), "refusal explains why").toContain("appointment letter");
     await page.context().clearCookies();
