@@ -52,7 +52,7 @@ function Body() {
           </div>
         </td>
         <td className="px-5 py-4"><span className={`text-[11px] font-semibold rounded-full border px-2 py-0.5 whitespace-nowrap ${n.tone}`}>{n.tag}</span></td>
-        <td className="px-5 py-4 text-sm text-slate-600 whitespace-nowrap">{p.contractor ?? ""}{p.client ? ` → ${p.client}` : ""}<div className="font-mono text-xs text-slate-500">{p.buildRef ?? ""}</div></td>
+        <td className="px-5 py-4 text-sm text-slate-600 break-words">{p.contractor ?? ""}{p.client ? ` → ${p.client}` : ""}<div className="font-mono text-xs text-slate-500">{p.buildRef ?? ""}</div></td>
         <td className="px-5 py-4 text-sm whitespace-nowrap">{p.needsFix ? <span className="text-rose-700 font-semibold">{p.needsFix} need fixing</span> : <span className="text-slate-500">—</span>}</td>
         <td className="px-5 py-4 whitespace-nowrap">
           {isAdmin ? (
