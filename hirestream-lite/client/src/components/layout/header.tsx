@@ -111,7 +111,7 @@ export function Header() {
           <div className="flex items-center gap-3">
             {/* Agentryx Verify — Scope Verification & UAT Portal (testing; hidden in production) */}
             <a
-              href="https://verify-stg.agentryx.dev/p/hirestream-v1.4"
+              href="https://verify-stg.agentryx.dev/"
               target="_blank"
               rel="noopener noreferrer"
               title="Agentryx Verify — Scope Verification & UAT"

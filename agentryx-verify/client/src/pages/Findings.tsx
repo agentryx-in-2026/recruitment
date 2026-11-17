@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearch, useRoute, useLocation } from "wouter";
-import { Flag, Paperclip, Loader2, Search, ArrowLeft, MessageSquare } from "lucide-react";
+import { Flag, Loader2, Search, ArrowLeft, MessageSquare, Pencil, X, Wrench } from "lucide-react";
 import { Shell, Page, useWorkspace } from "../components/Shell";
+import { ShotPicker } from "../components/ShotPicker";
 
 /**
  * Findings — ad-hoc / exploratory reports outside the test cases (Piyush's request):
@@ -15,8 +16,12 @@ type F = {
   comments?: { id: string; body: string; createdAt: string; reviewer: { name: string } | null }[];
   attachments?: { id: string; originalName: string }[];
 };
+type Scope = "app" | "verify";
+/** Findings about Verify itself have no project and the area "Verify". */
+export const isVerifyFinding = (f: { projectId: string | null; area: string | null }) => !f.projectId && f.area === "Verify";
+const kindMap = (scope: Scope) => scope === "verify" ? { ...KIND_BASE, enhancement: ["Improvement", "bg-emerald-50 text-emerald-700 border-emerald-200"] as [string, string] } : KIND_BASE;
 
-export const KIND: Record<string, [string, string]> = {
+const KIND_BASE: Record<string, [string, string]> = {
   bug: ["Bug", "bg-rose-50 text-rose-700 border-rose-200"],
   ux: ["UI / UX", "bg-indigo-50 text-indigo-700 border-indigo-200"],
   enhancement: ["Idea", "bg-emerald-50 text-emerald-700 border-emerald-200"],
@@ -24,6 +29,7 @@ export const KIND: Record<string, [string, string]> = {
   other: ["Other", "bg-slate-100 text-slate-600 border-slate-200"],
   similar_sw: ["Other", "bg-slate-100 text-slate-600 border-slate-200"],
 };
+export const KIND = KIND_BASE;
 // Tester-facing status: four steps over the stored workflow values.
 export const stage = (s: string) => s === "in_progress" ? "progress" : s === "shipped" ? "fixed" : ["declined", "duplicate", "closed"].includes(s) ? "closed" : "open";
 const STAGE: Record<string, [string, string]> = {
@@ -61,10 +67,21 @@ async function call(url: string, init?: RequestInit) {
 
 const input = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white";
 
-function NewForm({ onDone, onCancel }: { onDone: (id: string) => void; onCancel: () => void }) {
+const KINDS: Record<Scope, readonly (readonly [string, string])[]> = {
+  app: [["bug", "Bug — something is broken"], ["ux", "UI / UX — confusing or hard to use"], ["enhancement", "Idea — could be better"]],
+  verify: [["bug", "Bug — something in Verify is broken"], ["enhancement", "Improvement — Verify could be better"]],
+};
+
+/** Report a finding, or edit one already reported (initial given). */
+function FindingForm({ scope, initial, existing = 0, onDone, onCancel }: { scope: Scope; initial?: F; existing?: number; onDone: (id: string) => void; onCancel: () => void }) {
   const { data } = useWorkspace();
   const projects = data!.projects;
-  const [f, setF] = useState({ type: "bug", title: "", projectId: projects[0]?.id ?? "", area: "Applicant", priority: "normal", linkedToItemRef: "", summary: "", steps: "", expected: "", actual: "" });
+  const was = initial ? parse(initial.description) : null;
+  const [f, setF] = useState({
+    type: initial?.type ?? "bug", title: initial?.title ?? "", projectId: initial ? initial.projectId ?? "" : projects[0]?.id ?? "",
+    area: initial?.area ?? (scope === "verify" ? "Verify" : "Applicant"), priority: initial?.priority ?? "normal", linkedToItemRef: initial?.linkedToItemRef ?? "",
+    summary: was?.summary ?? "", steps: was?.["Steps to reproduce"] ?? "", expected: was?.Expected ?? "", actual: was?.Actual ?? "",
+  });
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -77,9 +94,13 @@ function NewForm({ onDone, onCancel }: { onDone: (id: string) => void; onCancel:
     const description = compose(f);
     if (isBug && !f.actual.trim()) return setErr("Say what actually happened.");
     if (description.length < 20) return setErr("Add a little more detail (at least 20 characters).");
+    if (description.length > 4000) return setErr(`That is ${description.length} characters; the limit is 4,000. Shorten it, or add the rest as a comment.`);
     setBusy(true);
     try {
-      const row = await call("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: f.type, title: f.title.trim(), projectId: f.projectId || null, area: f.area, priority: f.priority, linkedToItemRef: f.linkedToItemRef.trim() || null, description }) });
+      const body = { type: f.type, title: f.title.trim(), area: scope === "verify" ? "Verify" : f.area, priority: f.priority, linkedToItemRef: f.linkedToItemRef.trim() || null, description };
+      const row = initial
+        ? await call(`/api/feedback/${initial.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        : await call("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, projectId: scope === "verify" ? null : f.projectId || null }) });
       if (files.length) { const fd = new FormData(); files.forEach((x) => fd.append("files", x)); await call(`/api/feedback/${row.id}/attachments`, { method: "POST", body: fd }); }
       onDone(row.id);
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
@@ -87,19 +108,24 @@ function NewForm({ onDone, onCancel }: { onDone: (id: string) => void; onCancel:
 
   return (
     <section className="bg-white rounded-lg border border-slate-200 p-5 space-y-4 max-w-4xl">
-      <h2 className="font-serif text-xl font-bold text-slate-900 flex items-center gap-2"><Flag className="w-5 h-5 text-rose-600" /> Report a finding</h2>
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Kind of finding">
-        {([["bug", "Bug — something is broken"], ["ux", "UI / UX — confusing or hard to use"], ["enhancement", "Idea — could be better"]] as const).map(([k, l]) => (
+      <h2 className="font-serif text-xl font-bold text-slate-900 flex items-center gap-2">
+        {initial ? <><Pencil className="w-5 h-5 text-indigo-600" /> Edit {initial.referenceCode}</> : scope === "verify" ? <><Wrench className="w-5 h-5 text-indigo-600" /> Report a Verify bug or suggestion</> : <><Flag className="w-5 h-5 text-rose-600" /> Report a finding</>}
+      </h2>
+      {scope === "verify" && !initial && <p className="text-sm text-slate-600">For problems with this testing portal itself, or ideas to make it easier to use. Problems in HireStream Lite go under Findings.</p>}
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Kind">
+        {KINDS[scope].map(([k, l]) => (
           <button key={k} role="radio" aria-checked={f.type === k} onClick={() => set("type", k)} className={`rounded-md border px-3 py-2 text-sm ${f.type === k ? "border-[#14213D] bg-[#F1F4FA] font-semibold text-[#14213D]" : "border-slate-300 bg-white text-slate-700"}`}>{l}</button>
         ))}
       </div>
       <label className="block"><span className="text-sm font-medium text-slate-700">Title</span>
-        <input value={f.title} onChange={(e) => set("title", e.target.value)} maxLength={150} placeholder="e.g. Months of experience is pre-filled with 0" className={`${input} mt-1`} /></label>
-      <div className="grid gap-3 sm:grid-cols-4">
-        <label className="block"><span className="text-sm font-medium text-slate-700">Where</span>
-          <select value={f.projectId} onChange={(e) => set("projectId", e.target.value)} className={`${input} mt-1`}>{projects.map((p) => <option key={p.id} value={p.id}>{p.slug === "hirestream-lite" ? "Web portal (Lite)" : "Mobile app"}</option>)}</select></label>
-        <label className="block"><span className="text-sm font-medium text-slate-700">Area</span>
-          <select value={f.area} onChange={(e) => set("area", e.target.value)} className={`${input} mt-1`}>{AREAS.map((a) => <option key={a}>{a}</option>)}</select></label>
+        <input value={f.title} onChange={(e) => set("title", e.target.value)} maxLength={150} placeholder={scope === "verify" ? "e.g. Dashboard stays on Loading… after opening Verify" : "e.g. Months of experience is pre-filled with 0"} className={`${input} mt-1`} /></label>
+      <div className={`grid gap-3 ${scope === "verify" ? "sm:grid-cols-2" : "sm:grid-cols-4"}`}>
+        {scope === "app" && <>
+          <label className="block"><span className="text-sm font-medium text-slate-700">Where</span>
+            <select value={f.projectId} disabled={!!initial} onChange={(e) => set("projectId", e.target.value)} className={`${input} mt-1 disabled:bg-slate-50`}>{projects.map((p) => <option key={p.id} value={p.id}>{p.slug === "hirestream-lite" ? "Web portal (Lite)" : "Mobile app"}</option>)}</select></label>
+          <label className="block"><span className="text-sm font-medium text-slate-700">Area</span>
+            <select value={f.area} onChange={(e) => set("area", e.target.value)} className={`${input} mt-1`}>{AREAS.map((a) => <option key={a}>{a}</option>)}</select></label>
+        </>}
         <label className="block"><span className="text-sm font-medium text-slate-700">Severity</span>
           <select value={f.priority} onChange={(e) => set("priority", e.target.value)} className={`${input} mt-1`}>{Object.entries(SEV).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
         <label className="block"><span className="text-sm font-medium text-slate-700">Related case <span className="text-slate-400 font-normal">(optional)</span></span>
@@ -107,29 +133,28 @@ function NewForm({ onDone, onCancel }: { onDone: (id: string) => void; onCancel:
       </div>
       {isBug ? (<>
         <label className="block"><span className="text-sm font-medium text-slate-700">Steps to reproduce</span>
-          <textarea rows={3} value={f.steps} onChange={(e) => set("steps", e.target.value)} placeholder={"1. Sign in as demo_candidate\n2. Open Complete profile, page 3\n3. …"} className={`${input} mt-1`} /></label>
+          <textarea rows={3} value={f.steps} onChange={(e) => set("steps", e.target.value)} placeholder={scope === "verify" ? "1. Open the Lite portal\n2. Click Verify in the top bar\n3. …" : "1. Sign in as demo_candidate\n2. Open Complete profile, page 3\n3. …"} className={`${input} mt-1`} /></label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block"><span className="text-sm font-medium text-slate-700">Expected</span><textarea rows={3} value={f.expected} onChange={(e) => set("expected", e.target.value)} className={`${input} mt-1`} /></label>
           <label className="block"><span className="text-sm font-medium text-slate-700">Actual</span><textarea rows={3} value={f.actual} onChange={(e) => set("actual", e.target.value)} className={`${input} mt-1`} /></label>
         </div>
+        <label className="block"><span className="text-sm font-medium text-slate-700">More details or later observations <span className="text-slate-400 font-normal">(optional)</span></span>
+          <textarea rows={2} value={f.summary} onChange={(e) => set("summary", e.target.value)} placeholder="Anything else you noticed, now or on retesting" className={`${input} mt-1`} /></label>
       </>) : (
-        <label className="block"><span className="text-sm font-medium text-slate-700">Your idea</span>
+        <label className="block"><span className="text-sm font-medium text-slate-700">{scope === "verify" ? "Your suggestion" : "Your idea"}</span>
           <textarea rows={4} value={f.summary} onChange={(e) => set("summary", e.target.value)} placeholder="What would be better, and why it matters to the user" className={`${input} mt-1`} /></label>
       )}
-      <label className="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-        <Paperclip className="w-4 h-4" /> {files.length ? `${files.length} screenshot${files.length > 1 ? "s" : ""} attached` : "Attach screenshots (up to 5)"}
-        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 5))} />
-      </label>
+      <ShotPicker files={files} onChange={setFiles} existing={existing} label={initial ? "Add screenshots" : "Screenshots"} />
       {err && <p className="text-sm text-rose-700">{err}</p>}
       <div className="flex gap-2">
-        <button onClick={submit} disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-[#14213D] text-white text-sm font-semibold px-4 py-2 disabled:opacity-50">{busy && <Loader2 className="w-4 h-4 animate-spin" />} Submit finding</button>
+        <button onClick={submit} disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-[#14213D] text-white text-sm font-semibold px-4 py-2 disabled:opacity-50">{busy && <Loader2 className="w-4 h-4 animate-spin" />} {initial ? "Save changes" : "Submit"}</button>
         <button onClick={onCancel} className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700 bg-white">Cancel</button>
       </div>
     </section>
   );
 }
 
-function List() {
+function List({ scope }: { scope: Scope }) {
   const { data, reload } = useWorkspace();
   const [, navigate] = useLocation();
   const params = new URLSearchParams(useSearch());
@@ -138,7 +163,9 @@ function List() {
   const [term, setTerm] = useState("");
   const [creating, setCreating] = useState(!!params.get("new"));
   const ids = new Set(data!.projects.map((p) => p.id));
-  const load = () => call("/api/feedback").then((r: F[]) => setRows(r.filter((x) => x.projectId && ids.has(x.projectId)))).catch(() => setRows([]));
+  const base = scope === "verify" ? "/verify-feedback" : "/findings";
+  const KINDS_SHOWN = kindMap(scope);
+  const load = () => call("/api/feedback").then((r: F[]) => setRows(r.filter((x) => scope === "verify" ? isVerifyFinding(x) : !!x.projectId && ids.has(x.projectId)))).catch(() => setRows([]));
   useEffect(() => { load(); }, []);
   useEffect(() => { if (params.get("new")) setCreating(true); }, [params.get("new")]);
 
@@ -148,9 +175,12 @@ function List() {
   const n = (k: string) => (rows ?? []).filter((r) => k === "all" || (k === "mine" ? r.submitterReviewerId === data!.me.id : stage(r.status) === k)).length;
 
   return (
-    <Page title="Findings" sub="Bugs, UI/UX problems and ideas found outside the test cases. Report what you notice; the team works it through Open → In progress → Fixed, and you close it once you have confirmed the fix."
-      actions={!creating && <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 rounded-md bg-[#14213D] text-white text-sm font-semibold px-3.5 py-2"><Flag className="w-4 h-4" /> Report a finding</button>}>
-      {creating && <NewForm onCancel={() => { setCreating(false); navigate("/findings", { replace: true }); }} onDone={(id) => { reload(); navigate(`/findings/${id}`); }} />}
+    <Page title={scope === "verify" ? "Verify bugs & ideas" : "Findings"}
+      sub={scope === "verify"
+        ? "Problems with this testing portal itself, and suggestions to make it easier to use. The team works them through Open → In progress → Fixed, and you close each once you have confirmed it."
+        : "Bugs, UI/UX problems and ideas found outside the test cases. Report what you notice; the team works it through Open → In progress → Fixed, and you close it once you have confirmed the fix. You can edit a finding after submitting it."}
+      actions={!creating && <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 rounded-md bg-[#14213D] text-white text-sm font-semibold px-3.5 py-2">{scope === "verify" ? <Wrench className="w-4 h-4" /> : <Flag className="w-4 h-4" />} {scope === "verify" ? "Report a Verify bug or idea" : "Report a finding"}</button>}>
+      {creating && <FindingForm scope={scope} onCancel={() => { setCreating(false); navigate(base, { replace: true }); }} onDone={(id) => { reload(); navigate(`/findings/${id}`); }} />}
       <div className="flex flex-wrap items-center gap-2">
         {([["open", "Open"], ["progress", "In progress"], ["fixed", "Fixed — confirm"], ["closed", "Closed"], ["mine", "Mine"], ["all", "All"]] as const).map(([k, l]) => (
           <button key={k} onClick={() => setFilter(k)} className={`rounded-full border px-3 py-1 text-sm ${filter === k ? "bg-[#14213D] text-white border-[#14213D]" : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"}`}>{l} <span className="opacity-70">{n(k)}</span></button>
@@ -161,7 +191,7 @@ function List() {
         </div>
       </div>
       {rows === null ? <p className="text-slate-400">Loading…</p> : shown.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">{rows.length ? "Nothing in this view." : "No findings yet. Use Report a finding when something looks wrong or could be better."}</div>
+        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">{rows.length ? "Nothing in this view." : scope === "verify" ? "Nothing reported about Verify yet." : "No findings yet. Use Report a finding when something looks wrong or could be better."}</div>
       ) : (
         <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto">
           <table className="w-full text-sm">
@@ -173,7 +203,7 @@ function List() {
                 <tr key={r.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => navigate(`/findings/${r.id}`)}>
                   <td className="px-4 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">{r.referenceCode}</td>
                   <td className="px-4 py-3"><Link href={`/findings/${r.id}`} className="font-medium text-slate-900 hover:underline">{r.title}</Link><div className="text-xs text-slate-500 mt-0.5">{r.area ?? "General"}{r.linkedToItemRef ? ` · case ${r.linkedToItemRef}` : ""}{r.attachmentCount ? ` · ${r.attachmentCount} screenshot${r.attachmentCount > 1 ? "s" : ""}` : ""}</div></td>
-                  <td className="px-4 py-3"><Chip map={KIND} k={r.type} /></td>
+                  <td className="px-4 py-3"><Chip map={KINDS_SHOWN} k={r.type} /></td>
                   <td className="px-4 py-3 text-slate-700">{SEV[r.priority] ?? r.priority}</td>
                   <td className="px-4 py-3"><Chip map={STAGE} k={stage(r.status)} /></td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{r.submitter?.name ?? "—"}<br />{when(r.createdAt)}</td>
@@ -193,6 +223,9 @@ function Detail({ id }: { id: string }) {
   const [err, setErr] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [note, setNote] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [more, setMore] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
   const load = () => call(`/api/feedback/${id}`).then((x) => { setF(x); setNote(x.adminNotes ?? ""); }).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, [id]);
   if (err) return <Page title="Finding"><p className="text-rose-700">{err}</p></Page>;
@@ -205,10 +238,27 @@ function Detail({ id }: { id: string }) {
   const post = async () => { if (!comment.trim()) return; await call(`/api/feedback/${id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body: comment.trim() }) }); setComment(""); load(); };
   const st = stage(f.status);
   const project = data!.projects.find((p) => p.id === f.projectId);
+  const scope: Scope = isVerifyFinding(f) ? "verify" : "app";
+  const canEdit = mine || canTriage;
+  const shots = f.attachments?.length ?? 0;
+  const removeShot = async (attId: string, name: string) => {
+    if (!confirm(`Remove ${name}?`)) return;
+    try { await call(`/api/feedback/${id}/attachments/${attId}`, { method: "DELETE" }); await load(); } catch (e: any) { setErr(e.message); }
+  };
+  const addShots = async () => {
+    if (!more.length) return;
+    setBusy(true);
+    try { const fd = new FormData(); more.forEach((x) => fd.append("files", x)); await call(`/api/feedback/${id}/attachments`, { method: "POST", body: fd }); setMore([]); await load(); }
+    catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  };
 
   return (
-    <Page title={f.title} sub={<span className="inline-flex flex-wrap items-center gap-2"><span className="font-mono">{f.referenceCode}</span><Chip map={KIND} k={f.type} /><Chip map={STAGE} k={st} /><span>{SEV[f.priority]} severity</span><span>· {project ? (project.slug === "hirestream-lite" ? "Web portal" : "Mobile app") : ""} · {f.area ?? "General"}</span>{f.linkedToItemRef && <span>· case <b>{f.linkedToItemRef}</b></span>}</span>}
-      actions={<Link href="/findings" className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><ArrowLeft className="w-4 h-4" /> All findings</Link>}>
+    <Page title={f.title} sub={<span className="inline-flex flex-wrap items-center gap-2"><span className="font-mono">{f.referenceCode}</span><Chip map={kindMap(scope)} k={f.type} /><Chip map={STAGE} k={st} /><span>{SEV[f.priority]} severity</span><span>· {scope === "verify" ? "Verify portal" : `${project ? (project.slug === "hirestream-lite" ? "Web portal" : "Mobile app") : ""} · ${f.area ?? "General"}`}</span>{f.linkedToItemRef && <span>· case <b>{f.linkedToItemRef}</b></span>}</span>}
+      actions={<>
+        {canEdit && !editing && <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"><Pencil className="w-4 h-4" /> Edit</button>}
+        <Link href={scope === "verify" ? "/verify-feedback" : "/findings"} className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><ArrowLeft className="w-4 h-4" /> {scope === "verify" ? "All Verify bugs & ideas" : "All findings"}</Link>
+      </>}>
+      {editing && <FindingForm scope={scope} initial={f} existing={shots} onCancel={() => setEditing(false)} onDone={async () => { setEditing(false); await load(); reload(); }} />}
       <div className="grid gap-6 grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))] items-start">
         <div className="space-y-4 min-w-0">
           {parts.summary && <section className="bg-white rounded-lg border border-slate-200 p-5"><div className="text-sm text-slate-800 whitespace-pre-wrap">{parts.summary}</div></section>}
@@ -219,9 +269,19 @@ function Detail({ id }: { id: string }) {
               <section className="bg-rose-50 rounded-lg border border-rose-200 p-5"><h2 className="text-xs font-bold uppercase tracking-wider text-rose-700">Actual</h2><div className="mt-2 text-sm text-slate-800 whitespace-pre-wrap">{parts.Actual || "—"}</div></section>
             </div>
           )}
-          {!!f.attachments?.length && (
+          {(shots > 0 || canEdit) && (
             <section className="bg-white rounded-lg border border-slate-200 p-5"><h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Screenshots</h2>
-              <div className="mt-3 flex flex-wrap gap-3">{f.attachments.map((a) => <a key={a.id} href={`/api/projects/attachments/${a.id}`} target="_blank" rel="noreferrer"><img src={`/api/projects/attachments/${a.id}`} alt={a.originalName} className="h-36 rounded border border-slate-200 object-cover" /></a>)}</div>
+              {shots > 0 ? <div className="mt-3 flex flex-wrap gap-3">{f.attachments!.map((a) => (
+                <div key={a.id} className="relative">
+                  <a href={`/api/projects/attachments/${a.id}`} target="_blank" rel="noreferrer"><img src={`/api/projects/attachments/${a.id}`} alt={a.originalName} className="h-36 max-w-[260px] rounded border border-slate-200 object-contain bg-white" /></a>
+                  {canEdit && <button aria-label={`Remove ${a.originalName}`} onClick={() => removeShot(a.id, a.originalName)} className="absolute -top-2 -right-2 rounded-full bg-white border border-slate-300 p-0.5 text-slate-600 hover:text-rose-700 shadow-sm"><X className="w-3.5 h-3.5" /></button>}
+                </div>))}</div> : <p className="mt-2 text-sm text-slate-500">None yet.</p>}
+              {canEdit && !editing && shots < 5 && (
+                <div className="mt-4 space-y-2">
+                  <ShotPicker files={more} onChange={setMore} existing={shots} label="Add screenshots" />
+                  {more.length > 0 && <button onClick={addShots} disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-[#14213D] text-white text-sm font-semibold px-3.5 py-1.5 disabled:opacity-50">{busy && <Loader2 className="w-4 h-4 animate-spin" />} Upload {more.length} screenshot{more.length > 1 ? "s" : ""}</button>}
+                </div>
+              )}
             </section>
           )}
           <p className="text-xs text-slate-500">Reported by {f.submitter?.name ?? "—"} · {when(f.createdAt)} · last change {when(f.updatedAt)}</p>
@@ -275,5 +335,6 @@ function Detail({ id }: { id: string }) {
 
 export function Findings() {
   const [m, p] = useRoute("/findings/:id");
-  return <Shell title="Findings">{m ? <Detail id={p!.id} /> : <List />}</Shell>;
+  const [verify] = useRoute("/verify-feedback");
+  return <Shell title={verify ? "Verify bugs & ideas" : "Findings"}>{m ? <Detail id={p!.id} /> : <List key={verify ? "v" : "a"} scope={verify ? "verify" : "app"} />}</Shell>;
 }

@@ -68,6 +68,17 @@ test("Admin", async ({ page }) => {
     await tab(page, "Users");
     await expect(page.getByText(/Users \(\d+\)/).filter({ visible: true }).first()).toBeVisible();
     expect(await page.getByRole("button", { name: /^(Disable|Enable)$/ }).count()).toBeGreaterThan(0);
+    // Piyush, FB-2026-0023/0024/0025: last login is recorded; search, filters and paging run on the server;
+    // the table scrolls in its own area.
+    const staff = await (await page.request.get("/api/v1/admin/oversight/users?role=staff")).json();
+    expect(staff.data.find((u: any) => u.username === "demo_admin")?.lastLoginAt, "demo_admin last login recorded").toBeTruthy();
+    const found = await (await page.request.get("/api/v1/admin/oversight/users?role=all&q=tek_chand")).json();
+    expect(found.total, "search finds one user").toBe(1);
+    const paged = await (await page.request.get("/api/v1/admin/oversight/users?role=all&pageSize=20")).json();
+    expect(paged.data.length, "20 rows per page").toBeLessThanOrEqual(20);
+    expect(paged.total, "total counts every user").toBeGreaterThanOrEqual(paged.data.length);
+    await expect(page.getByPlaceholder("Search username, name, email or phone")).toBeVisible();
+    await expect(page.locator('[aria-label="Users table"]')).toBeVisible();
     // Piyush, 17 Nov 2026: a disabled account with the right password is told it is disabled;
     // a wrong password still gets the generic message.
     sql(`update users set is_active = false where username = 'tek_chand'`);

@@ -3194,13 +3194,35 @@ function WelfareSlaPanel() {
 }
 
 // ── Admin user management ────────────────────────────────────────────
+// Piyush, FB-2026-0023/0025: search, filters, sorting and paging are done on the server;
+// the table scrolls in its own area with the column headings fixed.
+const USER_TABS = [["candidate", "Candidates"], ["agent", "Agencies"], ["employer", "Employers"], ["staff", "Staff"], ["all", "All"]] as const;
 function UserManagementPanel() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data: res, isLoading } = useQuery({
-    queryKey: ["/api/v1/admin/oversight/users"],
-    queryFn: () => fetchJson("/api/v1/admin/oversight/users"),
-  });
+  const [role, setRole] = useState<string>("candidate");
+  const [term, setTerm] = useState("");
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("");
+  const [login, setLogin] = useState("");
+  const [loginFrom, setLoginFrom] = useState("");
+  const [loginTo, setLoginTo] = useState("");
+  const [regFrom, setRegFrom] = useState("");
+  const [regTo, setRegTo] = useState("");
+  const [sort, setSort] = useState("lastLogin");
+  const [dir, setDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  React.useEffect(() => { const t = setTimeout(() => { setQ(term.trim()); setPage(1); }, 300); return () => clearTimeout(t); }, [term]);
+  const params = new URLSearchParams({ role, sort, dir, page: String(page), pageSize: String(pageSize) });
+  if (q) params.set("q", q);
+  if (status) params.set("status", status);
+  if (login === "never") params.set("login", "never");
+  if (login === "range") { if (loginFrom) params.set("loginFrom", loginFrom); if (loginTo) params.set("loginTo", loginTo); }
+  if (regFrom) params.set("regFrom", regFrom);
+  if (regTo) params.set("regTo", regTo);
+  const url = `/api/v1/admin/oversight/users?${params}`;
+  const { data: res, isLoading, isFetching } = useQuery({ queryKey: ["/api/v1/admin/oversight/users", url], queryFn: () => fetchJson(url), placeholderData: (prev: any) => prev });
   const toggle = useMutation({
     mutationFn: async (id: string) => {
       const r = await fetch(`/api/v1/admin/oversight/users/${id}/toggle-active`, { method: "PATCH" });
@@ -3209,79 +3231,98 @@ function UserManagementPanel() {
     },
     onSuccess: () => { toast({ title: "User updated" }); qc.invalidateQueries({ queryKey: ["/api/v1/admin/oversight/users"] }); },
   });
-  if (isLoading) return <div className="p-10 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600 inline" /></div>;
+  const reset = (fn: () => void) => { fn(); setPage(1); };
+  const filtered = !!(q || status || login || regFrom || regTo);
+  const clearAll = () => reset(() => { setTerm(""); setQ(""); setStatus(""); setLogin(""); setLoginFrom(""); setLoginTo(""); setRegFrom(""); setRegTo(""); });
   const rows: any[] = res?.data ?? [];
-
+  const counts = res?.counts ?? {};
+  const total: number = res?.total ?? 0;
+  const pages: number = res?.pages ?? 1;
   const roleColor: Record<string, string> = {
     candidate: "bg-blue-100 text-blue-700", agent: "bg-emerald-100 text-emerald-700",
     employer: "bg-purple-100 text-purple-700", admin: "bg-red-100 text-red-700", superadmin: "bg-amber-100 text-amber-700",
   };
-
-  // Group by role category for separated tabs.
-  const candidates = rows.filter((u) => u.role === "candidate");
-  const agencies = rows.filter((u) => u.role === "agent");
-  const employers = rows.filter((u) => u.role === "employer");
-  const staff = rows.filter((u) => u.role === "admin" || u.role === "superadmin");
-
-  const renderTable = (data: any[]) => (
-    <div className="overflow-x-auto">
-      {data.length === 0 ? (
-        <div className="text-center py-8 text-slate-400 text-sm">No users in this category.</div>
-      ) : (
-        <table className="w-full text-sm">
-          <thead className="text-xs uppercase text-slate-500 border-b border-slate-200">
-            <tr>
-              <th className="text-left py-2 px-2">Username</th>
-              <th className="text-left py-2 px-2">Email</th>
-              <th className="text-left py-2 px-2">Role</th>
-              <th className="text-center py-2 px-2">Active</th>
-              <th className="text-left py-2 px-2">Last login</th>
-              <th className="text-right py-2 px-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((u) => (
-              <tr key={u.id} className="border-b border-slate-100">
-                <td className="py-2 px-2 font-medium text-slate-900">{u.username}</td>
-                <td className="py-2 px-2 text-slate-600">{u.email}</td>
-                <td className="py-2 px-2"><Badge className={`text-[10px] ${roleColor[u.role] || "bg-slate-100 text-slate-700"}`}>{u.role}</Badge></td>
-                <td className="py-2 px-2 text-center">
-                  {u.isActive ? <CheckCircle className="w-4 h-4 text-emerald-500 inline" /> : <span className="text-red-500">Disabled</span>}
-                </td>
-                <td className="py-2 px-2 text-xs text-slate-500">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("en-IN") : "Never"}</td>
-                <td className="py-2 px-2 text-right">
-                  <Button size="sm" variant="outline" onClick={() => toggle.mutate(u.id)}>
-                    {u.isActive ? "Disable" : "Enable"}
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
+  const fmt = (d?: string | null) => d ? new Date(d).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : null;
+  const sortBy = (k: string) => { if (sort === k) setDir(dir === "asc" ? "desc" : "asc"); else { setSort(k); setDir(k === "username" || k === "role" ? "asc" : "desc"); } setPage(1); };
+  const Th = ({ k, children, className = "" }: { k?: string; children: React.ReactNode; className?: string }) => (
+    <th className={`py-2.5 px-3 ${className}`} aria-sort={k && sort === k ? (dir === "asc" ? "ascending" : "descending") : undefined}>
+      {k ? <button onClick={() => sortBy(k)} className="inline-flex items-center gap-1 uppercase hover:text-slate-800">{children}<span className="text-slate-400">{sort === k ? (dir === "asc" ? "▲" : "▼") : "↕"}</span></button> : children}
+    </th>
   );
+  const sel = "h-9 rounded-md border border-slate-300 bg-white px-2 text-sm";
+  const from = total ? (page - 1) * pageSize + 1 : 0;
 
   return (
     <div className="space-y-3">
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-          <Users className="w-4 h-4 text-blue-600" /> Users ({rows.length})
+      <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <Users className="w-4 h-4 text-blue-600" /> Users ({counts.all ?? 0}){isFetching && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
         </h3>
-        <Tabs defaultValue="candidates">
-          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
-            <TabsTrigger value="candidates">Candidates ({candidates.length})</TabsTrigger>
-            <TabsTrigger value="agencies">Agencies ({agencies.length})</TabsTrigger>
-            <TabsTrigger value="employers">Employers ({employers.length})</TabsTrigger>
-            <TabsTrigger value="staff">Staff ({staff.length})</TabsTrigger>
-            <TabsTrigger value="all">All ({rows.length})</TabsTrigger>
-          </TabsList>
-          <TabsContent value="candidates" className="mt-4">{renderTable(candidates)}</TabsContent>
-          <TabsContent value="agencies" className="mt-4">{renderTable(agencies)}</TabsContent>
-          <TabsContent value="employers" className="mt-4">{renderTable(employers)}</TabsContent>
-          <TabsContent value="staff" className="mt-4">{renderTable(staff)}</TabsContent>
-          <TabsContent value="all" className="mt-4">{renderTable(rows)}</TabsContent>
-        </Tabs>
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Role">
+          {USER_TABS.map(([k, l]) => (
+            <Button key={k} size="sm" role="tab" aria-selected={role === k} variant={role === k ? "default" : "outline"} onClick={() => reset(() => setRole(k))}>{l} ({counts[k] ?? 0})</Button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex-1 min-w-[220px]"><span className="sr-only">Search users</span>
+            <Input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Search username, name, email or phone" /></label>
+          <label className="text-xs text-slate-500">Status<br />
+            <select className={sel} value={status} onChange={(e) => reset(() => setStatus(e.target.value))}><option value="">Any</option><option value="active">Active</option><option value="disabled">Disabled</option></select></label>
+          <label className="text-xs text-slate-500">Last login<br />
+            <select className={sel} value={login} onChange={(e) => reset(() => setLogin(e.target.value))}><option value="">Any</option><option value="never">Never signed in</option><option value="range">Signed in between…</option></select></label>
+          {login === "range" && <>
+            <label className="text-xs text-slate-500">From<br /><input type="date" className={sel} value={loginFrom} onChange={(e) => reset(() => setLoginFrom(e.target.value))} /></label>
+            <label className="text-xs text-slate-500">To<br /><input type="date" className={sel} value={loginTo} onChange={(e) => reset(() => setLoginTo(e.target.value))} /></label>
+          </>}
+          <label className="text-xs text-slate-500">Registered from<br /><input type="date" className={sel} value={regFrom} onChange={(e) => reset(() => setRegFrom(e.target.value))} /></label>
+          <label className="text-xs text-slate-500">to<br /><input type="date" className={sel} value={regTo} onChange={(e) => reset(() => setRegTo(e.target.value))} /></label>
+          {filtered && <Button size="sm" variant="ghost" onClick={clearAll}>Clear filters</Button>}
+        </div>
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200">
+        {isLoading && !res ? <div className="p-10 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600 inline" /></div> : rows.length === 0 ? (
+          <div className="text-center py-10 text-slate-400 text-sm">{filtered ? "No users match these filters." : "No users in this category."}</div>
+        ) : (
+          <div className="overflow-auto max-h-[calc(100vh-330px)] min-h-[260px] rounded-t-xl" tabIndex={0} aria-label="Users table">
+            <table className="w-full text-sm min-w-[860px]">
+              <thead className="text-xs uppercase text-slate-500 text-left [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-slate-50 [&_th]:border-b [&_th]:border-slate-200">
+                <tr>
+                  <Th k="username">Username</Th>
+                  <Th>Name / email</Th>
+                  <Th k="role">Role</Th>
+                  <Th className="text-center">Active</Th>
+                  <Th k="lastLogin">Last login</Th>
+                  <Th k="registered">Registered</Th>
+                  <Th className="text-right">Action</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((u) => (
+                  <tr key={u.id} className="border-b border-slate-100">
+                    <td className="py-2 px-3 font-medium text-slate-900">{u.username}</td>
+                    <td className="py-2 px-3 text-slate-600">{u.fullName && <div className="text-slate-800">{u.fullName}</div>}<div className="text-xs">{u.email}{u.phone ? ` · ${u.phone}` : ""}</div></td>
+                    <td className="py-2 px-3"><Badge className={`text-[10px] ${roleColor[u.role] || "bg-slate-100 text-slate-700"}`}>{u.role}</Badge></td>
+                    <td className="py-2 px-3 text-center">{u.isActive ? <CheckCircle className="w-4 h-4 text-emerald-500 inline" aria-label="Active" /> : <span className="text-red-500">Disabled</span>}</td>
+                    <td className="py-2 px-3 text-xs text-slate-600 whitespace-nowrap">{fmt(u.lastLoginAt) ?? <span className="text-slate-400">Never</span>}</td>
+                    <td className="py-2 px-3 text-xs text-slate-600 whitespace-nowrap">{u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : <span className="text-slate-400">—</span>}</td>
+                    <td className="py-2 px-3 text-right">
+                      <Button size="sm" variant="outline" onClick={() => toggle.mutate(u.id)}>{u.isActive ? "Disable" : "Enable"}</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-4 py-2.5 text-sm text-slate-600">
+          <span>{total ? `${from}–${from + rows.length - 1} of ${total}` : "0 users"}</span>
+          <div className="flex items-center gap-2">
+            <label className="text-xs">Per page <select className={sel} value={pageSize} onChange={(e) => reset(() => setPageSize(Number(e.target.value)))}>{[20, 50, 100].map((n) => <option key={n}>{n}</option>)}</select></label>
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
+            <span className="text-xs">Page {page} of {pages}</span>
+            <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</Button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -3972,12 +4013,12 @@ function AdminJobsPanel() {
           ))}
         </div>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-auto max-h-[calc(100vh-300px)] min-h-[240px]" tabIndex={0} aria-label="Jobs table">
         {isLoading ? <div className="p-5"><Skeleton className="h-24 w-full" /></div> : rows.length === 0 ? (
           <p className="p-5 text-sm text-slate-500">No jobs match.</p>
         ) : (
           <table className="w-full text-sm min-w-[760px]">
-            <thead><tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-200">
+            <thead className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-slate-50"><tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-200">
               <th className="px-4 py-2.5">Job</th><th className="px-4 py-2.5">Country</th><th className="px-4 py-2.5">Status</th>
               <th className="px-4 py-2.5">Deadline</th><th className="px-4 py-2.5 text-right">Applications</th><th className="px-4 py-2.5 text-right">Placed</th><th className="px-4 py-2.5">Posted</th>
             </tr></thead>

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { ChevronLeft, ChevronRight, ExternalLink, Bot, Copy, Check, X, Sparkles, MessageSquare, Paperclip, Loader2, MinusCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Bot, Copy, Check, X, Sparkles, MessageSquare, Loader2, MinusCircle, Pencil } from "lucide-react";
 import { Shell, useWorkspace, caseState, StatusChip, type Case } from "../components/Shell";
 import { api } from "../lib/api";
+import { ShotPicker } from "../components/ShotPicker";
 
 /** One test case: steps, how to run it (yourself / automated / Claude in Chrome), record the result. */
 const ROLE: Record<number, string> = { 1: "Applicant", 2: "HPSEDC Placement Cell", 3: "Employer", 4: "Admin" };
@@ -50,8 +51,9 @@ function Body({ id }: { id: string }) {
   const [comments, setComments] = useState<any[]>([]);
   const [comment, setComment] = useState("");
   const [runMsg, setRunMsg] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
-  useEffect(() => { setDecision(null); setNote(""); setFiles([]); setError(null); setShowPrompt(false); setRunMsg(null); }, [id]);
+  useEffect(() => { setDecision(null); setNote(""); setFiles([]); setError(null); setShowPrompt(false); setRunMsg(null); setEditing(false); }, [id]);
   useEffect(() => { if (c) api.getComments(c.projectSlug, c.id).then(setComments).catch(() => setComments([])); }, [c?.id]);
 
   if (!c) return <div className="p-10 text-slate-500">Case not found. <Link href="/cases" className="text-indigo-700 hover:underline">Back to cases</Link></div>;
@@ -66,6 +68,7 @@ function Body({ id }: { id: string }) {
     try {
       await api.signoff(c.projectSlug, c.id, level, decision, note.trim() || undefined, files);
       await reload();
+      setEditing(false); setFiles([]);
       if (goNext && next) navigate(`/cases/${next.id}`);
     } catch (e: any) { setError(e.message.replace(/^\d+:\s*/, "")); } finally { setSaving(false); }
   };
@@ -184,12 +187,19 @@ function Body({ id }: { id: string }) {
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Your result</h2>
         {state !== "notrun" && (
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-            <StatusChip c={c} />
-            {c.my_comment && <span className="text-slate-600">“{c.my_comment}”</span>}
-            <button onClick={clear} className="text-xs text-slate-500 hover:text-slate-800 underline">Clear and retest</button>
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusChip c={c} />
+              {c.my_comment && <span className="text-slate-600 whitespace-pre-wrap">“{c.my_comment}”</span>}
+            </div>
+            {!!c.my_shots?.length && <div className="flex flex-wrap gap-2">{c.my_shots.map((a) => <a key={a.id} href={api.attachmentUrl(a.id)} target="_blank" rel="noreferrer"><img src={api.attachmentUrl(a.id)} alt={a.name} className="h-20 max-w-[160px] rounded border border-slate-200 object-contain bg-white" /></a>)}</div>}
+            <div className="flex flex-wrap gap-3">
+              {!editing && <button onClick={() => { setEditing(true); setDecision((c.my_decision as any) ?? null); setNote(c.my_comment ?? ""); }} className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 hover:underline"><Pencil className="w-3.5 h-3.5" /> Edit result — change the note or add screenshots</button>}
+              <button onClick={clear} className="text-xs text-slate-500 hover:text-slate-800 underline">Clear and retest</button>
+            </div>
           </div>
         )}
+        {(state === "notrun" || editing) && (<>
         <div className="mt-3 flex flex-wrap gap-2">
           {([["accepted", "Passed", Check, "emerald"], ["rejected", "Failed", X, "rose"], ["waived", "Waive", MinusCircle, "slate"]] as const).map(([v, label, I, tone]) => (
             <button key={v} onClick={() => setDecision(v)}
@@ -202,15 +212,14 @@ function Body({ id }: { id: string }) {
         </div>
         <label htmlFor="result-note" className="block text-sm text-slate-600 mt-4 mb-1">{decision === "rejected" ? `What went wrong?${data!.config.failNoteRequired ? " (required)" : ""}` : "Note (optional)"}</label>
         <textarea id="result-note" value={note} onChange={(e) => setNote(e.target.value)} rows={3} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder={decision === "rejected" ? "What you did, what you expected, what you saw" : ""} />
-        <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-          <Paperclip className="w-4 h-4" /> {files.length ? `${files.length} screenshot${files.length > 1 ? "s" : ""} attached` : "Attach screenshots"}
-          <input id="result-files" type="file" accept="image/*" multiple className="hidden" onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 5))} />
-        </label>
+        <div className="mt-3"><ShotPicker files={files} onChange={setFiles} existing={c.my_shots?.length ?? 0} max={(c.my_shots?.length ?? 0) + 5} label={editing ? "Add screenshots" : "Screenshots"} /></div>
         {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
         <div className="mt-4 flex flex-wrap gap-2">
           <button onClick={() => save(true)} disabled={saving} className="inline-flex items-center gap-2 bg-[#14213D] text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60">{saving && <Loader2 className="w-4 h-4 animate-spin" />}{next ? "Save and go to next case" : "Save"}</button>
           {next && <button onClick={() => save(false)} disabled={saving} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700">Save</button>}
+          {editing && <button onClick={() => { setEditing(false); setFiles([]); setError(null); }} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700">Cancel</button>}
         </div>
+        </>)}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-5">

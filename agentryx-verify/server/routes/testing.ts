@@ -58,6 +58,9 @@ testingRouter.get("/overview", requireAuth, async (req, res) => {
             (select s.decision from signoffs s where s.requirement_id = r.id and s.level = $2) as my_decision,
             (select s.comment from signoffs s where s.requirement_id = r.id and s.level = $2) as my_comment,
             (select s.created_at from signoffs s where s.requirement_id = r.id and s.level = $2) as my_at,
+            (select coalesce(json_agg(json_build_object('id', a.id, 'name', a.original_name) order by a.created_at), '[]'::json)
+               from attachments a join signoffs s on a.owner_type = 'signoff' and a.owner_id = s.id
+              where s.requirement_id = r.id and s.level = $2) as my_shots,
             (select count(*) from comments c where c.requirement_id = r.id)::int as comment_count,
             (select json_build_object('status', a.status, 'detail', a.detail, 'screenshot', a.screenshot, 'at', a.created_at)
                from auto_results a where a.requirement_id = r.id order by a.created_at desc limit 1) as auto

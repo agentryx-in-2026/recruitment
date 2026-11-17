@@ -23,7 +23,7 @@ export type Overview = {
 export type Case = {
   id: string; project_id: string; projectSlug: string; item_ref: string; section: number; section_title: string;
   description: string; delivery_status: string; test_steps: string | null; expected_result: string | null; evidence: string | null;
-  my_decision: "accepted" | "rejected" | "waived" | null; my_comment: string | null; my_at: string | null; comment_count: number;
+  my_decision: "accepted" | "rejected" | "waived" | null; my_comment: string | null; my_shots?: { id: string; name: string }[]; my_at: string | null; comment_count: number;
   auto: { status: "passed" | "failed"; detail: string | null; screenshot: string | null; at: string } | null;
   autoScope: string | null;
   test_plan: "run" | "with" | "auto" | "blocked" | "later"; plan_note: string | null; session: number | null;
@@ -131,6 +131,7 @@ function Menu2({ label, children }: { label: ReactNode; children: ReactNode }) {
 
 export function Shell({ children, title }: { children: ReactNode; title?: string }) {
   const [data, setData] = useState<Overview | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
   const [askOpen, setAskOpen] = useState(() => { try { return localStorage.getItem("verify-ask-open") !== "0"; } catch { return true; } });
   const [askRef, setAskRef] = useState<string | null>(null);
   const [askCmd, setAskCmd] = useState<{ view: "new" | "list"; n: number } | null>(null);
@@ -152,14 +153,22 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   const inGroup = {
     testing: /^\/(cases|automation|findings|run)/.test(loc),
     help: loc.startsWith("/team-questions"),
+    verify: loc.startsWith("/verify-feedback"),
     resources: loc.startsWith("/resources") || (/^\/(docs|product)/.test(loc) && !data?.me.isAdmin),
     manage: /^\/(questions|projects|admin|settings|audit|p\/)/.test(loc) && !!data?.me.isAdmin,
     product: /^\/(docs|product)/.test(loc) && !!data?.me.isAdmin,
   };
-  const reload = useCallback(async () => {
-    const r = await fetch("/api/testing/overview", { credentials: "include" });
-    if (r.status === 401) { navigate("/login", { replace: true }); return; }
-    setData(await r.json());
+  // Piyush, 18 Nov 2026: never sit on "Loading…" — retry once, then say what happened with a Retry button.
+  const reload = useCallback(async (attempt = 0): Promise<void> => {
+    try {
+      const r = await fetch("/api/testing/overview", { credentials: "include", cache: "no-store" });
+      if (r.status === 401) { navigate("/login", { replace: true }); return; }
+      if (!r.ok) throw new Error(`The server answered ${r.status}`);
+      setData(await r.json()); setLoadErr(null);
+    } catch (e: any) {
+      if (attempt < 1) { await new Promise((ok) => setTimeout(ok, 1500)); return reload(attempt + 1); }
+      setLoadErr(e?.message || "No connection");
+    }
   }, [navigate]);
   useEffect(() => { reload(); }, [reload]);
   // Heartbeat for the audit trail: time active counts only while this tab is open and in view.
@@ -191,7 +200,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
   const toRun = hand.filter((c) => caseState(c) === "notrun").length;
   const pct = hand.length ? Math.round((passed / hand.length) * 100) : 0;
   const T = SIDE[theme];
-  const groups = ["Testing", "Ask for help", "Resources", "Manage", "Product management", "Key documents"];
+  const groups = ["Testing", "Verify itself", "Ask for help", "Resources", "Manage", "Product management", "Key documents"];
   const allShut = groups.every((g) => closed[g]);
 
   const nav = data && (
@@ -214,6 +223,9 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
         ))}
         <NavLink href="/automation" label="Automated runs" count={data.running ? "running" : undefined} />
         <NavLink href="/findings" label="Findings" count={data.findingsOpen || undefined} />
+      </Group>
+      <Group title="Verify itself" here={inGroup.verify}>
+        <NavLink href="/verify-feedback" label="Verify bugs & ideas" />
       </Group>
       <Group title="Ask for help" here={inGroup.help}>
         <NavButton label="Ask Agentryx" onClick={() => openAsk("new")} />
@@ -339,7 +351,9 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
               </div>
             )}
           </header>
-          <main className="flex-1 min-w-0">{data ? children : <div className="p-10 text-slate-400">Loading…</div>}</main>
+          <main className="flex-1 min-w-0">{data ? children : loadErr
+            ? <div className="p-10 space-y-3"><p className="text-slate-700">Verify could not load your workspace ({loadErr}).</p><button onClick={() => { setLoadErr(null); reload(); }} className="rounded-md bg-[#14213D] text-white text-sm font-semibold px-4 py-2">Try again</button></div>
+            : <div className="p-10 text-slate-400">Loading…</div>}</main>
         </div>
         {askOpen && data && (
           <aside className="hidden md:flex w-[400px] xl:w-[460px] shrink-0 border-l border-slate-200 bg-white sticky top-0 h-screen flex-col">

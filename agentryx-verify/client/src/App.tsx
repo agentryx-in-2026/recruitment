@@ -31,6 +31,7 @@ export function App() {
       <Route path="/team-questions" component={TeamQuestions} />
       <Route path="/findings/:id" component={Findings} />
       <Route path="/findings" component={Findings} />
+      <Route path="/verify-feedback" component={Findings} />
       <Route path="/docs/:id" component={DocViewer} />
       <Route path="/run" component={Run} />
       <Route path="/audit" component={Audit} />

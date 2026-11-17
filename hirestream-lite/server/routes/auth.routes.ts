@@ -18,6 +18,13 @@ import { getSetting } from "../services/settings.service";
 import { env } from "../config/env.config";
 import { sanitizeUser } from "../lib/safeUser";
 
+/** Piyush, FB-2026-0024: record every sign-in so Admin → Users shows Last Login. */
+function stampLogin(id: string) {
+  const db = storage.db;
+  if (!db) return;
+  db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, id)).catch((e: any) => logger.warn(`lastLoginAt not saved: ${e?.message}`));
+}
+
 const router = Router();
 
 // HP-3: capability flags gate which roles may self-register. The register
@@ -110,6 +117,7 @@ router.post("/register", validateRequest(registerSchema), async (req, res, next)
         if (err) return next(err);
         // security 2026-07-07 (A02-3): shared serializer — never emit 2FA secrets.
         const safeUser = sanitizeUser(user);
+        stampLogin(user.id);
         logger.info(`User registered and logged in: ${user.id}`);
 
         notify({
@@ -173,6 +181,7 @@ router.post("/login", validateRequest(loginSchema), (req, res, next) => {
         if (err) return next(err);
         // security 2026-07-07 (A02-3): shared serializer — never emit 2FA secrets.
         const safeUser = sanitizeUser(user);
+        stampLogin(user.id);
         logger.info(`User logged in: ${safeUser.id}`);
         return res.json({ success: true, data: safeUser });
       });
@@ -250,6 +259,7 @@ router.post("/dev-login", async (req, res, next) => {
         if (err) return next(err);
         // security 2026-07-07 (A02-3): shared serializer — never emit 2FA secrets.
         const safeUser = sanitizeUser(user as any);
+        stampLogin((user as any).id);
         logger.info(`Dev login as ${role}: ${safeUser.id}`);
         return res.json({ success: true, data: safeUser });
       });

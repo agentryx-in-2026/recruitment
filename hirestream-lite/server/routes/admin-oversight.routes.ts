@@ -229,15 +229,62 @@ router.patch("/agencies/:id/reject", async (req, res, next) => {
 });
 
 // ── User management (list + deactivate) ──────────────────────────────
-router.get("/users", async (_req, res, next) => {
+// Piyush, FB-2026-0025: search, filters, sorting and paging run here, so only one page loads.
+// Query: q, role (candidate|agent|employer|staff|all), status (active|disabled),
+// login (never|since), loginFrom, loginTo, regFrom, regTo (YYYY-MM-DD),
+// sort (username|role|lastLogin|registered), dir (asc|desc), page, pageSize (20|50|100).
+router.get("/users", async (req, res, next) => {
   try {
     const db = storage.db;
     if (!db) return res.status(500).json({ success: false });
-    const rows = await db.select({
-      id: users.id, username: users.username, email: users.email, role: users.role,
-      isActive: users.isActive, lastLoginAt: users.lastLoginAt,
-    }).from(users).orderBy(desc(users.lastLoginAt));
-    res.json({ success: true, data: rows });
+    const q = (k: string) => (typeof req.query[k] === "string" ? (req.query[k] as string).trim() : "");
+    const day = (k: string) => (/^\d{4}-\d{2}-\d{2}$/.test(q(k)) ? q(k) : "");
+    const ROLE: Record<string, any> = {
+      candidate: sql`u.role = 'candidate'`, agent: sql`u.role = 'agent'`, employer: sql`u.role = 'employer'`,
+      staff: sql`u.role in ('admin','superadmin')`,
+    };
+    const where: any[] = [];
+    const term = q("q").slice(0, 100);
+    if (term) {
+      const like = `%${term.replace(/[\\%_]/g, (m) => "\\" + m)}%`;
+      where.push(sql`(u.username ilike ${like} or u.email ilike ${like} or coalesce(c.full_name,'') ilike ${like}
+        or regexp_replace(coalesce(u.phone_number,'') || ' ' || coalesce(c.phone,''), '[^0-9]', '', 'g') like ${"%" + term.replace(/[^0-9]/g, "") + "%"} and ${term.replace(/[^0-9]/g, "").length >= 4})`);
+    }
+    if (q("status") === "active") where.push(sql`coalesce(u.is_active, true)`);
+    if (q("status") === "disabled") where.push(sql`not coalesce(u.is_active, true)`);
+    if (q("login") === "never") where.push(sql`u.last_login_at is null`);
+    if (day("loginFrom")) where.push(sql`u.last_login_at >= ${day("loginFrom")}::date`);
+    if (day("loginTo")) where.push(sql`u.last_login_at < ${day("loginTo")}::date + 1`);
+    if (day("regFrom")) where.push(sql`u.created_at >= ${day("regFrom")}::date`);
+    if (day("regTo")) where.push(sql`u.created_at < ${day("regTo")}::date + 1`);
+    const and_ = (parts: any[]) => parts.length ? sql.join(parts, sql` and `) : sql`true`;
+    const role = ROLE[q("role")];
+    const from = sql`from users u left join candidates c on c.user_id = u.id`;
+
+    // Tab counts honour the search and filters but not the role itself.
+    const countRows: any = await db.execute(sql`select
+        count(*)::int as all,
+        count(*) filter (where u.role = 'candidate')::int as candidate,
+        count(*) filter (where u.role = 'agent')::int as agent,
+        count(*) filter (where u.role = 'employer')::int as employer,
+        count(*) filter (where u.role in ('admin','superadmin'))::int as staff
+      ${from} where ${and_(where)}`);
+    const counts = (countRows.rows ?? countRows)[0];
+
+    const all = role ? [...where, role] : where;
+    const SORT: Record<string, any> = { username: sql`lower(u.username)`, role: sql`u.role`, lastLogin: sql`u.last_login_at`, registered: sql`u.created_at` };
+    const sortKey = SORT[q("sort")] ? q("sort") : "lastLogin";
+    const dir = q("dir") === "asc" ? sql`asc` : sql`desc`;
+    const pageSize = [20, 50, 100].includes(Number(q("pageSize"))) ? Number(q("pageSize")) : 20;
+    const total = role ? counts[q("role")] : counts.all;
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(pages, Math.max(1, Number(q("page")) || 1));
+    const rowsRes: any = await db.execute(sql`select u.id, u.username, u.email, u.role, coalesce(u.is_active, true) as "isActive",
+        u.last_login_at as "lastLoginAt", u.created_at as "createdAt", c.full_name as "fullName", coalesce(c.phone, u.phone_number) as phone
+      ${from} where ${and_(all)}
+      order by ${SORT[sortKey]} ${dir} nulls last, lower(u.username) asc
+      limit ${pageSize} offset ${(page - 1) * pageSize}`);
+    res.json({ success: true, data: rowsRes.rows ?? rowsRes, total, page, pageSize, pages, counts, sort: sortKey, dir: q("dir") === "asc" ? "asc" : "desc" });
   } catch (err) { next(err); }
 });
 

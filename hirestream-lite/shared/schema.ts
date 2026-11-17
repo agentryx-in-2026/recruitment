@@ -26,6 +26,8 @@ export const users = pgTable("users", {
   preferredLanguage: text("preferred_language").default("en"),
   isActive: boolean("is_active").default(true),
   lastLoginAt: timestamp("last_login_at"),
+  // Registered on (FB-2026-0025). Added 18 Nov 2026; earlier rows were back-filled from candidates.created_at.
+  createdAt: timestamp("created_at").defaultNow(),
   notifyEmail: boolean("notify_email").default(true),
   notifySms: boolean("notify_sms").default(true),
   notifyInApp: boolean("notify_in_app").default(true),

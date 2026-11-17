@@ -187,7 +187,8 @@ export function ProjectView() {
   }, [me, allowedLevels]);
 
   useEffect(() => { if (me) reload(); }, [slug, me]);
-  function reload() { api.getProject(slug).then(setData); }
+  // An archived or unknown project (e.g. an old bookmark) goes to the Dashboard instead of "Loading…" forever.
+  function reload() { api.getProject(slug).then(setData).catch(() => { location.replace("/"); }); }
 
   // Deep-link support: `/p/<slug>#row=<itemRef>` opens the project, switches
   // to the right role, scrolls the row into view, and pulses an amber ring

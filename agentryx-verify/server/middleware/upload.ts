@@ -21,6 +21,8 @@ const ALLOWED_MIMES: Record<string, string> = {
   "image/jpg": ".jpg",
   "image/webp": ".webp",
   "image/gif": ".gif",
+  // Piyush, 18 Nov 2026: SVG screenshots too. Served with a sandbox CSP (projects.ts) so an SVG cannot run script.
+  "image/svg+xml": ".svg",
 };
 
 // Retina / 5K Mac screenshots often land at 6–9 MB, so 5 MB was rejecting
@@ -35,7 +37,7 @@ const filenameFn = (_req: any, file: Express.Multer.File, cb: (err: any, name: s
 
 function fileFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) {
   if (ALLOWED_MIMES[file.mimetype]) cb(null, true);
-  else cb(new Error("Only image files allowed (PNG, JPEG, WEBP, GIF)"));
+  else cb(new Error("Only image files allowed (PNG, JPEG, WEBP, GIF, SVG)"));
 }
 
 // Two multer instances — one per Verify domain. Binding the destination at

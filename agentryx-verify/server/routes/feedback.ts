@@ -192,28 +192,39 @@ feedbackRouter.get("/:id", requireAuth, async (req, res) => {
 feedbackRouter.patch("/:id", requireAuth, async (req, res) => {
   const me = await currentReviewer(req.session.reviewerId!);
   if (!me) return res.status(401).json({ error: "Reviewer not found" });
+  const [own] = await db.select().from(feedbackItems).where(eq(feedbackItems.id, req.params.id));
+  if (!own) return res.status(404).json({ error: "Not found" });
+  const body = req.body ?? {};
+  const keys = Object.keys(body);
+  // Piyush, 18 Nov 2026: the reporter can edit what they wrote after submitting
+  // (title, details, kind, severity, area, related case), as can the team.
+  const EDIT = ["title", "description", "type", "area"] as const;
   if (!canTriage(me)) {
-    // The reporter may close their own finding once fixed, or reopen it.
-    const [own] = await db.select().from(feedbackItems).where(eq(feedbackItems.id, req.params.id));
-    const keys = Object.keys(req.body ?? {});
-    if (!own || own.submitterReviewerId !== me.id || keys.some((k) => k !== "status") || !["closed", "submitted"].includes(req.body?.status)) {
-      return res.status(403).json({ error: "Triage access required" });
-    }
+    const mine = own.submitterReviewerId === me.id;
+    const ok = mine && keys.every((k) => k === "status" || (EDIT as readonly string[]).includes(k) || k === "priority" || k === "linkedToItemRef")
+      && (!("status" in body) || ["closed", "submitted"].includes(body.status));
+    if (!ok) return res.status(403).json({ error: "Triage access required" });
   }
+  if ("title" in body && (typeof body.title !== "string" || body.title.trim().length < 5 || body.title.trim().length > 150)) return res.status(400).json({ error: "Title must be 5–150 characters" });
+  if ("description" in body && (typeof body.description !== "string" || body.description.trim().length < 20 || body.description.length > 4000)) return res.status(400).json({ error: "Description must be 20–4000 characters" });
+  if ("type" in body && !["new_feature", "enhancement", "bug", "ux", "other"].includes(body.type)) return res.status(400).json({ error: "Invalid type" });
+  if ("priority" in body && !["low", "normal", "high", "critical"].includes(body.priority)) return res.status(400).json({ error: "Invalid severity" });
   if ("status" in (req.body ?? {}) && !["submitted", "triaged", "planned", "in_progress", "shipped", "declined", "duplicate", "closed"].includes(req.body.status)) {
     return res.status(400).json({ error: "Invalid status" });
   }
 
-  const allowed = ["status", "priority", "assignedToId", "adminNotes", "linkedToItemRef"] as const;
+  const allowed = ["status", "priority", "assignedToId", "adminNotes", "linkedToItemRef", ...EDIT] as const;
   const patch: Record<string, any> = {};
-  for (const k of allowed) if (k in (req.body ?? {})) patch[k] = req.body[k];
+  for (const k of allowed) if (k in body) patch[k] = typeof body[k] === "string" && (EDIT as readonly string[]).includes(k) ? body[k].trim() : body[k];
+  if ("linkedToItemRef" in patch) patch.linkedToItemRef = patch.linkedToItemRef ? String(patch.linkedToItemRef).trim().slice(0, 24) || null : null;
   if (Object.keys(patch).length === 0) return res.status(400).json({ error: "No updatable fields" });
   patch.updatedAt = new Date();
 
   const [row] = await db.update(feedbackItems).set(patch)
     .where(eq(feedbackItems.id, req.params.id)).returning();
   if (!row) return res.status(404).json({ error: "Not found" });
-  await audit(req, "finding.updated", { projectId: row.projectId, item: row.referenceCode, meta: { status: patch.status, note: patch.adminNotes ?? undefined } });
+  const edited = EDIT.filter((k) => k in patch);
+  await audit(req, edited.length ? "finding.edited" : "finding.updated", { projectId: row.projectId, item: row.referenceCode, meta: { status: patch.status, note: patch.adminNotes ?? undefined, fields: edited.length ? edited : undefined } });
   res.json(row);
 });
 
@@ -267,4 +278,17 @@ feedbackRouter.post("/:id/attachments", requireAuth, feedbackUploader.array("fil
 
   await audit(req, "finding.screenshots", { projectId: item.projectId, item: item.referenceCode, meta: { files: rows.length } });
   res.status(201).json(rows);
+});
+
+// ── Remove one screenshot (reporter or team) ────────────────────────
+feedbackRouter.delete("/:id/attachments/:attId", requireAuth, async (req, res) => {
+  const me = await currentReviewer(req.session.reviewerId!);
+  if (!me) return res.status(401).json({ error: "Reviewer not found" });
+  const [item] = await db.select().from(feedbackItems).where(eq(feedbackItems.id, req.params.id));
+  if (!item) return res.status(404).json({ error: "Not found" });
+  if (!canTriage(me) && item.submitterReviewerId !== me.id) return res.status(403).json({ error: "Not authorized" });
+  const [gone] = await db.delete(attachments).where(and(eq(attachments.id, req.params.attId), eq(attachments.ownerType, "feedback"), eq(attachments.ownerId, item.id))).returning();
+  if (!gone) return res.status(404).json({ error: "Screenshot not found" });
+  await audit(req, "finding.screenshot_removed", { projectId: item.projectId, item: item.referenceCode, meta: { file: gone.originalName } });
+  res.json({ ok: true });
 });

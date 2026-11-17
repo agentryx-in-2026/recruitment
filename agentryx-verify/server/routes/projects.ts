@@ -171,6 +171,9 @@ projectsRouter.get("/attachments/:id", requireAuth, async (req, res) => {
   if (!abs) return res.status(404).json({ error: "File missing" });
   res.type(row.mimetype);
   res.setHeader("Cache-Control", "private, max-age=3600");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  // An SVG opened on its own could carry script: sandbox it and allow nothing but its own styles.
+  if (row.mimetype === "image/svg+xml") res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox");
   res.sendFile(abs);
 });
 
