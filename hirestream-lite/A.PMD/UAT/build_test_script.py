@@ -86,6 +86,7 @@ TIPS = {
   "L1.19": "PBBY policy number: UAT-PBBY-0001.",
   "L2.9": "Any PDF works as the signed letter. Travel date: 30 days ahead. Skip the ECR part if your applicant isn't marked ECR, and say so in the comment.",
   "L2.10": "Visa note: “UAT — submitted to embassy”.",
+  "L6.8": "Use the documents your applicant uploaded in session 7. Verify one; for another, ask for a new copy with the reason “UAT — page is blurred”. Then sign in as your applicant: the bell shows both messages, and Documents shows the verified one as accepted. Upload a new copy of the other if you like — it goes back to HPSEDC for checking.",
   "L1.20": "Use what you saw in session 7 for the 'before the letter' part. This is the fix for your finding <b>FB-2026-0021</b> (15 Nov): before the letter there is no Accept and no offer PDF, just a note saying why. After you check it, confirm the fix on FB-2026-0021 in Findings too. Skip Decline (it would undo your story) unless you have a second selected applicant.",
   "L2.11": "Note: “UAT — called, settled in well”.",
   "L1.21": "Message: “UAT — when is my flight?”. Grievance category 'Someone asked me for money', text “UAT test — please ignore”.",
@@ -219,7 +220,7 @@ code{{background:var(--soft);padding:1px 5px;border-radius:4px;font-size:13px}}
 
 <h3>Sessions</h3>
 <table><tr><th>#</th><th>Session</th><th>Sign in as</th><th>Cases</th><th>Time</th></tr>{toc}</table>
-<p class="note">Not in this script: 3 cases the automated checks prove, and 3 that are not ready yet (preferred countries on the form, on-screen document verification, and the fix for jobs without a deadline). Verify shows them under “Proved by automation” and “Not ready to test yet”.</p>
+<p class="note">Not in this script: 3 cases the automated checks prove, and 2 that are not ready yet (preferred countries on the form, and the decision on jobs without a deadline). Verify shows them under “Proved by automation” and “Not ready to test yet”.</p>
 
 {body}
 
