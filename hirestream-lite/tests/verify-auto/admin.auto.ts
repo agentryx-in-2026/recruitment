@@ -19,6 +19,10 @@ test("Admin", async ({ page }) => {
     await login(page, "demo_admin");
     await expect(page.getByText("Admin Console").filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: /candidates CSV/i }).filter({ visible: true }).first()).toBeVisible();
+    // Open Job Vacancies opens the Jobs list (was the Funnel).
+    await page.getByText("Open Job Vacancies", { exact: true }).filter({ visible: true }).first().click();
+    await waitIdle(page, 1500);
+    await expect(page.getByText("Every vacancy on the portal.").filter({ visible: true }).first(), "jobs list opens").toBeVisible();
     // Piyush, 17 Nov 2026: each export is readable — names and plain headers, no internal IDs, plain dates.
     const want: Record<string, string> = { candidates: "Applicant ID,Full Name", jobs: "Job Title,Employer", applications: "Applicant ID,Applicant Name", placements: "Applicant ID,Applicant Name" };
     for (const [entity, start] of Object.entries(want)) {

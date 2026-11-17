@@ -431,6 +431,22 @@ function readableCSV(rows: Record<string, any>[], headers: string[]): string {
   return "﻿" + [headers.map(cell).join(","), ...rows.map((r) => headers.map((h) => cell(r[h])).join(","))].join("\r\n");
 }
 
+// Admin Console → Jobs (17 Nov 2026): every job, newest first, for the
+// "Open Job Vacancies" tile and the Jobs tab.
+router.get("/jobs-list", async (_req, res, next) => {
+  try {
+    const db = storage.db;
+    if (!db) return res.status(500).json({ success: false });
+    const r: any = await db.execute(sql`
+      select j.id, j.title, j.company, j.location, j.country, j.category, j.status, j.salary,
+        to_char(j.hiring_deadline, 'YYYY-MM-DD') as deadline, to_char(j.created_at, 'YYYY-MM-DD') as posted,
+        (select count(*)::int from applications a where a.job_id = j.id) as applications,
+        (select count(*)::int from applications a where a.job_id = j.id and a.status = 'placed') as placed
+      from jobs j order by j.created_at desc`);
+    res.json({ success: true, data: r.rows ?? r });
+  } catch (error) { next(error); }
+});
+
 router.get("/export/:entity.csv", async (req, res, next) => {
   try {
     const db = storage.db;

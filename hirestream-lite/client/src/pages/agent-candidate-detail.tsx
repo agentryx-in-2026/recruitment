@@ -167,7 +167,7 @@ export default function AgentCandidateDetailPage() {
           </h2>
           <div className="grid md:grid-cols-2 gap-2">
             {c.documents.map((d: any) => (
-              <div key={d.id} className="flex items-center justify-between bg-slate-50 rounded-lg p-3 border border-slate-200">
+              <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 rounded-lg p-3 border border-slate-200">
                 <div className="flex items-center gap-3 min-w-0">
                   <FileText className="w-4 h-4 text-purple-600 shrink-0" />
                   <div className="min-w-0">
@@ -178,7 +178,8 @@ export default function AgentCandidateDetailPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                  <DocumentCheck doc={d} candidateId={id!} />
                   <a href={`/api/v1/candidates/documents/${d.id}/download?inline=1`} target="_blank" rel="noreferrer">
                     <Button size="sm" variant="outline" className="gap-1"><Eye className="w-3.5 h-3.5" /> Preview</Button>
                   </a>
@@ -797,5 +798,53 @@ function CountryRejectionEditor({ candidateId, initial }: { candidateId: string;
         <Button size="sm" variant="outline" disabled={!input.trim() || add.isPending} onClick={() => add.mutate(input.trim())}>Add</Button>
       </div>
     </div>
+  );
+}
+
+
+/**
+ * HL-008 (17 Nov 2026): staff check each document on screen. Mark verified
+ * (the applicant is told and sees it accepted), undo a mistaken tick, or ask
+ * for a new copy with a reason the applicant is sent.
+ */
+function DocumentCheck({ doc, candidateId }: { doc: any; candidateId: string }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [asking, setAsking] = useState(false);
+  const [reason, setReason] = useState("");
+  const m = useMutation({
+    mutationFn: async (body: { verified: boolean; requestNewCopy?: boolean; reason?: string }) => {
+      const r = await fetch(`/api/v1/candidates/documents/${doc.id}/verify`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j?.error?.message || "Could not update the document.");
+      return body;
+    },
+    onSuccess: (body) => {
+      toast({ title: body.verified ? "Document verified" : body.requestNewCopy ? "Applicant asked for a new copy" : "Verification removed",
+        description: body.verified ? "The applicant has been told." : body.requestNewCopy ? "They have been sent your reason." : undefined });
+      setAsking(false); setReason("");
+      qc.invalidateQueries({ queryKey: [`/api/v1/agencies/candidates/${candidateId}`] });
+    },
+    onError: (e: Error) => toast({ title: "Couldn't update the document", description: e.message, variant: "destructive" }),
+  });
+  if (asking) return (
+    <div className="flex items-center gap-1.5 w-full sm:w-auto">
+      <Input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="What is wrong? e.g. page is blurred"
+        className="h-8 text-sm w-full sm:w-56" maxLength={500} />
+      <Button size="sm" disabled={reason.trim().length < 3 || m.isPending} onClick={() => m.mutate({ verified: false, requestNewCopy: true, reason: reason.trim() })}>Send</Button>
+      <Button size="sm" variant="ghost" onClick={() => { setAsking(false); setReason(""); }}>Cancel</Button>
+    </div>
+  );
+  return doc.verified ? (
+    <Button size="sm" variant="ghost" disabled={m.isPending} onClick={() => m.mutate({ verified: false })} className="text-slate-500">Undo</Button>
+  ) : (
+    <>
+      <Button size="sm" disabled={m.isPending} onClick={() => m.mutate({ verified: true })} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+        <CheckCircle className="w-3.5 h-3.5" /> Mark verified
+      </Button>
+      <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => setAsking(true)} className="text-amber-700 border-amber-200">Ask for a new copy</Button>
+    </>
   );
 }

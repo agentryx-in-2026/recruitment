@@ -183,6 +183,11 @@ router.patch("/:id/verify", async (req, res, next) => {
       return res.status(400).json({ success: false, error: { code: 400, message: "Body must include { verified: boolean }" } });
     }
     const verified: boolean = req.body.verified;
+    // HL-008 (17 Nov 2026): "Ask for a new copy" = un-verify with a reason the applicant is sent.
+    const reason = typeof req.body?.reason === "string" ? req.body.reason.trim().slice(0, 500) : "";
+    if (!verified && req.body?.requestNewCopy === true && reason.length < 3) {
+      return res.status(400).json({ success: false, error: { code: 400, message: "Please say what is wrong with the document, so the applicant knows what to upload." } });
+    }
 
     const docRows = await db.select().from(documents).where(eq(documents.id, req.params.id)).limit(1);
     if (docRows.length === 0 || !docRows[0].candidateId) {
@@ -222,6 +227,34 @@ router.patch("/:id/verify", async (req, res, next) => {
         }).catch(() => {});
       }
     }
+
+    if (!verified && req.body?.requestNewCopy === true) {
+      const candRows = await db.select().from(candidates).where(eq(candidates.id, doc.candidateId!)).limit(1);
+      if (candRows.length && candRows[0].userId) {
+        const { notify } = await import("../services/notification.service");
+        const kind = doc.type.replace(/_/g, " ");
+        notify({
+          userId: candRows[0].userId,
+          type: "system",
+          title: "Please upload a new copy",
+          message: `HPSEDC could not accept your ${kind} document "${doc.fileName}": ${reason}. Please upload a new copy under Documents.`,
+          titleHi: "कृपया नई प्रति अपलोड करें",
+          messageHi: `HPSEDC आपका ${kind} दस्तावेज़ "${doc.fileName}" स्वीकार नहीं कर सका: ${reason}। कृपया दस्तावेज़ अनुभाग में नई प्रति अपलोड करें।`,
+          severity: "warning",
+          metadata: { documentId: doc.id },
+        }).catch(() => {});
+      }
+    }
+    // Recorded in the Admin Audit Log (who checked which document, and why a copy was refused).
+    try {
+      const { logTransition } = await import("../services/audit-transitions.service");
+      await logTransition({
+        actorUserId: user.id, actorRole: user.role, entityType: "document", entityId: doc.id,
+        action: verified ? "verify" : (req.body?.requestNewCopy === true ? "request_new_copy" : "unverify"),
+        fromState: doc.verified ? "verified" : "unverified", toState: verified ? "verified" : "unverified",
+        ipAddress: req.ip, extra: { type: doc.type, fileName: doc.fileName, ...(reason ? { reason } : {}) },
+      });
+    } catch (e: any) { logger.warn(`audit on document verify failed: ${e?.message}`); }
 
     logger.info(`Document ${doc.id} ${verified ? "verified" : "un-verified"} by ${user.role} ${user.id}`);
     res.json({ success: true, data: updated });

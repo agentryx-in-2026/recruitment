@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "path";
 import { setup, login, typeText } from "../video-lite/_film";
-import { check, waitIdle } from "./_check";
+import { check, waitIdle, sql } from "./_check";
 
 /** HPSEDC Placement Cell checks (hpsedc_agency) — Verify cases L2.1–L2.14. */
 const FIX = path.resolve("tests/video-lite/fixtures");
@@ -147,6 +147,25 @@ test("Agency", async ({ page }) => {
     await page.locator("button:has(svg.lucide-send)").first().click();
     await waitIdle(page, 1200);
     await expect(page.getByText("Automated reply from HPSEDC.").filter({ visible: true }).first()).toBeVisible();
+  });
+
+  await check(page, "L6.8", "Staff verify a document on screen, or ask the applicant for a new copy with a reason", async () => {
+    const cid = sql(`select c.id from candidates c join users u on u.id=c.user_id where u.username='nirmala_devi'`);
+    const docs = sql(`select string_agg(id, ',' order by uploaded_at, id) from documents where candidate_id='${cid}' and verified is not true`).split(",");
+    expect(docs.length, "Nirmala has unverified documents").toBeGreaterThan(1);
+    const notes = () => Number(sql(`select count(*) from notifications n join candidates c on c.user_id=n.user_id where c.id='${cid}'`));
+    const before = notes();
+    await page.goto(`/agent/candidates/${cid}`); await waitIdle(page, 1500);
+    await page.getByRole("button", { name: /Mark verified/ }).first().click();
+    await waitIdle(page, 1500);
+    expect(Number(sql(`select count(*) from documents where candidate_id='${cid}' and verified`)), "one document now verified").toBeGreaterThan(0);
+    await page.getByRole("button", { name: /Ask for a new copy/ }).first().click();
+    await page.getByPlaceholder(/What is wrong/).fill("The page is blurred");
+    await page.getByRole("button", { name: /^Send$/ }).click();
+    await waitIdle(page, 1500);
+    expect(notes(), "applicant told about both").toBeGreaterThanOrEqual(before + 2);
+    expect(sql(`select count(*) from notifications n join candidates c on c.user_id=n.user_id where c.id='${cid}' and n.message like '%The page is blurred%'`), "reason sent to the applicant").toBe("1");
+    expect(Number(sql(`select count(*) from audit_log where action in ('document.verify','document.request_new_copy')`)), "recorded in the audit log").toBeGreaterThanOrEqual(2);
   });
 
   await check(page, "L2.13", "Reports load with pipeline and compliance sections", async () => {

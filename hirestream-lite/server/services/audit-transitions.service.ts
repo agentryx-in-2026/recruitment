@@ -14,7 +14,7 @@ import { logger } from "../config/logger.config";
 export interface TransitionInput {
   actorUserId: string;
   actorRole: string;
-  entityType: "application" | "job" | "requisition" | "placement" | "interview" | "agency" | "grievance";
+  entityType: "application" | "job" | "requisition" | "placement" | "interview" | "agency" | "grievance" | "document";
   entityId: string;
   action: string;             // e.g. "status_change", "cascade_close", "reopen"
   fromState?: string | null;

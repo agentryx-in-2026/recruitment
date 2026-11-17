@@ -147,6 +147,7 @@ export default function AdminDashboard() {
       { key: "employers", label: "Employers", icon: Briefcase },
     ]},
     { label: "OPERATIONS", items: [
+      { key: "jobs", label: "Jobs", icon: Briefcase },
       { key: "import_jobs", label: "Import Jobs", icon: FileSpreadsheet },
       { key: "lifecycle", label: "Lifecycle", icon: Clock },
       { key: "drives", label: "Drives", icon: Handshake, count: pendingDrives.length },
@@ -295,7 +296,7 @@ export default function AdminDashboard() {
           {/* Key Metrics — ALL REAL */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             <MetricCard icon={<Users />} color="bg-blue-600" label="Candidates" value={stats.users?.candidates || 0} onClick={() => setTab("users")} />
-            <MetricCard icon={<Briefcase />} color="bg-emerald-600" label="Open Job Vacancies" value={stats.jobs?.active || 0} onClick={() => setTab("funnel")} />
+            <MetricCard icon={<Briefcase />} color="bg-emerald-600" label="Open Job Vacancies" value={stats.jobs?.active || 0} onClick={() => setTab("jobs")} />
             <MetricCard icon={<Handshake />} color="bg-orange-500" label="Placements" value={stats.placements?.total || 0} onClick={() => { window.location.href = "/agent/applicants?status=placed"; }} />
             {capabilities.agencySelfRegistration && (
               <MetricCard icon={<Building />} color="bg-purple-600" label="Agencies" value={`${stats.agencies?.verified || 0} / ${stats.agencies?.total || 0}`} sub="verified" onClick={() => setTab("agencies")} />
@@ -542,6 +543,7 @@ export default function AdminDashboard() {
         </TabsContent>
 
         {/* ── Grievances Tab ────────────────────────────── */}
+        <TabsContent value="jobs"><AdminJobsPanel /></TabsContent>
         <TabsContent value="import_jobs"><JobImportPanel /></TabsContent>
         <TabsContent value="messages"><SupportInboxPanel /></TabsContent>
         <TabsContent value="grievances">
@@ -3940,4 +3942,61 @@ function AdminReportBody({ kind, data }: { kind: AdminReportKind; data: any }) {
   }
 
   return <pre className="text-xs text-gray-500 overflow-x-auto">{JSON.stringify(data, null, 2)}</pre>;
+}
+
+
+// ── Jobs (17 Nov 2026) ───────────────────────────────────────────────
+// Every job on the portal, so the Overview's "Open Job Vacancies" tile opens
+// a list (Piyush, L4.1). Each row opens the job's own page.
+function AdminJobsPanel() {
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("active");
+  const { data, isLoading } = useQuery<any>({ queryKey: ["/api/v1/admin/reports/jobs-list"] });
+  const all: any[] = data?.data ?? [];
+  const counts = all.reduce((m: Record<string, number>, j: any) => { m[j.status] = (m[j.status] || 0) + 1; return m; }, {});
+  const t = q.trim().toLowerCase();
+  const rows = all.filter((j) => (status === "all" || j.status === status)
+    && (!t || `${j.title} ${j.company} ${j.country} ${j.location} ${j.category}`.toLowerCase().includes(t)));
+  const label = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2"><Briefcase className="w-5 h-5 text-emerald-600" /> Jobs</h3>
+        <p className="text-sm text-slate-500 mt-1">Every vacancy on the portal. Open a job to see its applicants, edit it, or close it.</p>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, company, country…" className="max-w-xs" />
+          {["active", "draft", "closed", "all"].map((s) => (
+            <Button key={s} size="sm" variant={status === s ? "default" : "outline"} onClick={() => setStatus(s)}>
+              {s === "all" ? `All (${all.length})` : `${label(s)} (${counts[s] || 0})`}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        {isLoading ? <div className="p-5"><Skeleton className="h-24 w-full" /></div> : rows.length === 0 ? (
+          <p className="p-5 text-sm text-slate-500">No jobs match.</p>
+        ) : (
+          <table className="w-full text-sm min-w-[760px]">
+            <thead><tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-200">
+              <th className="px-4 py-2.5">Job</th><th className="px-4 py-2.5">Country</th><th className="px-4 py-2.5">Status</th>
+              <th className="px-4 py-2.5">Deadline</th><th className="px-4 py-2.5 text-right">Applications</th><th className="px-4 py-2.5 text-right">Placed</th><th className="px-4 py-2.5">Posted</th>
+            </tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {rows.map((j) => (
+                <tr key={j.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => { window.location.href = `/agent/jobs/${j.id}`; }}>
+                  <td className="px-4 py-2.5"><div className="font-medium text-slate-900">{j.title}</div><div className="text-xs text-slate-500">{j.company}{j.location ? ` · ${j.location}` : ""}</div></td>
+                  <td className="px-4 py-2.5 text-slate-700">{j.country || "—"}</td>
+                  <td className="px-4 py-2.5"><Badge variant="outline" className={j.status === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "text-slate-500"}>{label(j.status)}</Badge></td>
+                  <td className="px-4 py-2.5 text-slate-700 whitespace-nowrap">{j.deadline || "—"}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">{j.applications}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">{j.placed}</td>
+                  <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap">{j.posted}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
 }

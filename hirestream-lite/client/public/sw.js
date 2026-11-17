@@ -1,7 +1,7 @@
 // HireStream Service Worker — offline cache + network-first for API
 // IMPORTANT: Bump CACHE_VERSION on every production build so clients get
 // the latest HTML (which references new hashed asset filenames).
-const CACHE_VERSION = "hirestream-v19-2026-11-17";
+const CACHE_VERSION = "hirestream-v20-2026-11-17";
 const STATIC_ASSETS = ["/manifest.json", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
