@@ -47,7 +47,9 @@ router.get("/dashboard", async (_req, res, next) => {
       // "Placements" card on the Overview — that card implies actual placements
       // achieved. Matches the semantics of the Application Pipeline "Placed"
       // stage in /admin/oversight/funnel.
-      db.select({ c: count() }).from(placements).where(sql`${placements.status} IN ('accepted','active','completed')`),
+      // One meaning everywhere (Piyush, L4.1, 17 Nov 2026): placed = applications at the
+      // Placed stage, the same number the Funnel shows.
+      db.select({ c: count() }).from(applications).where(eq(applications.status, "placed")),
       db.select({ c: count() }).from(recruitmentAgents).where(eq(recruitmentAgents.verified, false)),
       db.select({ c: count() }).from(recruitmentDrives).where(eq(recruitmentDrives.status, "pending")),
       db.select({ c: count() }).from(grievances).where(
@@ -366,10 +368,83 @@ router.get("/export/mea-emigrate.csv", async (_req, res, next) => {
   }
 });
 
+// ── Readable exports for the Admin Console header buttons ─────────────
+// Piyush, L4.1 (17 Nov 2026): the raw table dumps carried internal IDs, code
+// column names, system-only fields and JSON-quoted dates. These four are
+// written for an admin opening them in Excel: names instead of IDs, readable
+// headers, plain YYYY-MM-DD dates, stage names in words. Other entities keep
+// the raw export below.
+const STAGE = `case %s when 'submitted' then 'Submitted' when 'reviewed' then 'Reviewed' when 'shortlisted' then 'Shortlisted'
+  when 'interview_scheduled' then 'Interview' when 'selected' then 'Selected' when 'placed' then 'Placed'
+  when 'rejected' then 'Rejected' when 'withdrawn' then 'Withdrawn' else initcap(replace(coalesce(%s,''),'_',' ')) end`;
+const stage = (col: string) => STAGE.replace(/%s/g, col);
+const d = (col: string) => `to_char(${col}, 'YYYY-MM-DD')`;
+const words = (col: string) => `initcap(replace(coalesce(${col},''),'_',' '))`;
+const READABLE: Record<string, { file: string; sql: string }> = {
+  candidates: { file: "applicants", sql: `
+    select upper(left(c.id, 8)) as "Applicant ID", c.full_name as "Full Name", c.email as "Email", c.phone as "Phone",
+      ${words("c.sex")} as "Gender", ${d("c.date_of_birth")} as "Date of Birth", c.district as "District", c.state as "State",
+      array_to_string(c.skills, '; ') as "Skills",
+      round(coalesce(c.experience_months, c.experience * 12, 0) / 12.0, 1) as "Experience (years)",
+      ${words("c.qualification_level")} as "Qualification", array_to_string(c.preferred_countries, '; ') as "Preferred Countries",
+      c.passport_number as "Passport Number", ${d("c.passport_expiry")} as "Passport Expiry", upper(coalesce(c.ecr_status,'')) as "ECR / ECNR",
+      ${words("c.pcc_status")} as "PCC Status", ${words("c.medical_status")} as "Medical Status",
+      case when c.profile_complete then 'Yes' else 'No' end as "Profile Complete",
+      case when u.is_active = false then 'Disabled' else 'Active' end as "Account",
+      ${d("c.created_at")} as "Registered On"
+    from candidates c left join users u on u.id = c.user_id order by c.created_at` },
+  jobs: { file: "jobs", sql: `
+    select j.title as "Job Title", j.company as "Employer (overseas company)", j.location as "Location", j.country as "Country",
+      ${words("j.category")} as "Category", j.salary as "Salary", j.experience_required as "Experience (years)",
+      array_to_string(j.skills, '; ') as "Skills", ${words("j.status")} as "Status",
+      coalesce(ra.agency_name, '') as "Agency", j.target_hires as "Target Hires", ${d("j.hiring_deadline")} as "Hiring Deadline",
+      (select count(*) from applications a where a.job_id = j.id) as "Applications", ${d("j.created_at")} as "Posted On"
+    from jobs j left join recruitment_agents ra on ra.user_id = j.agent_id order by j.created_at` },
+  applications: { file: "applications", sql: `
+    select upper(left(c.id, 8)) as "Applicant ID", c.full_name as "Applicant Name", c.email as "Applicant Email",
+      j.title as "Job Title", j.company as "Employer (overseas company)", j.country as "Country",
+      ${stage("a.status")} as "Stage", a.match_score as "Match Score (%)",
+      ${words("a.employer_decision")} as "Employer Decision", coalesce(a.rejection_feedback, '') as "Rejection Reason",
+      ${d("a.applied_at")} as "Applied On"
+    from applications a join candidates c on c.id = a.candidate_id join jobs j on j.id = a.job_id order by a.applied_at` },
+  placements: { file: "offers-and-placements", sql: `
+    select upper(left(c.id, 8)) as "Applicant ID", c.full_name as "Applicant Name", j.title as "Job Title",
+      j.company as "Employer (overseas company)", coalesce(p.country, j.country) as "Country", p.salary as "Salary",
+      case p.status when 'offered' then 'Offer made' when 'accepted' then 'Offer accepted' when 'active' then 'Deployed'
+        else initcap(replace(coalesce(p.status,''),'_',' ')) end as "Offer Status",
+      ${stage("a.status")} as "Application Stage",
+      case when p.appointment_letter_url is not null then 'Yes' else 'No' end as "Appointment Letter",
+      ${d("p.start_date")} as "Travel / Start Date", ${d("p.offer_expires_at")} as "Offer Expires On",
+      ${words("p.visa_status")} as "Visa Status", ${words("p.emigration_clearance_status")} as "Emigration Clearance",
+      coalesce(p.decline_reason, '') as "Decline Reason", ${d("p.created_at")} as "Offer Made On"
+    from placements p join applications a on a.id = p.application_id join candidates c on c.id = a.candidate_id
+      join jobs j on j.id = a.job_id order by p.created_at` },
+};
+function readableCSV(rows: Record<string, any>[], headers: string[]): string {
+  // Neutralise spreadsheet formulas; keep phone numbers like +971 501234567 intact.
+  const cell = (v: any) => {
+    if (v === null || v === undefined) return "";
+    let s = String(v);
+    if (/^[=@\t\r]/.test(s) || /^[+-][^\d\s]/.test(s)) s = "'" + s;
+    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return "﻿" + [headers.map(cell).join(","), ...rows.map((r) => headers.map((h) => cell(r[h])).join(","))].join("\r\n");
+}
+
 router.get("/export/:entity.csv", async (req, res, next) => {
   try {
     const db = storage.db;
     if (!db) return res.status(500).send("db unavailable");
+
+    const readable = READABLE[req.params.entity];
+    if (readable) {
+      const result: any = await db.execute(sql.raw(readable.sql));
+      const rows = result.rows ?? result;
+      const headers = (result.fields?.map((f: any) => f.name)) ?? Object.keys(rows[0] ?? {});
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${readable.file}-${new Date().toISOString().slice(0, 10)}.csv"`);
+      return res.send(readableCSV(rows, headers));
+    }
 
     const entityMap: Record<string, any> = {
       candidates, jobs, applications, agencies: recruitmentAgents, employers,

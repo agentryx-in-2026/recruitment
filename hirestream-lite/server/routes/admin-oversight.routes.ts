@@ -346,11 +346,11 @@ router.get("/funnel", async (req, res, next) => {
     for (const r of rows as any[]) byStatus[String(r.status)] = Number(r.c);
 
     // Add a "placed" count from placements where accepted/active/completed
-    const placementsCount = await db.select({ c: count() }).from(placements)
-      .innerJoin(applications, eq(placements.applicationId, applications.id))
+    // Placed = applications at the Placed stage — the same rule as the Funnel and the Overview tile.
+    const placementsCount = await db.select({ c: count() }).from(applications)
       .innerJoin(jobs, eq(applications.jobId, jobs.id))
       .where(and(
-        sql`${placements.status} IN ('accepted','active','completed')`,
+        eq(applications.status, "placed"),
         conds.length ? and(...conds) : undefined as any,
       ));
 

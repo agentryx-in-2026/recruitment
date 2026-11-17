@@ -10,13 +10,18 @@ passport.use(
     async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
-        if (!user || user.isActive === false) {
+        if (!user) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "Invalid username or password" });
+        }
+        // Piyush, L4.6 (17 Nov 2026): a disabled account with the RIGHT password
+        // is told why. Checked after the password so it reveals nothing to a guesser.
+        if (user.isActive === false) {
+          return done(null, false, { message: "Your account has been disabled. Please contact HPSEDC." });
         }
 
         return done(null, user);

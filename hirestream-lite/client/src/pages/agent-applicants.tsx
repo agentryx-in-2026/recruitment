@@ -71,7 +71,7 @@ const ALL_PIPELINE = [
   { key: "withdrawn",           label: "Withdrawn",  color: "bg-slate-100 text-slate-600" },
 ] as const;
 
-const VALID_STATUSES = ["submitted", "reviewed", "shortlisted", "interview_scheduled", "selected", "placed", "rejected", "withdrawn"];
+const VALID_STATUSES = ["all", "submitted", "reviewed", "shortlisted", "interview_scheduled", "selected", "placed", "rejected", "withdrawn"];
 
 export default function AgentApplicantsPage() {
   const [, setLocation] = useLocation();

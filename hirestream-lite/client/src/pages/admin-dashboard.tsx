@@ -296,7 +296,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             <MetricCard icon={<Users />} color="bg-blue-600" label="Candidates" value={stats.users?.candidates || 0} onClick={() => setTab("users")} />
             <MetricCard icon={<Briefcase />} color="bg-emerald-600" label="Open Job Vacancies" value={stats.jobs?.active || 0} onClick={() => setTab("funnel")} />
-            <MetricCard icon={<Handshake />} color="bg-orange-500" label="Placements" value={stats.placements?.total || 0} onClick={() => setTab("lifecycle")} />
+            <MetricCard icon={<Handshake />} color="bg-orange-500" label="Placements" value={stats.placements?.total || 0} onClick={() => { window.location.href = "/agent/applicants?status=placed"; }} />
             {capabilities.agencySelfRegistration && (
               <MetricCard icon={<Building />} color="bg-purple-600" label="Agencies" value={`${stats.agencies?.verified || 0} / ${stats.agencies?.total || 0}`} sub="verified" onClick={() => setTab("agencies")} />
             )}
@@ -317,14 +317,14 @@ export default function AdminDashboard() {
                     <p className="text-2xl font-bold text-blue-600">{funnel.summary?.registered || 0}</p>
                     <p className="text-xs text-gray-500">Registered</p>
                   </div>
-                  <div onClick={() => setTab("funnel")} role="button" tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTab("funnel"); } }}
+                  <div onClick={() => { window.location.href = "/agent/applicants?status=all"; }} role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); window.location.href = "/agent/applicants?status=all"; } }}
                     className="bg-emerald-50 p-4 rounded-lg cursor-pointer hover:ring-2 hover:ring-emerald-200 transition">
                     <p className="text-2xl font-bold text-emerald-600">{funnel.summary?.applied || 0}</p>
                     <p className="text-xs text-gray-500">Applied</p>
                   </div>
-                  <div onClick={() => setTab("lifecycle")} role="button" tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTab("lifecycle"); } }}
+                  <div onClick={() => { window.location.href = "/agent/applicants?status=placed"; }} role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); window.location.href = "/agent/applicants?status=placed"; } }}
                     className="bg-orange-50 p-4 rounded-lg cursor-pointer hover:ring-2 hover:ring-orange-200 transition">
                     <p className="text-2xl font-bold text-orange-600">{funnel.summary?.placed || 0}</p>
                     <p className="text-xs text-gray-500">Placed</p>
@@ -383,7 +383,7 @@ export default function AdminDashboard() {
                     <ResponsiveContainer width="50%" height={200}>
                       <PieChart>
                         <Pie data={chartData.map((c: any) => ({ name: c.displayName, value: c.total_jobs }))}
-                          dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={(e: any) => e.name}>
+                          dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={false}>
                           {chartData.map((c: any, i: number) => (
                             <Cell key={i} fill={c.displayName.startsWith("Not specified") ? "#cbd5e1" : ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899"][i % 7]} />
                           ))}
@@ -396,7 +396,7 @@ export default function AdminDashboard() {
                         <div key={i} className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.displayName.startsWith("Not specified") ? "#cbd5e1" : ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899"][i % 7] }} />
                           <span className="text-sm text-gray-700">{c.displayName}</span>
-                          <span className="text-xs text-gray-400">{c.total_jobs} jobs, {c.total_applications} apps</span>
+                          <span className="text-xs text-gray-400">{c.total_jobs} {Number(c.total_jobs) === 1 ? "job" : "jobs"}, {c.total_applications} {Number(c.total_applications) === 1 ? "application" : "applications"}</span>
                         </div>
                       ))}
                     </div>
