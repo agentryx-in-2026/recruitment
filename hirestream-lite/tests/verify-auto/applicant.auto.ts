@@ -71,8 +71,19 @@ test("Applicant", async ({ page }) => {
     await page.getByRole("button", { name: /^Mason/ }).first().click();
     await page.getByRole("button", { name: /^Plumber/ }).first().click();
     await page.getByRole("button", { name: /^Hindi/ }).first().click();
+  });
+
+  await check(page, "L1.24", "Page 2 asks for preferred countries; the choice is saved", async () => {
+    // Built 18 Nov 2026 (FRS 2.2). The review page showing them is checked in L1.10.
+    const group = page.getByRole("group", { name: "Where would you like to work?" });
+    await expect(group).toBeVisible();
+    await expect(group.getByRole("button", { name: "Any country" }), "no choice yet = any country").toHaveAttribute("aria-pressed", "true");
+    await group.getByRole("button", { name: "United Arab Emirates" }).click();
+    await group.getByRole("button", { name: "Qatar" }).click();
+    await expect(group.getByRole("button", { name: "Any country" })).toHaveAttribute("aria-pressed", "false");
     await next(page);
     await expect(page.getByText(/qualifications and experience/i).filter({ visible: true }).first()).toBeVisible();
+    expect(sql(`select array_to_string(preferred_countries, '|') from candidates c join users u on u.id=c.user_id where u.email='${EMAIL}'`), "saved").toBe("United Arab Emirates|Qatar");
   });
 
   await check(page, "L1.8", "Page 3: board list follows the qualification", async () => {
@@ -121,6 +132,7 @@ test("Applicant", async ({ page }) => {
     await expect(page.getByText(/XXXX XXXX 0124/).filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: /Print \/ Save PDF/ })).toBeVisible();
     expect(await page.getByRole("button", { name: /Edit/ }).filter({ visible: true }).count(), "Edit buttons").toBeGreaterThan(2);
+    await expect(page.getByText("United Arab Emirates, Qatar").filter({ visible: true }).first(), "review shows the preferred countries (L1.24)").toBeVisible();
   });
 
   await check(page, "L1.11", "Submit application lands on the dashboard", async () => {
@@ -158,7 +170,8 @@ test("Applicant", async ({ page }) => {
     await page.waitForTimeout(1200);
     await page.getByRole("button", { name: /Apply Now/i }).last().click();
     await waitIdle(page, 1500);
-    const jobId = sql("select id from jobs where title='Heavy Truck Driver' limit 1");
+    // The job this applicant actually applied to — two live jobs share the title "Heavy Truck Driver".
+    const jobId = sql(`select a.job_id from applications a join candidates c on c.id=a.candidate_id join users u on u.id=c.user_id where u.email='${EMAIL}' order by a.applied_at desc nulls last limit 1`);
     const again = await page.request.post(`/api/v1/jobs/${jobId}/apply`, { data: {} });
     expect(again.status(), "duplicate apply").toBeGreaterThanOrEqual(400);
     expect(sql(`select count(*) from applications a join candidates c on c.id=a.candidate_id join users u on u.id=c.user_id where u.email='${EMAIL}'`)).toBe("1");

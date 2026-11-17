@@ -70,6 +70,7 @@ TIPS = {
   "L1.6": "Mobile +971 501234567. WhatsApp: untick 'Same as mobile' and enter +91 9876500000.",
   "L1.7": "Pick Welder, Driver, Nurse, then try a 4th (Electrician) — it must be refused.",
   "L1.9": "Driver and Nurse are already picked from L1.7, so their extra question cards appear on page 3.",
+  "L1.24": "New on 18 Nov. The country list is Admin → Countries (active ones). Optional by default — Admin → Form Fields → “Preferred countries” can make it required or hide it. If you edit page 2 again after every page is filled, the portal may show the application as already submitted; that is existing behaviour, not this case.",
   "L1.11": "This is the first Submit for this account — exactly the moment the old bug (L6.1) happened.",
   "L1.12": "The code goes to your +uat1 address, which lands in your normal Gmail inbox. Check Spam the first time and mark it 'Not spam'.",
   "L1.13": "Search 'welder' — your UAT Welder — Piyush job should be in the results.",

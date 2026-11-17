@@ -52,7 +52,7 @@ import { DocumentsPage, CompliancePage } from "./register/DeploymentPages";
 import { ReadyChecklist } from "./register/ReadyChecklist";
 import { isTestMode, TEST_DATA } from "./register/test-mode";
 import { Check, Plus, Minus, Info, Briefcase, BookUser, User, Phone, MapPin,
-         Wrench, GraduationCap, ClipboardCheck, FlaskConical, Wand2, FileText, ShieldCheck } from "lucide-react";
+         Wrench, GraduationCap, ClipboardCheck, FlaskConical, Wand2, FileText, ShieldCheck, Globe } from "lucide-react";
 
 /**
  * Four pages TODAY — everything HPSEDC need to match a candidate to a vacancy.
@@ -196,6 +196,9 @@ export default function RegisterPage() {
   const [picked, setPicked] = useState<PickedProfession[]>([]);
   const [langs, setLangs] = useState<{ language: string; proficiency: string }[]>([]);
   const [otherLangText, setOtherLangText] = useState("");
+  // FRS 2.2 (L1.24): preferred destination countries. Empty = any country, saved as NULL
+  // (the job-alert matcher treats NULL as "no preference"; an empty array would match nothing).
+  const [prefCountries, setPrefCountries] = useState<string[]>([]);
 
   // ── Page 3: qualifications ─────────────────────────────────────────
   const [eduLevel, setEduLevel] = useState("");
@@ -222,7 +225,7 @@ export default function RegisterPage() {
     ecrStatus, aadhaarNumber, fullName, dateOfBirth, sex, fatherName, motherName,
     disabilityStatus, disabilityType, phone, whatsappSame, whatsappNumber, email,
     homeTown, pAddr1, pAddr2, pDistrict, pState, pPin, corrSame, cAddr1, cAddr2, cDistrict, cState, cPin,
-    picked, langs, eduLevel, eduBoard, eduInstitution, eduYear, eduPassed,
+    picked, langs, prefCountries, eduLevel, eduBoard, eduInstitution, eduYear, eduPassed,
   ]);
   const isDirty = savedSnapshot.current !== null && savedSnapshot.current !== answersKey;
   const { data: profRes } = useQuery<any>({ queryKey: ["/api/v1/professions"] });
@@ -246,6 +249,9 @@ export default function RegisterPage() {
   // reading it. Defaults are permissive so a failed fetch shows the full form
   // rather than a mysteriously empty one.
   const { data: fieldCfgRes } = useQuery<any>({ queryKey: ["/api/v1/registration-fields"] });
+  // Destination countries come from Admin → Countries, so HPSEDC add or retire one without a release.
+  const { data: countriesRes } = useQuery<any>({ queryKey: ["/api/v1/content/countries?activeOnly=true"] });
+  const countryList: { name: string; code: string }[] = countriesRes?.data || [];
   const fieldCfg: Record<string, { enabled: boolean; required: boolean }> = fieldCfgRes?.data?.fields || {};
   const on = (k: string) => fieldCfg[k]?.enabled !== false;
   const req = (k: string) => fieldCfg[k]?.required === true;
@@ -285,6 +291,7 @@ export default function RegisterPage() {
     setCDistrict(p.district || ""); setCState(p.state || "Himachal Pradesh"); setCPin(p.pinCode || "");
     if (p.addressLine1 && p.addressLine1 !== p.permanentAddressLine1) setCorrSame(false);
     setEduLevel(p.qualificationLevel || "");
+    setPrefCountries(Array.isArray(p.preferredCountries) ? p.preferredCountries : []);
   }, [profileRes]);
 
   // Restore the education row this page owns — matched the same way the save
@@ -412,7 +419,8 @@ export default function RegisterPage() {
     && (!on("whatsappNumber") || !req("whatsappNumber") || whatsappSame || (digits(whatsappNumber).length >= MIN_NATIONAL && !whatsappErr))
     && /\S+@\S+\.\S+/.test(email) && need("homeTown", homeTown) && addrOk && corrOk
     && !aadhaarErr && !(passportExpiry && passportExpiry < today());
-  const p2Ok = picked.length > 0 && picked.every((x) => x.professionKey !== "other" || x.otherLabel?.trim()) && langs.length > 0;
+  const countriesOk = !on("preferredCountries") || !req("preferredCountries") || prefCountries.length > 0;
+  const p2Ok = picked.length > 0 && picked.every((x) => x.professionKey !== "other" || x.otherLabel?.trim()) && langs.length > 0 && countriesOk;
   const p3Ok = eduLevel && picked.every((x) => isAddonComplete(x.professionKey, x.addonData) && x.experienceMonths >= 0);
 
   // ── Progress, per page and overall ─────────────────────────────────
@@ -433,7 +441,7 @@ export default function RegisterPage() {
     homeTown, pAddr1, pDistrict, pState, pPin.length === 6,
     corrSame || (cAddr1 && cDistrict && cState && cPin.length === 6),
   ];
-  const p2Fields = [picked.length > 0, langs.length > 0];
+  const p2Fields = [picked.length > 0, langs.length > 0, ...(on("preferredCountries") && req("preferredCountries") ? [prefCountries.length > 0] : [])];
   const p3Fields = [
     eduLevel,
     ...picked.map((x) => isAddonComplete(x.professionKey, x.addonData)),
@@ -627,6 +635,7 @@ export default function RegisterPage() {
     // today still matches jobs today.
     await apiRequest("PATCH", "/api/v1/candidates/profile", {
       skills: picked.map((x) => (x.professionKey === "other" ? x.otherLabel : profByKey[x.professionKey]?.label) || x.professionKey),
+      ...(on("preferredCountries") ? { preferredCountries: prefCountries.length ? prefCountries : null } : {}),
     });
     // Languages: DIFF, not delete-all-then-insert-all.
     //
@@ -1014,6 +1023,8 @@ export default function RegisterPage() {
           picked={picked} setPicked={setPicked}
           langs={langs} setLangs={setLangs} otherLangText={otherLangText} setOtherLangText={setOtherLangText}
           testMode={testMode} onFillTrades={fillTrades} onFillLanguages={fillLanguages}
+          showCountries={on("preferredCountries")} countriesRequired={req("preferredCountries")}
+          countryList={countryList} prefCountries={prefCountries} setPrefCountries={setPrefCountries}
         />
       )}
 
@@ -1040,6 +1051,7 @@ export default function RegisterPage() {
             eduLevel, eduBoard, eduInstitution, eduYear, eduPassed,
           }}
           picked={picked} langs={langs} profByKey={profByKey} labelOf={labelOf}
+          prefCountries={on("preferredCountries") ? prefCountries : undefined}
         />
       )}
 
@@ -1055,6 +1067,7 @@ export default function RegisterPage() {
 function SkillsPage({
   professions, maxProfessions, labelOf, picked, setPicked, langs, setLangs, otherLangText, setOtherLangText,
   testMode, onFillTrades, onFillLanguages,
+  showCountries, countriesRequired, countryList, prefCountries, setPrefCountries,
 }: any) {
   const { t } = useTranslation();
   const isPicked = (k: string) => picked.some((p: PickedProfession) => p.professionKey === k);
@@ -1192,7 +1205,50 @@ function SkillsPage({
           ))}
         </div>
       </Section>
+
+      {showCountries && (
+        <Section n={3} icon={Globe} title={t("reg.p2.countries")} hint={t("reg.p2.countriesHint")}>
+          <CountryPicker countryList={countryList} value={prefCountries} onChange={setPrefCountries} required={countriesRequired} />
+        </Section>
+      )}
     </>
+  );
+}
+
+/** Country names in the form's language. The browser knows every country in Hindi, keyed by ISO code. */
+export function countryLabel(name: string, code: string | undefined, lang: string) {
+  if (!code || !lang.startsWith("hi")) return name;
+  try { return new Intl.DisplayNames(["hi"], { type: "region" }).of(code) || name; } catch { return name; }
+}
+
+function CountryPicker({ countryList, value, onChange, required }: {
+  countryList: { name: string; code: string }[]; value: string[]; onChange: (v: string[]) => void; required: boolean;
+}) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language || "en";
+  // A saved country that HPSEDC have since switched off still shows, so it can be removed.
+  const names = [...countryList.map((c) => c.name), ...value.filter((v) => !countryList.some((c) => c.name === v))];
+  const codeOf = (n: string) => countryList.find((c) => c.name === n)?.code;
+  const toggle = (n: string) => onChange(value.includes(n) ? value.filter((x) => x !== n) : [...value, n]);
+  const chip = (active: boolean) => `rounded-lg border-2 px-4 h-11 text-sm font-semibold transition-all inline-flex items-center gap-1.5 ${
+    active ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 bg-white text-slate-700 hover:border-blue-300"}`;
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t("reg.p2.countries")}>
+        {!required && (
+          <button type="button" aria-pressed={value.length === 0} onClick={() => onChange([])} className={chip(value.length === 0)}>
+            {value.length === 0 && <Check className="w-4 h-4" />}{t("reg.p2.anyCountry")}
+          </button>
+        )}
+        {names.map((n) => (
+          <button key={n} type="button" aria-pressed={value.includes(n)} onClick={() => toggle(n)} className={chip(value.includes(n))}>
+            {value.includes(n) && <Check className="w-4 h-4" />}{countryLabel(n, codeOf(n), lang)}
+          </button>
+        ))}
+      </div>
+      {value.length > 0 && <p className="text-xs text-slate-500">{t("reg.p2.countriesPicked", { n: value.length })}</p>}
+      {required && value.length === 0 && <p className="text-xs text-amber-700">{t("reg.p2.countriesRequired")}</p>}
+    </div>
   );
 }
 

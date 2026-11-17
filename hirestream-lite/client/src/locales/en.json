@@ -1369,7 +1369,12 @@
       "languages": "Languages",
       "languagesHint": "Which languages do you speak, and how well?",
       "otherLangPh": "Another language",
-      "addLang": "Add"
+      "addLang": "Add",
+      "countries": "Where would you like to work?",
+      "countriesHint": "Pick the countries you would go to. HPSEDC use this to tell you about jobs there. You can change it later.",
+      "anyCountry": "Any country",
+      "countriesPicked": "{{n}} chosen",
+      "countriesRequired": "Choose at least one country."
     },
     "p3": {
       "tab": "Qualifications",
@@ -1408,7 +1413,7 @@
       "photo": "Photograph",
       "s1": "Personal & identity",
       "s2": "Contact & address",
-      "s3": "Skills & languages",
+      "s3": "Skills, languages & countries",
       "s4": "Qualifications & experience",
       "trades": "Trades",
       "years": "years",

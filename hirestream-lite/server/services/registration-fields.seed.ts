@@ -117,6 +117,14 @@ export const FIELD_SEEDS: FieldSeed[] = [
     enabled: true, required: false, displayOrder: 20,
   },
 
+  // ── Page 2 · Preferences ─────────────────────────────────────────
+  {
+    fieldKey: "preferredCountries", page: 2, sectionKey: "preferences",
+    labelEn: "Preferred countries", labelHi: "पसंदीदा देश",
+    description: "FRS 2.2 (preference of countries). Used for job alerts and the match score. Optional by default: “Any country” is a valid answer.",
+    enabled: true, required: false, displayOrder: 10,
+  },
+
   // ── Page 3 · Education ───────────────────────────────────────────
   {
     fieldKey: "eduBoard", page: 3, sectionKey: "education",

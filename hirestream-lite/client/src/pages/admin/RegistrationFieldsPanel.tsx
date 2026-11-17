@@ -31,7 +31,7 @@ interface FieldRow {
 const PAGE_NAMES: Record<number, string> = { 1: "Page 1 · About you", 2: "Page 2 · Your skills", 3: "Page 3 · Qualifications", 4: "Page 4 · Review" };
 const SECTION_NAMES: Record<string, string> = {
   identity: "Identity documents", personal: "Personal details",
-  contact: "Contact", address: "Address", education: "Education",
+  contact: "Contact", address: "Address", education: "Education", preferences: "Where they want to work",
 };
 
 export default function RegistrationFieldsPanel() {

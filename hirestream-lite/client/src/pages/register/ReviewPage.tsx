@@ -26,6 +26,8 @@ interface Props {
   langs: { language: string; proficiency: string }[];
   profByKey: Record<string, Profession>;
   labelOf: (p?: Profession) => string;
+  /** Undefined when HPSEDC have hidden the question. */
+  prefCountries?: string[];
 }
 
 /** One label/value pair. `—` for empty so a printed form shows the gap
@@ -58,7 +60,7 @@ function SectionCard({
   );
 }
 
-export function ReviewPage({ onEdit, profile: p, picked, langs, profByKey, labelOf }: Props) {
+export function ReviewPage({ onEdit, profile: p, picked, langs, profByKey, labelOf, prefCountries }: Props) {
   const { t } = useTranslation();
   const addr = (a1: string, a2: string, d: string, s: string, pin: string) =>
     [a1, a2, d, s, pin].filter(Boolean).join(", ");
@@ -172,6 +174,12 @@ export function ReviewPage({ onEdit, profile: p, picked, langs, profByKey, label
               {langs.map((l) => `${l.language} (${t(`reg.lang.${l.proficiency}`)})`).join(", ") || "—"}
             </span>
           </div>
+          {prefCountries && (
+            <div className="py-1.5">
+              <span className="text-xs text-slate-500 block mb-1">{t("reg.p2.countries")}</span>
+              <span className="text-sm text-slate-900 font-medium">{prefCountries.length ? prefCountries.join(", ") : t("reg.p2.anyCountry")}</span>
+            </div>
+          )}
         </SectionCard>
 
         <SectionCard n={4} title={t("reg.p4.s4")} onEdit={() => onEdit(2)}>
