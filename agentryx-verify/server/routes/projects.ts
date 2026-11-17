@@ -50,7 +50,7 @@ projectsRouter.get("/", async (req, res) => {
   // Per-project counts so Home cards render "🔧 Needs fixing" without
   // round-tripping each one. Role-aware so each persona sees their own
   // scoreboard:
-  //   - admin / delivery: cross-stage backlog (most-downstream Fail/Partial
+  //   - admin / delivery: cross-stage backlog (most-downstream Fail — a Waive means "not applicable", not a fix — /Partial
   //     OR delivery-side incomplete). Drives the global dev metric.
   //   - tester (agentryx / htis / hpsedc_staging / hpsedc_final): their
   //     own funnel — items at THEIR level not yet accepted (pending or
@@ -96,10 +96,10 @@ projectsRouter.get("/", async (req, res) => {
     if (deliveryDefect) { c.needsFix++; continue; }
     if (useTesterScope) {
       const my = myByReq.get(r.id);
-      if (!my || my === "rejected" || my === "waived") c.needsFix++;
+      if (!my || my === "rejected") c.needsFix++;
     } else {
       const latest = latestByReq.get(r.id);
-      if (latest && (latest.decision === "rejected" || latest.decision === "waived")) {
+      if (latest && latest.decision === "rejected") {
         c.needsFix++;
       }
     }
