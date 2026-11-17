@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "path";
 import { setup, login } from "../video-lite/_film";
-import { check, waitIdle } from "./_check";
+import { check, waitIdle, sql } from "./_check";
 
 /** Admin Console checks (demo_admin) — Verify cases L4.1–L4.9. */
 const FIX = path.resolve("tests/video-lite/fixtures");
@@ -19,8 +19,21 @@ test("Admin", async ({ page }) => {
     await login(page, "demo_admin");
     await expect(page.getByText("Admin Console").filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: /candidates CSV/i }).filter({ visible: true }).first()).toBeVisible();
-    const r = await page.request.get("/api/v1/admin/reports/export/candidates.csv");
-    expect(r.status(), "candidates CSV download").toBe(200);
+    // Piyush, 17 Nov 2026: each export is readable — names and plain headers, no internal IDs, plain dates.
+    const want: Record<string, string> = { candidates: "Applicant ID,Full Name", jobs: "Job Title,Employer", applications: "Applicant ID,Applicant Name", placements: "Applicant ID,Applicant Name" };
+    for (const [entity, start] of Object.entries(want)) {
+      const r = await page.request.get(`/api/v1/admin/reports/export/${entity}.csv`);
+      expect(r.status(), `${entity} CSV download`).toBe(200);
+      const text = (await r.text()).replace(/^﻿/, "");
+      const header = text.split(/\r?\n/)[0];
+      expect(header.startsWith(start), `${entity} CSV headers are readable: ${header.slice(0, 80)}`).toBe(true);
+      expect(/(^|,)(id|userId|candidateId|jobId|applicationId)(,|$)/.test(header), `${entity} CSV has no internal ID columns`).toBe(false);
+      expect(text.includes('"""'), `${entity} CSV dates are plain`).toBe(false);
+    }
+    // The Placements tile and the Funnel agree on what "placed" means.
+    const dash = await (await page.request.get("/api/v1/admin/reports/dashboard")).json();
+    const funnel = await (await page.request.get("/api/v1/admin/oversight/funnel")).json();
+    expect(dash.data.placements.total, "Placements tile = Funnel placed").toBe(funnel.data.summary.placed);
   });
 
   await check(page, "L4.3", "Professions list loads and a profession opens for editing", async () => {
@@ -51,6 +64,19 @@ test("Admin", async ({ page }) => {
     await tab(page, "Users");
     await expect(page.getByText(/Users \(\d+\)/).filter({ visible: true }).first()).toBeVisible();
     expect(await page.getByRole("button", { name: /^(Disable|Enable)$/ }).count()).toBeGreaterThan(0);
+    // Piyush, 17 Nov 2026: a disabled account with the right password is told it is disabled;
+    // a wrong password still gets the generic message.
+    sql(`update users set is_active = false where username = 'tek_chand'`);
+    try {
+      const ctx = page.context().request;
+      const right = await ctx.post("/api/v1/auth/login", { data: { username: "tek_chand", password: "test123" } });
+      expect(right.status()).toBe(401);
+      expect(String((await right.json()).error?.message)).toContain("disabled");
+      const wrong = await ctx.post("/api/v1/auth/login", { data: { username: "tek_chand", password: "Wrong@2026x" } });
+      expect(String((await wrong.json()).error?.message)).toContain("Invalid username or password");
+    } finally {
+      sql(`update users set is_active = true where username = 'tek_chand'`);
+    }
   });
 
   await check(page, "L4.2", "Smart Job Importer maps columns, rejects the bad row, imports the rest", async () => {
