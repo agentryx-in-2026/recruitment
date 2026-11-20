@@ -253,10 +253,12 @@ router.get("/users", async (req, res, next) => {
     if (q("status") === "active") where.push(sql`coalesce(u.is_active, true)`);
     if (q("status") === "disabled") where.push(sql`not coalesce(u.is_active, true)`);
     if (q("login") === "never") where.push(sql`u.last_login_at is null`);
-    if (day("loginFrom")) where.push(sql`u.last_login_at >= ${day("loginFrom")}::date`);
-    if (day("loginTo")) where.push(sql`u.last_login_at < ${day("loginTo")}::date + 1`);
-    if (day("regFrom")) where.push(sql`u.created_at >= ${day("regFrom")}::date`);
-    if (day("regTo")) where.push(sql`u.created_at < ${day("regTo")}::date + 1`);
+    // Times are stored as UTC wall-clock; the dates an HPSEDC officer types are India dates (FB-2026-0024, 18 Nov).
+    const ist = (col: any) => sql`(${col} at time zone 'UTC' at time zone 'Asia/Kolkata')`;
+    if (day("loginFrom")) where.push(sql`${ist(sql`u.last_login_at`)} >= ${day("loginFrom")}::date`);
+    if (day("loginTo")) where.push(sql`${ist(sql`u.last_login_at`)} < ${day("loginTo")}::date + 1`);
+    if (day("regFrom")) where.push(sql`${ist(sql`u.created_at`)} >= ${day("regFrom")}::date`);
+    if (day("regTo")) where.push(sql`${ist(sql`u.created_at`)} < ${day("regTo")}::date + 1`);
     const and_ = (parts: any[]) => parts.length ? sql.join(parts, sql` and `) : sql`true`;
     const role = ROLE[q("role")];
     const from = sql`from users u left join candidates c on c.user_id = u.id`;
@@ -280,7 +282,8 @@ router.get("/users", async (req, res, next) => {
     const pages = Math.max(1, Math.ceil(total / pageSize));
     const page = Math.min(pages, Math.max(1, Number(q("page")) || 1));
     const rowsRes: any = await db.execute(sql`select u.id, u.username, u.email, u.role, coalesce(u.is_active, true) as "isActive",
-        u.last_login_at as "lastLoginAt", u.created_at as "createdAt", c.full_name as "fullName", coalesce(c.phone, u.phone_number) as phone
+        to_char(u.last_login_at, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "lastLoginAt",
+        to_char(u.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt", c.full_name as "fullName", coalesce(c.phone, u.phone_number) as phone
       ${from} where ${and_(all)}
       order by ${SORT[sortKey]} ${dir} nulls last, lower(u.username) asc
       limit ${pageSize} offset ${(page - 1) * pageSize}`);

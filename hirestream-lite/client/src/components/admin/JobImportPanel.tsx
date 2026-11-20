@@ -159,6 +159,12 @@ export default function JobImportPanel() {
                   </div>
                 ))}
               </div>
+              {/* FB-2026-0026: say which columns will be dropped, so nothing is lost silently. */}
+              {preview.headers.filter((h) => !mapping[h]).length > 0 && (
+                <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  {t("jobImport.ignoredCols", { cols: preview.headers.filter((h) => !mapping[h]).map((h) => `“${h}”`).join(", ") })}
+                </p>
+              )}
             </div>
 
             {/* Preview rows */}

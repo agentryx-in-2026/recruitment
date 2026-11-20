@@ -527,6 +527,7 @@
     "statusCol": "Status",
     "statusCheckCol": "Status",
     "columnMapping": "Column mapping",
+    "ignoredCols": "Not imported: {{cols}}. Choose a field for a column if its data should be kept.",
     "ignore": "— Ignore —",
     "mapColumnAria": "Map column {{col}} to a job field",
     "startOver": "Start over",

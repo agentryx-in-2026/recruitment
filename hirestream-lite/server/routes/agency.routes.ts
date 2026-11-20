@@ -7,7 +7,7 @@ import { logger } from "../config/logger.config";
 import { insertRecruitmentAgentSchema, recruitmentAgents, candidates, agencyReviews,
   candidateEducation, candidateExperience, documents, applications, jobs,
   agencyDocuments, placements, auditLog, countryInfo } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { computeReadiness, pickPrimaryPlacement } from "../services/deployment.service";
 import { userOwnsCandidate } from "../lib/ownership";
 import { maskAadhaar } from "../lib/safeUser";
@@ -79,7 +79,12 @@ router.get("/me", protect, async (req, res, next) => {
         return res.status(404).json({ success: false, message: "Agency profile not found" });
      }
 
-     res.status(200).json({ success: true, data: existing[0] });
+     // L2.1 (Piyush, 18 Nov): the stored placements counter was never kept up to date (0 while 4 were placed).
+     // Count live, the same rule as the pipeline and the Admin Console: applications on this agency's jobs at 'placed'.
+     const placed: any = await storage.db.execute(sql`select count(*)::int as n from applications a join jobs j on j.id = a.job_id
+       where j.agent_id = ${userId} and a.status = 'placed'`);
+     const placements = Number((placed.rows ?? placed)[0]?.n ?? existing[0].placements ?? 0);
+     res.status(200).json({ success: true, data: { ...existing[0], placements } });
   } catch (err) {
     logger.error(`Error fetching agency details: ${err}`);
     next(err);

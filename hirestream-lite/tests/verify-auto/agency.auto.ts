@@ -19,6 +19,10 @@ test("Agency", async ({ page }) => {
     await expect(page.getByText("Verified Agency").filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByText("Applicant Pipeline").filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: /Post Job/ }).filter({ visible: true }).first()).toBeVisible();
+    // Piyush, 18 Nov: the Placements tile showed 0 while the pipeline showed 4 placed.
+    const me = await (await page.request.get("/api/v1/agencies/me")).json();
+    const live = Number(sql(`select count(*) from applications a join jobs j on j.id=a.job_id join users u on u.id=j.agent_id where u.username='hpsedc_agency' and a.status='placed'`));
+    expect(me.data.placements, "Placements tile = placed applications").toBe(live);
   });
 
   await check(page, "L2.2", "Post a job with country, city, category and fixed salary; it goes live", async () => {

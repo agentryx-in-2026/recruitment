@@ -3242,7 +3242,8 @@ function UserManagementPanel() {
     candidate: "bg-blue-100 text-blue-700", agent: "bg-emerald-100 text-emerald-700",
     employer: "bg-purple-100 text-purple-700", admin: "bg-red-100 text-red-700", superadmin: "bg-amber-100 text-amber-700",
   };
-  const fmt = (d?: string | null) => d ? new Date(d).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : null;
+  // Always India time, whatever the viewer's computer is set to (FB-2026-0024).
+  const fmt = (d?: string | null) => d ? `${new Date(d).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} IST` : null;
   const sortBy = (k: string) => { if (sort === k) setDir(dir === "asc" ? "desc" : "asc"); else { setSort(k); setDir(k === "username" || k === "role" ? "asc" : "desc"); } setPage(1); };
   const Th = ({ k, children, className = "" }: { k?: string; children: React.ReactNode; className?: string }) => (
     <th className={`py-2.5 px-3 ${className}`} aria-sort={k && sort === k ? (dir === "asc" ? "ascending" : "descending") : undefined}>
@@ -3304,7 +3305,7 @@ function UserManagementPanel() {
                     <td className="py-2 px-3"><Badge className={`text-[10px] ${roleColor[u.role] || "bg-slate-100 text-slate-700"}`}>{u.role}</Badge></td>
                     <td className="py-2 px-3 text-center">{u.isActive ? <CheckCircle className="w-4 h-4 text-emerald-500 inline" aria-label="Active" /> : <span className="text-red-500">Disabled</span>}</td>
                     <td className="py-2 px-3 text-xs text-slate-600 whitespace-nowrap">{fmt(u.lastLoginAt) ?? <span className="text-slate-400">Never</span>}</td>
-                    <td className="py-2 px-3 text-xs text-slate-600 whitespace-nowrap">{u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : <span className="text-slate-400">—</span>}</td>
+                    <td className="py-2 px-3 text-xs text-slate-600 whitespace-nowrap">{u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" }) : <span className="text-slate-400">—</span>}</td>
                     <td className="py-2 px-3 text-right">
                       <Button size="sm" variant="outline" onClick={() => toggle.mutate(u.id)}>{u.isActive ? "Disable" : "Enable"}</Button>
                     </td>

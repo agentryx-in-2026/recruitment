@@ -107,6 +107,16 @@ test("Admin", async ({ page }) => {
     await btn.click();
     await waitIdle(page, 2500);
     await expect(page.getByText(/Import complete|jobs posted/i).filter({ visible: true }).first()).toBeVisible();
+    // Piyush, 20 Nov (FB-2026-0027): .xlsx files are read; (FB-2026-0026): "Skills Required" maps to skills.
+    const fs = await import("fs");
+    const xl = await page.request.post("/api/v1/admin/job-import/preview", { multipart: { file: { name: "govt-job-batch.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: fs.readFileSync(path.join(FIX, "govt-job-batch.xlsx")) } } });
+    expect(xl.status(), ".xlsx preview").toBe(200);
+    const xd = (await xl.json()).data;
+    expect(xd.rows[0].values.skills, ".xlsx row skills").toEqual(["Welding", "Fabrication"]);
+    const sk = await page.request.post("/api/v1/admin/job-import/preview", { multipart: { file: { name: "skills-required.csv", mimeType: "text/csv", buffer: fs.readFileSync(path.join(FIX, "skills-required.csv")) } } });
+    const sd = (await sk.json()).data;
+    expect(sd.mapping["Skills Required"], "Skills Required column mapped").toBe("skills");
+    expect(sd.rows[0].values.skills, "three skills").toEqual(["Wiring", "Panel Installation", "Maintenance"]);
     return label.trim();
   });
 

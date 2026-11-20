@@ -120,8 +120,18 @@ const HEADER_SYNONYMS: Record<TargetField, string[]> = {
   qualificationRequired: ["qualification", "qualificationrequired", "education", "minqualification"],
   description: ["description", "details", "jobdescription", "jd", "remarks"],
   requirements: ["requirements", "eligibility", "criteria"],
-  skills: ["skills", "keyskills"],
+  // FB-2026-0026 (Piyush, 20 Nov): "Skills Required" was left unmapped and the skills silently dropped.
+  skills: ["skills", "keyskills", "skillsrequired", "requiredskills", "skillset", "skillsets", "skill", "keyskill", "competencies", "technicalskills"],
 };
+
+// Headings that only START with a field's name ("Skills Required", "Salary (AED)", "Country of work")
+// still map, for these unambiguous stems. Short or ambiguous synonyms ("post", "nation", "count") are left out.
+const PREFIX_STEMS: [string, TargetField][] = [
+  ["jobtitle", "title"], ["title", "title"], ["company", "company"], ["employer", "company"], ["country", "country"],
+  ["location", "location"], ["category", "category"], ["salary", "salary"], ["vacancies", "targetHires"],
+  ["deadline", "hiringDeadline"], ["lastdate", "hiringDeadline"], ["experience", "experience"],
+  ["qualification", "qualificationRequired"], ["description", "description"], ["requirements", "requirements"], ["skill", "skills"],
+];
 
 const SYNONYM_TO_FIELD = new Map<string, TargetField>();
 for (const [field, syns] of Object.entries(HEADER_SYNONYMS) as [TargetField, string[]][]) {
@@ -147,6 +157,13 @@ function buildMapping(headers: string[], override?: Record<string, string | null
     if (target && claimed.has(target)) target = null;
     if (target) claimed.add(target);
     mapping[h] = target;
+  }
+  // Second pass: unmatched headings whose name starts with a known stem, so an exact match elsewhere always wins.
+  for (const h of headers) {
+    if (mapping[h] || (override && Object.prototype.hasOwnProperty.call(override, h))) continue;
+    const n = normHeader(h);
+    const hit = PREFIX_STEMS.find(([stem, f]) => n.startsWith(stem) && !claimed.has(f));
+    if (hit) { mapping[h] = hit[1]; claimed.add(hit[1]); }
   }
   return mapping;
 }
@@ -438,7 +455,10 @@ async function parseUpload(file: Express.Multer.File): Promise<{ headers: string
   // in the route turns its throw into a clear 400 asking for .xlsx/.csv.
   // read-excel-file's Node types resolve to a branded Sheet type; treat it as
   // the array-of-rows it actually is.
-  const grid = (await readXlsxFile(file.buffer)) as unknown as unknown[][];
+  // FB-2026-0027: read-excel-file 9 returns every sheet as [{ sheet, data }]; older versions returned the rows.
+  // Take the first sheet either way.
+  const raw = (await readXlsxFile(file.buffer)) as unknown as any[];
+  const grid: unknown[][] = raw.length && raw[0] && !Array.isArray(raw[0]) && Array.isArray(raw[0].data) ? raw[0].data : (raw as unknown[][]);
   if (!grid.length) throw new Error("The spreadsheet is empty.");
   const headers = grid[0].map((c) => cellToString(c)).map((h) => h.trim());
   const rows = grid.slice(1)
