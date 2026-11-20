@@ -4,6 +4,7 @@ import RegistrationFieldsPanel from "@/pages/admin/RegistrationFieldsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import React, { useState } from "react";
+import { MobileAppPanel } from "@/components/admin/MobileAppPanel";
 import { useAuth } from "@/hooks/use-auth";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -175,6 +176,7 @@ export default function AdminDashboard() {
       { key: "architecture", label: "Architecture", icon: Network },
       { key: "integrations", label: "Integrations", icon: PlugZap },
       { key: "countries", label: "Countries", icon: Globe },
+      { key: "mobile_app", label: "Mobile app", icon: Smartphone },
       { key: "settings", label: "System Config", icon: Settings },
     ]},
   ];
@@ -597,6 +599,7 @@ export default function AdminDashboard() {
         <TabsContent value="fraud"><FraudWatchlistPanel /></TabsContent>
         <TabsContent value="duplicates"><DuplicatesPanel /></TabsContent>
         <TabsContent value="countries"><CountryInfoAdminPanel /></TabsContent>
+        <TabsContent value="mobile_app"><MobileAppPanel /></TabsContent>
         <TabsContent value="architecture"><ArchitecturePanel /></TabsContent>
 
         <TabsContent value="templates">

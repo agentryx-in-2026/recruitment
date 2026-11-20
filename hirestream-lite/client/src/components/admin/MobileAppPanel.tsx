@@ -1,0 +1,51 @@
+import { Smartphone } from "lucide-react";
+
+/**
+ * Admin Console → System → Mobile app. How HPSEDC staff open the HireStream
+ * mobile app (Expo Go) on a phone — the same QR code and steps as in Verify.
+ */
+export const MOBILE_URL = "exps://hirestream-mobile.agentryx.dev";
+
+function Step({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <span className="shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">{n}</span>
+      <span className="text-sm text-slate-700">{children}</span>
+    </li>
+  );
+}
+
+export function MobileAppPanel() {
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><Smartphone className="w-4 h-4 text-blue-600" /> Mobile app — open it on your phone</h3>
+        <p className="text-sm text-slate-600 mt-1">The HireStream mobile app runs in the free <b>Expo Go</b> app while it is being tested. It is not yet in the Play Store or App Store.</p>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-[auto_1fr_1fr] items-start">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 text-center">
+          <img src="/qr-mobile.png" alt={`QR code for ${MOBILE_URL}`} width={200} height={200} className="mx-auto rounded-lg border border-slate-200" />
+          <p className="mt-3 text-xs text-slate-500">Scan with Expo Go (Android)</p>
+          <code className="mt-2 block select-all rounded bg-slate-100 px-2 py-1.5 text-sm font-mono text-slate-800 break-all">{MOBILE_URL}</code>
+        </div>
+        <section className="bg-white rounded-xl border border-slate-200 p-5">
+          <h4 className="font-semibold text-slate-900">Android</h4>
+          <ol className="mt-3 space-y-2.5">
+            <Step n={1}>Install <b>Expo Go</b> from the Google Play Store (free).</Step>
+            <Step n={2}>Open Expo Go and tap <b>Scan QR code</b>, then scan the code on the left — or tap <b>Enter URL manually</b> and type <code className="font-mono text-xs">{MOBILE_URL}</code>.</Step>
+            <Step n={3}>Wait 15–30 seconds the first time while the app loads, then sign in with your portal username and password.</Step>
+          </ol>
+        </section>
+        <section className="bg-white rounded-xl border border-slate-200 p-5">
+          <h4 className="font-semibold text-slate-900">iPhone</h4>
+          <ol className="mt-3 space-y-2.5">
+            <Step n={1}>Install <b>Expo Go</b> from the App Store (free).</Step>
+            <Step n={2}>Open <b>Safari</b> (not Expo Go) and type <code className="font-mono text-xs">{MOBILE_URL}</code> in the address bar. The QR code does not work on iPhone.</Step>
+            <Step n={3}>Tap <b>Open</b> when asked “Open this page in Expo Go?”. The app loads in 15–30 seconds.</Step>
+          </ol>
+          <p className="mt-4 text-xs text-slate-500">Won’t load? Close Expo Go completely and try again. Usernames are lowercase.</p>
+        </section>
+      </div>
+    </div>
+  );
+}
