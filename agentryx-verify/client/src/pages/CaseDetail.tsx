@@ -153,9 +153,9 @@ function Body({ id }: { id: string }) {
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Run it</h2>
         <div className="mt-3 grid gap-3 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
-          <a href={c.projectSlug === "hirestream-lite" ? `${data!.config.portalUrl}/auth` : "#"} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 p-3 hover:border-slate-400">
+          <a href={c.projectSlug === "hirestream-lite" ? `${data!.config.portalUrl}/auth` : "/mobile-app"} target={c.projectSlug === "hirestream-lite" ? "_blank" : undefined} rel="noreferrer" className="rounded-lg border border-slate-200 p-3 hover:border-slate-400">
             <div className="font-semibold text-slate-900 flex items-center gap-1.5 text-sm"><ExternalLink className="w-4 h-4" /> Do it myself</div>
-            <div className="text-xs text-slate-500 mt-1">Open the portal in a new tab and follow the steps.</div>
+            <div className="text-xs text-slate-500 mt-1">{c.projectSlug === "hirestream-lite" ? "Open the portal in a new tab and follow the steps." : "Open the app on your phone (QR code and steps), then follow the steps."}</div>
           </a>
           <button onClick={runAuto} disabled={!canAuto || !!data!.running} className="text-left rounded-lg border border-slate-200 p-3 hover:border-slate-400 disabled:opacity-50 disabled:hover:border-slate-200">
             <div className="font-semibold text-slate-900 flex items-center gap-1.5 text-sm"><Bot className="w-4 h-4" /> Run automated check</div>

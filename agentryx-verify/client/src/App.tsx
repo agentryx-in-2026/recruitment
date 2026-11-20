@@ -17,6 +17,7 @@ import { Findings } from "./pages/Findings";
 import { DocViewer } from "./pages/DocViewer";
 import { Run } from "./pages/Run";
 import { Audit } from "./pages/Audit";
+import { MobileApp } from "./pages/MobileApp";
 
 export function App() {
   return (
@@ -35,6 +36,7 @@ export function App() {
       <Route path="/docs/:id" component={DocViewer} />
       <Route path="/run" component={Run} />
       <Route path="/audit" component={Audit} />
+      <Route path="/mobile-app" component={MobileApp} />
       <Route path="/login" component={Login} />
       <Route path="/projects" component={Home} />
       <Route path="/admin/roadmap" component={Roadmap} />

@@ -154,7 +154,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
     testing: /^\/(cases|automation|findings|run)/.test(loc),
     help: loc.startsWith("/team-questions"),
     verify: loc.startsWith("/verify-feedback"),
-    resources: loc.startsWith("/resources") || (/^\/(docs|product)/.test(loc) && !data?.me.isAdmin),
+    resources: loc.startsWith("/resources") || loc.startsWith("/mobile-app") || (/^\/(docs|product)/.test(loc) && !data?.me.isAdmin),
     manage: /^\/(questions|projects|admin|settings|audit|p\/)/.test(loc) && !!data?.me.isAdmin,
     product: /^\/(docs|product)/.test(loc) && !!data?.me.isAdmin,
   };
@@ -233,6 +233,7 @@ export function Shell({ children, title }: { children: ReactNode; title?: string
       </Group>
       <Group title="Resources" here={inGroup.resources}>
         <NavLink href="/resources" label="Guides & videos" />
+        <NavLink href="/mobile-app" label="Mobile app — QR code" />
         {!data.me.isAdmin && <>
           <NavLink href="/product?tab=documents" label="Documents" alsoActive={!!onDoc && !docStarred} />
           {starred.map((d) => <NavLink key={d.id} href={`/docs/${d.id}`} label={d.title} sub />)}
