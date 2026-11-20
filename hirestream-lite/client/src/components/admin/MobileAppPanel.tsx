@@ -33,7 +33,7 @@ export function MobileAppPanel() {
           <ol className="mt-3 space-y-2.5">
             <Step n={1}>Install <b>Expo Go</b> from the Google Play Store (free).</Step>
             <Step n={2}>Open Expo Go and tap <b>Scan QR code</b>, then scan the code on the left — or tap <b>Enter URL manually</b> and type <code className="font-mono text-xs">{MOBILE_URL}</code>.</Step>
-            <Step n={3}>Wait 15–30 seconds the first time while the app loads, then sign in with your portal username and password.</Step>
+            <Step n={3}>Wait while the app loads — up to a minute the first time, then sign in with your portal username and password.</Step>
           </ol>
         </section>
         <section className="bg-white rounded-xl border border-slate-200 p-5">
@@ -41,9 +41,15 @@ export function MobileAppPanel() {
           <ol className="mt-3 space-y-2.5">
             <Step n={1}>Install <b>Expo Go</b> from the App Store (free).</Step>
             <Step n={2}>Open <b>Safari</b> (not Expo Go) and type <code className="font-mono text-xs">{MOBILE_URL}</code> in the address bar. The QR code does not work on iPhone.</Step>
-            <Step n={3}>Tap <b>Open</b> when asked “Open this page in Expo Go?”. The app loads in 15–30 seconds.</Step>
+            <Step n={3}>Tap <b>Open</b> when asked “Open this page in Expo Go?”. The app loads — up to a minute the first time.</Step>
           </ol>
-          <p className="mt-4 text-xs text-slate-500">Won’t load? Close Expo Go completely and try again. Usernames are lowercase.</p>
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-1">
+            <p className="font-semibold">“Local network access is needed”?</p>
+            <p>Expo Go asks for this permission; the app needs it to open. Allow it, then close Expo Go completely and open the app again.</p>
+            <p><b>iPhone:</b> Settings → Privacy &amp; Security → Local Network → turn on Expo Go.</p>
+            <p><b>Android:</b> Settings → Apps → Expo Go → Permissions → allow Nearby devices.</p>
+          </div>
+          <p className="mt-3 text-xs text-slate-500">Still won’t load? Close Expo Go completely and try again. Usernames are lowercase.</p>
         </section>
       </div>
     </div>
